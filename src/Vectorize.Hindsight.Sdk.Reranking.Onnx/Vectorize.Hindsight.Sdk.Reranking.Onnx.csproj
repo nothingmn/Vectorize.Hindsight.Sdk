@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Vectorize.Hindsight.Sdk.Reranking.Onnx</RootNamespace>
+    <AssemblyName>Vectorize.Hindsight.Sdk.Reranking.Onnx</AssemblyName>
+    <PackageId>Vectorize.Hindsight.Sdk.Reranking.Onnx</PackageId>
+
+    <Description>Local ONNX cross-encoder reranking for Vectorize.Hindsight.Sdk. Runs a BGE-style reranker in-process on CPU or GPU, so merged cross-bank candidates can be ordered by cross-bank relevance without a remote service.</Description>
+    <PackageTags>hindsight;vectorize;reranker;onnx;cross-encoder;bge;rag;retrieval</PackageTags>
+
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- The ONNX Runtime dependency is not AOT-friendly, so unlike the core library this package
+         does not claim to be trimmable or AOT compatible. The reranker is a host-level service;
+         the core library stays the trimmable, AOT-compatible part. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Vectorize.Hindsight.Sdk/Vectorize.Hindsight.Sdk.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- A package-specific README, because this package's setup instructions (model assets, the
+         tokenizer requirement, the GPU prerequisite) do not belong in the core library's README. -->
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

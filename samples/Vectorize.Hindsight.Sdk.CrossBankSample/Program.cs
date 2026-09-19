@@ -3,6 +3,7 @@ using Vectorize.Hindsight.Sdk;
 using Vectorize.Hindsight.Sdk.Configuration;
 using Vectorize.Hindsight.Sdk.CrossBank;
 using Vectorize.Hindsight.Sdk.Models;
+using Vectorize.Hindsight.Sdk.Reranking.Onnx;
 
 // Cross-bank recall against the live rig.
 //
@@ -13,6 +14,9 @@ using Vectorize.Hindsight.Sdk.Models;
 // The rig is at 127.0.0.1:8888. Production is never touched.
 
 var baseAddress = args.Length > 0 ? args[0] : "http://127.0.0.1:8888";
+
+// Collected as the run goes, so every claim this sample makes is checked before it prints PASSED.
+var failures = new List<string>();
 var suffix = Guid.NewGuid().ToString("N")[..8];
 var bankA = $"xbank-a-{suffix}";
 var bankB = $"xbank-b-{suffix}";
@@ -65,6 +69,32 @@ Console.WriteLine($"  bank B: {seededB} retained");
 Console.WriteLine($"  bank C: {seededC} retained");
 Console.WriteLine();
 
+// --- The optional ONNX reranker ------------------------------------------
+
+// Only used when the assets are on disk. The point of this section is to show the reranker
+// changing the order, so if it is absent the sample still runs and says so rather than failing.
+var rerankerDirectory = Environment.GetEnvironmentVariable("HINDSIGHT_RERANKER_DIR");
+OnnxReranker? reranker = null;
+
+if (!string.IsNullOrWhiteSpace(rerankerDirectory)
+    && File.Exists(Path.Combine(rerankerDirectory, "model_int8.onnx")))
+{
+    reranker = new OnnxReranker(new OnnxRerankerOptions
+    {
+        ModelPath = Path.Combine(rerankerDirectory, "model_int8.onnx"),
+        TokenizerJsonPath = Path.Combine(rerankerDirectory, "tokenizer.json"),
+        SentencePieceModelPath = Path.Combine(rerankerDirectory, "sentencepiece.bpe.model"),
+    });
+
+    Console.WriteLine($"reranker : ONNX, provider {reranker.ProviderInUse}");
+}
+else
+{
+    Console.WriteLine("reranker : not configured (set HINDSIGHT_RERANKER_DIR to enable)");
+}
+
+Console.WriteLine();
+
 // --- The fan-out ---------------------------------------------------------
 
 Console.WriteLine("=== cross-bank recall ===");
@@ -96,6 +126,67 @@ foreach (var candidate in result.Candidates)
 
     var text = candidate.Text.Length > 62 ? candidate.Text[..62] + "..." : candidate.Text;
     Console.WriteLine($"  rank {candidate.Rank}  score {score,-6}  {banks,-24}  {text}");
+}
+
+Console.WriteLine();
+
+// --- The same recall, reranked -------------------------------------------
+
+if (reranker is not null)
+{
+    Console.WriteLine("=== the same recall, with the cross-encoder reranking it ===");
+
+    var reranked = await client.RecallAcrossBanksAsync(
+        "Who is Alice Nakamura and what do we know about billing?",
+        [bankA, bankB, bankC],
+        new CrossBankRecallOptions { PerBankLimit = 8, MaxCandidates = 12, Reranker = reranker },
+        CancellationToken.None);
+
+    Console.WriteLine($"rerank applied : {reranked.RerankApplied}");
+    Console.WriteLine($"rerank failure : {reranked.RerankFailure?.Message ?? "none"}");
+    Console.WriteLine();
+    Console.WriteLine("relevance order:");
+    foreach (var candidate in reranked.Candidates)
+    {
+        var relevance = candidate.RerankScore is { } score
+            ? score.ToString("0.0000", CultureInfo.InvariantCulture)
+            : "n/a";
+
+        var text = candidate.Text.Length > 56 ? candidate.Text[..56] + "..." : candidate.Text;
+
+        // Both scores shown side by side: the point of the design is that a candidate's final
+        // position came from a comparison the merge could not have made.
+        Console.WriteLine($"  relevance {relevance,-9} recall {candidate.RetrievalScore?.ToString("0.000", CultureInfo.InvariantCulture) ?? "n/a",-6}  {text}");
+    }
+
+    var moved = 0;
+    for (var index = 0; index < Math.Min(result.Candidates.Count, reranked.Candidates.Count); index++)
+    {
+        if (result.Candidates[index].Source.Id != reranked.Candidates[index].Source.Id)
+        {
+            moved++;
+        }
+    }
+
+    Console.WriteLine();
+    Console.WriteLine($"positions changed by reranking: {moved}");
+
+    if (!reranked.RerankApplied)
+    {
+        failures.Add("the reranker was configured but its ordering was not applied");
+    }
+
+    if (moved == 0)
+    {
+        failures.Add(
+            "reranking changed nothing. That can be legitimate, but on this seeded data the query "
+            + "deliberately matches one bank's facts more than the others, so a zero change means "
+            + "the reranker is not influencing the order.");
+    }
+}
+else
+{
+    Console.WriteLine("(reranking skipped: no assets configured)");
 }
 
 Console.WriteLine();
@@ -132,8 +223,6 @@ foreach (var line in context.Split('\n').Take(16))
 Console.WriteLine();
 
 // --- Verify the claims ---------------------------------------------------
-
-var failures = new List<string>();
 
 if (result.SucceededCount != 3)
 {
@@ -190,7 +279,9 @@ if (failures.Count > 0)
     return 1;
 }
 
-Console.WriteLine("PASSED: fan-out, provenance, deduplication, and partial-failure reporting all verified live.");
+Console.WriteLine("PASSED: fan-out, provenance, deduplication, partial-failure reporting, and reranking all verified live.");
+
+reranker?.Dispose();
 
 // Leave the rig as it was found.
 foreach (var bank in new[] { bankA, bankB, bankC })

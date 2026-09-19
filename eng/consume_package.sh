@@ -28,7 +28,7 @@ if [[ ! -d "$PACKAGES_DIR" ]]; then
   exit 2
 fi
 
-for package in Vectorize.Hindsight.Sdk Vectorize.Hindsight.Sdk.DependencyInjection Vectorize.Hindsight.Sdk.Admin; do
+for package in Vectorize.Hindsight.Sdk Vectorize.Hindsight.Sdk.DependencyInjection Vectorize.Hindsight.Sdk.Admin Vectorize.Hindsight.Sdk.Reranking.Onnx; do
   if ! ls "$PACKAGES_DIR/${package}.${VERSION}.nupkg" >/dev/null 2>&1; then
     printf '[consume] ERROR: %s.%s.nupkg is missing from %s\n' "$package" "$VERSION" "$PACKAGES_DIR" >&2
     exit 2
@@ -40,6 +40,26 @@ trap 'rm -rf "$WORK"' EXIT
 
 printf '[consume] consuming version %s from %s\n' "$VERSION" "$PACKAGES_DIR"
 printf '[consume] scratch directory: %s\n' "$WORK"
+
+# Clear any previously cached copy of this exact version before restoring.
+#
+# This matters, and it bit: NuGet resolves by id AND version from the global packages folder, so a
+# package already cached under this version is used verbatim - including one built from older source
+# under the same version number. A run then verifies yesterday's bits and reports success for code
+# that was never packed. It fails in the other direction too: a stale cached package without a new
+# type makes this gate fail while the freshly packed archive is perfectly correct.
+#
+# The real fix for a release is a unique version per build (CI stamps one, and a published version
+# is immutable). For local iteration the cache must be purged explicitly, or this gate is measuring
+# the cache rather than the archive.
+CACHE_DIR="${NUGET_PACKAGES:-$HOME/.nuget/packages}"
+for package in Vectorize.Hindsight.Sdk Vectorize.Hindsight.Sdk.DependencyInjection Vectorize.Hindsight.Sdk.Admin Vectorize.Hindsight.Sdk.Reranking.Onnx; do
+  cached="$CACHE_DIR/$(printf '%s' "$package" | tr '[:upper:]' '[:lower:]')/$VERSION"
+  if [[ -d "$cached" ]]; then
+    printf '[consume] purging cached %s %s (a cached copy would be restored instead of the archive)\n' "$package" "$VERSION"
+    rm -rf "$cached"
+  fi
+done
 
 # A consumer needs a NuGet.config that adds the local feed. Nothing else: the packages must
 # carry their own dependency graph, which is exactly what this is checking.
@@ -71,6 +91,7 @@ cat > "$WORK/Consumer.csproj" <<EOF
     <PackageReference Include="Vectorize.Hindsight.Sdk" Version="$VERSION" />
     <PackageReference Include="Vectorize.Hindsight.Sdk.DependencyInjection" Version="$VERSION" />
     <PackageReference Include="Vectorize.Hindsight.Sdk.Admin" Version="$VERSION" />
+    <PackageReference Include="Vectorize.Hindsight.Sdk.Reranking.Onnx" Version="$VERSION" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
   </ItemGroup>
 </Project>
@@ -85,6 +106,8 @@ using Vectorize.Hindsight.Sdk;
 using Vectorize.Hindsight.Sdk.Admin;
 using Vectorize.Hindsight.Sdk.DependencyInjection;
 using Vectorize.Hindsight.Sdk.Errors;
+using Vectorize.Hindsight.Sdk.Reranking;
+using Vectorize.Hindsight.Sdk.Reranking.Onnx;
 using Vectorize.Hindsight.Sdk.Models;
 
 var failures = new List<string>();
@@ -122,6 +145,41 @@ try
 catch (Exception ex)
 {
     failures.Add($"core package: {ex.GetType().Name}: {ex.Message}");
+}
+
+// 1b. The reranking package's public surface is present and the seam is real.
+//
+// Deliberately does NOT load a model: the assets are hundreds of megabytes and are not part of the
+// package, so the point here is that the types and the options contract survived packing. The
+// behaviour is covered by that package's own suite.
+try
+{
+    if (!typeof(OnnxReranker).IsAssignableTo(typeof(IReranker)))
+    {
+        failures.Add("OnnxReranker no longer implements IReranker");
+    }
+
+    // The options type validates at construction rather than at first use, so a misconfiguration
+    // is a startup failure. Asserted here so the contract cannot be relaxed unnoticed.
+    try
+    {
+        using var rejected = new OnnxReranker(new OnnxRerankerOptions
+        {
+            ModelPath = "/nonexistent/model.onnx",
+            TokenizerJsonPath = "/nonexistent/tokenizer.json",
+            SentencePieceModelPath = "/nonexistent/sp.model",
+        });
+
+        failures.Add("constructing a reranker with missing files should have failed");
+    }
+    catch (HindsightConfigurationException)
+    {
+        // Expected: the missing model is rejected up front.
+    }
+}
+catch (Exception ex)
+{
+    failures.Add($"reranking package: {ex.GetType().Name}: {ex.Message}");
 }
 
 // 2. The DI package registers and resolves.
@@ -184,7 +242,7 @@ if (failures.Count > 0)
     return 1;
 }
 
-Console.WriteLine("CONSUME OK: all three packages restored and their public surfaces are callable.");
+Console.WriteLine("CONSUME OK: every package restored and its public surface is callable.");
 return 0;
 EOF
 

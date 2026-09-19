@@ -11,11 +11,21 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.7" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.7" />
 
+    <!-- Reranking package. The CPU build of OnnxRuntime is referenced because it is the one that
+         runs everywhere; it still exposes AppendExecutionProvider_CUDA, so a caller who wants the
+         GPU swaps in Microsoft.ML.OnnxRuntime.Gpu at their application level (see the package
+         README). The CUDA native libraries are NOT bundled in either case. -->
+    <PackageVersion Include="Microsoft.ML.OnnxRuntime" Version="1.30.0" />
+    <PackageVersion Include="Microsoft.ML.Tokenizers" Version="2.0.0" />
+
     <!-- Tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <!-- Lets the reranker suite skip cleanly when the multi-hundred-megabyte ONNX assets are not
+         present, instead of failing or silently passing without exercising anything. -->
+    <PackageVersion Include="Xunit.SkippableFact" Version="1.5.85" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.7" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.9" />

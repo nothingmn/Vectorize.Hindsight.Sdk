@@ -145,7 +145,20 @@ public sealed partial class HindsightClient
         }
 
         var merged = CrossBankMerger.Merge(completed, options);
-        var selectedCounts = merged.Candidates
+
+        // Second stage, when a reranker was supplied: compare every candidate against the query
+        // under one model, which is the only comparison that is meaningful across banks.
+        var candidates = merged.Candidates;
+        var rerankApplied = false;
+        Exception? rerankFailure = null;
+
+        if (options.Reranker is not null && candidates.Count > 0)
+        {
+            (candidates, rerankApplied, rerankFailure) =
+                await RerankAsync(query, candidates, options, cancellationToken).ConfigureAwait(false);
+        }
+
+        var selectedCounts = candidates
             .GroupBy(candidate => candidate.BankId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
 
@@ -167,11 +180,97 @@ public sealed partial class HindsightClient
 
         return new CrossBankRecallResult
         {
-            Candidates = merged.Candidates,
+            Candidates = candidates,
             Banks = finalOutcomes,
             CandidatePoolSize = merged.CandidatePoolSize,
             DuplicatesMerged = merged.DuplicatesMerged,
+            RerankApplied = rerankApplied,
+            RerankFailure = rerankFailure,
         };
+    }
+
+    /// <summary>
+    /// Scores the merged candidates against the query and reorders them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A reranker failure is reported rather than raised. The caller asked two questions — what is
+    /// relevant, and in what order — and the first was already answered successfully by the banks.
+    /// Failing the whole call would discard memories that were retrieved, which is a worse outcome
+    /// than handing them back in the pre-rerank order with the degradation stated. The fallback is
+    /// never silent: it is on <see cref="CrossBankRecallResult.RerankFailure"/> and rendered into
+    /// the context, so a model is told the position is not a statement about relevance.
+    /// </para>
+    /// <para>
+    /// When only some candidates are reranked, the rest keep their merge order and follow. They are
+    /// not dropped, and they are not mixed among the reranked ones in a way that would imply they
+    /// were compared.
+    /// </para>
+    /// </remarks>
+    private static async Task<(IReadOnlyList<CrossBankCandidate> Candidates, bool Applied, Exception? Failure)>
+        RerankAsync(
+            string query,
+            IReadOnlyList<CrossBankCandidate> candidates,
+            CrossBankRecallOptions options,
+            CancellationToken cancellationToken)
+    {
+        var toRerank = options.MaxRerankCandidates is { } limit && candidates.Count > limit
+            ? candidates.Take(limit).ToList()
+            : [.. candidates];
+
+        var documents = new List<string>(toRerank.Count);
+        foreach (var candidate in toRerank)
+        {
+            documents.Add(candidate.Text);
+        }
+
+        IReadOnlyList<double> scores;
+        try
+        {
+            scores = await options.Reranker!.RerankAsync(query, documents, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The caller gave up. That is not a reranker failure and must not be reported as one.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return (candidates, false, ex);
+        }
+
+        // A reranker that returns the wrong number of scores would have them silently attached to
+        // the wrong passages, which is worse than no reranking at all: the result would look
+        // plausible and be wrong. Treated as a failure.
+        if (scores.Count != toRerank.Count)
+        {
+            return (candidates, false, new HindsightProtocolException(
+                $"The reranker returned {scores.Count} score(s) for {toRerank.Count} document(s). "
+                + "Scores cannot be matched to passages safely, so the ranking was discarded.",
+                "IReranker.RerankAsync",
+                innerException: null));
+        }
+
+        var scored = new List<CrossBankCandidate>(toRerank.Count);
+        for (var index = 0; index < toRerank.Count; index++)
+        {
+            scored.Add(toRerank[index].WithRerankScore(scores[index]));
+        }
+
+        var ordered = scored
+            .OrderByDescending(candidate => candidate.RerankScore ?? double.NegativeInfinity)
+            // Deterministic tie-break, so equal scores do not order by sort stability alone.
+            .ThenBy(candidate => candidate.Rank)
+            .ThenBy(candidate => candidate.BankId, StringComparer.Ordinal)
+            .ToList();
+
+        if (toRerank.Count < candidates.Count)
+        {
+            ordered.AddRange(candidates.Skip(toRerank.Count));
+        }
+
+        return (ordered, true, null);
     }
 
     /// <summary>Recalls from one bank and records its outcome in its slot.</summary>

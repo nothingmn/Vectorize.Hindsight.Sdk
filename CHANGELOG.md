@@ -9,13 +9,37 @@ breaking change requires a major version, and the package validation in CI enfor
 leaving it to review.
 
 The version is declared once, in `Directory.Build.props` (`VersionPrefix`), so every package in the
-solution moves together. That is deliberate: the three packages describe one API surface, and a
-consumer mixing a 0.1.0 client with a 0.2.0 admin bridge would be reading a contract that never
-existed.
+solution moves together. That is deliberate: the packages describe one API surface, and a consumer
+mixing a 0.1.0 client with a 0.2.0 admin bridge would be reading a contract that never existed.
 
 ---
 
 ## [Unreleased]
+
+### Added
+
+**`Vectorize.Hindsight.Sdk.Reranking.Onnx`** — optional local ONNX cross-encoder reranking.
+
+- Implements the `IReranker` seam declared in the core library, adding the second stage of
+  cross-bank retrieval: candidates from every bank scored against one query under one model, which
+  is the only comparison meaningful across banks whose retrieval scores are not on a common scale.
+  The seam lives in the core and the implementation in this package, so a caller who does not want
+  a reranker never takes an inference dependency.
+- Verified to reproduce the reference Hugging Face tokenization **exactly** (`bge-reranker-v2-m3`).
+  This is the part that fails silently: ONNX Runtime runs happily on wrong input and returns
+  plausible numbers. An XLM-R reranker needs both `tokenizer.json` and `sentencepiece.bpe.model`
+  because they disagree — the HF vocabulary inserts a `<pad>` at index 1, shifting every content
+  piece by one, and orders the special tokens differently. Segmentation comes from SentencePiece and
+  each piece is mapped through the HF vocabulary, so the mapping is derived from the model's own
+  artifacts rather than hardcoded. The suite asserts the exact reference ids and that no piece falls
+  back to `<unk>` across five scripts.
+- Scores measured to be **ordinal, not calibrated** — documented as a contract rather than a caveat,
+  with the measurement that establishes it.
+- Batching with length grouping, bounded concurrency, CPU by default, and a GPU that falls back to
+  CPU with a warning rather than failing.
+- A reranker that throws, or that returns the wrong number of scores, does not cost the caller the
+  memories the banks already returned: the fallback is reported on `RerankFailure` and disclosed in
+  the rendered context, so a model is never told that position means relevance when it does not.
 
 ## [0.1.0] — 2026-09-19
 

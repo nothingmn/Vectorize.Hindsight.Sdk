@@ -23,10 +23,14 @@ specification disagree, the specification wins and the disagreement is recorded 
 dotnet add package Vectorize.Hindsight.Sdk
 dotnet add package Vectorize.Hindsight.Sdk.DependencyInjection   # optional: DI integration
 dotnet add package Vectorize.Hindsight.Sdk.Admin                 # optional: admin CLI bridge
+dotnet add package Vectorize.Hindsight.Sdk.Reranking.Onnx        # optional: local cross-encoder reranking
 ```
 
-Target framework: `net10.0`. The library is trimmable and Native AOT friendly — every
-serializer path is source-generated and no reflection is used over caller types.
+Target framework: `net10.0`. The core library is trimmable and Native AOT friendly — every
+serializer path is source-generated and no reflection is used over caller types. The optional
+packages carry that property only as far as their own dependencies allow: the reranking package
+depends on ONNX Runtime, which is not AOT compatible, which is exactly why reranking is a separate
+package rather than a feature of the core.
 
 ---
 
@@ -294,6 +298,7 @@ passing vacuously. A companion test verifies the 7 deprecated operations are gen
 | Compositions | 2 (`RecallAcrossBanksAsync` overloads), excluded from the count |
 | Deliberately excluded | 7 deprecated, named individually in `docs/api-surface.md` |
 | Component schemas modelled | 181 of 181 |
+| Compositions beyond the spec | 2 (cross-bank recall), plus the optional reranker seam |
 
 The two hand-written operations are `FileRetainAsync` and `ImportBankTransferAsync`, because a
 file upload's parameters are streams and filenames rather than a JSON body. The generator
@@ -369,6 +374,52 @@ Run it against the rig with:
 dotnet run --project samples/Vectorize.Hindsight.Sdk.CrossBankSample
 ```
 
+### Optional reranking
+
+The merge above deliberately does **not** rerank. Adding that second stage is opt-in, through an
+`IReranker` seam that lives in the core library so a caller who does not want one never takes an
+inference dependency:
+
+```csharp
+using var reranker = new OnnxReranker(new OnnxRerankerOptions
+{
+    ModelPath = "artifacts/reranker/model_int8.onnx",
+    TokenizerJsonPath = "artifacts/reranker/tokenizer.json",
+    SentencePieceModelPath = "artifacts/reranker/sentencepiece.bpe.model",
+});
+
+var result = await client.RecallAcrossBanksAsync(
+    query, ["bank-personal", "bank-team", "bank-archive"],
+    new CrossBankRecallOptions { Reranker = reranker },
+    cancellationToken);
+
+Console.WriteLine(result.RerankApplied);   // false means the ranking degraded, and why is on RerankFailure
+```
+
+`Vectorize.Hindsight.Sdk.Reranking.Onnx` runs a BGE-style cross-encoder in-process on CPU or GPU.
+The model assets are fetched with `test-infra/fetch-reranker-model.sh`. Design points worth knowing:
+
+- **A reranker failure never costs the caller their memories.** The caller asked two questions —
+  what is relevant, and in what order — and the banks already answered the first. A failed reranker
+  is reported on `RerankFailure` and the candidates come back in the pre-rerank order, with the
+  degradation stated in `ToContext()` so a model is not told position means relevance.
+- **A reranker that returns the wrong number of scores is treated as a failure**, not mapped
+  positionally. Mismatched scores would produce a plausible-looking order that is simply wrong,
+  which is worse than no ranking.
+- **Scores are ordinal, not calibrated.** Measured with the INT8 export: the right answer scored
+  0.29 while every other candidate sat between 0.000016 and 0.0018, with the two least relevant
+  separated only in the sixth decimal. The order was right and the magnitudes were near-meaningless
+  — normal for a quantized cross-encoder. Order by the score; do not threshold on it.
+- **A missing GPU falls back to CPU with a warning** rather than failing. Check `ProviderInUse`.
+- **The tokenizer is verified against the reference implementation**, not assumed. This is the part
+  that goes silently wrong — ONNX Runtime runs happily on wrong input and returns plausible numbers.
+  An XLM-R reranker needs two assets that disagree: the HF vocabulary inserts a `<pad>` at index 1
+  (shifting every content piece by one), and orders the special tokens differently. Segmentation
+  comes from `sentencepiece.bpe.model` and each piece is mapped through the vocabulary in
+  `tokenizer.json`, so the mapping is derived from the model's own artifacts rather than hardcoded.
+  The suite asserts the exact reference ids on English and multilingual input, and that not one
+  piece falls back to `<unk>` across five scripts.
+
 ---
 
 ## Building, packaging, and CI
@@ -388,7 +439,8 @@ python3 eng/generate_models.py --check
 python3 eng/generate_operations.py --check
 python3 eng/generate_inventory.py --check
 
-# Coverage floors: 90% line / 60% branch per library, 95% / 80% for the DI package.
+# Coverage floors: 90% line / 60% branch, 95% / 80% for the DI package, and 80% / 70%
+# for the reranker (whose inference paths need model assets CI does not download).
 dotnet test Vectorize.Hindsight.Sdk.slnx -c Release \
   --collect:"XPlat Code Coverage" --results-directory ./artifacts/test-results --logger trx
 python3 eng/coverage_gate.py
@@ -445,6 +497,14 @@ outright with `NU1902`. Verified, not assumed.
 
 ## Not verified
 
+The ONNX reranker has been exercised on **CPU only**. It was built and tested on a machine with an
+RTX A5000 present but no CUDA libraries (cuDNN/cuBLAS) installed, so the GPU path is the one code
+path in this repository that has never actually run: `AppendExecutionProvider_CUDA` is reached only
+when the runtime reports a CUDA provider, and that report was always negative here. The fallback
+behaviour **is** verified — a requested GPU with no CUDA libraries falls back to CPU with a warning
+rather than failing — but GPU inference itself is not.
+
+
 Stated plainly rather than left implicit:
 
 - **`401` and `403`** cannot be provoked against the default deployment, which does not enforce
@@ -474,6 +534,7 @@ src/Vectorize.Hindsight.Sdk/                     the HTTP client
   Models/                                        generated DTOs (181) + HindsightValues
   Operations/                                    generated operations (15 files, tagged)
   CrossBank/                                     recall across banks: fan-out, merge, provenance
+  Reranking/                                     the IReranker seam (no inference dependency)
   Unions/                                        the four hand-written unions + converters
   Http/                                          transport, JSON, retry policy
   Errors/                                        the exception surface
@@ -482,9 +543,11 @@ src/Vectorize.Hindsight.Sdk/                     the HTTP client
   Configuration/                                 options
 src/Vectorize.Hindsight.Sdk.Admin/               the admin-CLI bridge (process, not HTTP)
 src/Vectorize.Hindsight.Sdk.DependencyInjection/ DI integration
+src/Vectorize.Hindsight.Sdk.Reranking.Onnx/      local ONNX cross-encoder reranker
 tests/Vectorize.Hindsight.Sdk.Tests/             unit suite (no network, no credentials)
 tests/Vectorize.Hindsight.Sdk.Admin.Tests/       admin bridge (stub, real-process, and live levels)
 tests/Vectorize.Hindsight.Sdk.IntegrationTests/  live suite + the coverage assertions
+tests/Vectorize.Hindsight.Sdk.Reranking.Tests/   reranker, incl. tokenizer parity vs the reference
 samples/Vectorize.Hindsight.Sdk.Sample/          runnable example
 samples/Vectorize.Hindsight.Sdk.CrossBankSample/ multi-bank recall against the rig
 eng/                                             generators, gates, and CI helpers

@@ -76,6 +76,27 @@ public sealed class CrossBankCandidate
     public double PolicyWeight { get; init; } = 1.0;
 
     /// <summary>
+    /// The reranker's score for this candidate against the original query, when a reranker ran.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A separate field rather than an overwrite of <see cref="RetrievalScore"/>, following the
+    /// documented rule to prefer metadata over destructive score manipulation. The retrieval score
+    /// is what the bank said, this is what the cross-encoder said, and keeping both makes a
+    /// surprising final order traceable to whichever one caused it.
+    /// </para>
+    /// <para>
+    /// <b>Ordinal, not calibrated.</b> Higher means more relevant to this query, and scores within
+    /// one call are comparable with each other. Do not compare one across calls or against a fixed
+    /// threshold: a quantized cross-encoder can compress its output into a narrow band while still
+    /// ordering correctly. Observed on the INT8 export of bge-reranker-v2-m3, where every relevant
+    /// document landed between 0.0000 and 0.29 and the two least relevant differed only in the
+    /// sixth decimal — the order was right and the absolute values were not meaningful.
+    /// </para>
+    /// </remarks>
+    public double? RerankScore { get; init; }
+
+    /// <summary>
     /// Every bank this content was seen in, this one first.
     /// </summary>
     /// <remarks>
@@ -172,6 +193,19 @@ public sealed class CrossBankCandidate
             SeenInBanks = [bankId],
         };
 
+    /// <summary>Returns this candidate with a rerank score attached.</summary>
+    /// <param name="score">The reranker's score for it.</param>
+    internal CrossBankCandidate WithRerankScore(double score) =>
+        new()
+        {
+            BankId = BankId,
+            Source = Source,
+            Rank = Rank,
+            PolicyWeight = PolicyWeight,
+            RerankScore = score,
+            SeenInBanks = SeenInBanks,
+        };
+
     /// <summary>
     /// Returns this candidate with an additional bank recorded.
     /// </summary>
@@ -183,6 +217,7 @@ public sealed class CrossBankCandidate
             Source = Source,
             Rank = Rank,
             PolicyWeight = PolicyWeight,
+            RerankScore = RerankScore,
             SeenInBanks = [.. SeenInBanks, bankId],
         };
 }
@@ -230,6 +265,27 @@ public sealed class CrossBankRecallResult
     /// This is what a caller passes to a model. Every element still knows its bank.
     /// </remarks>
     public required IReadOnlyList<CrossBankCandidate> Candidates { get; init; }
+
+    /// <summary>
+    /// True when a reranker ran and its ordering was applied.
+    /// </summary>
+    /// <remarks>
+    /// Worth checking when a caller supplied a reranker. False means the candidates are in the
+    /// pre-rerank merge order, which is a different answer from a reranked one and should not be
+    /// presented as though relevance was evaluated.
+    /// </remarks>
+    public bool RerankApplied { get; init; }
+
+    /// <summary>
+    /// The reranker's failure, when one was supplied and threw.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="Failures"/> because the two mean different things: a failed bank
+    /// means the candidate set is incomplete, a failed reranker means the set is complete but
+    /// ordered by the fallback. Collapsing them would make a caller unable to tell a missing
+    /// source from a missing ranking.
+    /// </remarks>
+    public Exception? RerankFailure { get; init; }
 
     /// <summary>What happened to each bank, in the order the banks were supplied.</summary>
     public required IReadOnlyList<CrossBankOutcome> Banks { get; init; }
@@ -300,6 +356,12 @@ public sealed class CrossBankRecallResult
                 builder.Append(" | result ").Append(candidate.Source.Id);
             }
 
+            if (candidate.RerankScore is { } relevance)
+            {
+                builder.Append(" | relevance ")
+                    .Append(relevance.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
+            }
+
             builder.AppendLine("]");
             builder.AppendLine(candidate.Text);
             builder.AppendLine();
@@ -310,6 +372,15 @@ public sealed class CrossBankRecallResult
             builder.Append("[SOURCE ").Append(failure.BankId).AppendLine(" unavailable]");
             builder.AppendLine("No memories could be retrieved from this bank.");
             builder.AppendLine();
+        }
+
+        if (RerankFailure is not null)
+        {
+            builder.AppendLine("[RELEVANCE RANKING UNAVAILABLE]");
+            builder.AppendLine(
+                "These results are in cross-bank merge order, not relevance order: "
+                + "the passages were not compared against each other. Do not treat their "
+                + "position as a statement about relevance.");
         }
 
         return builder.ToString().TrimEnd();

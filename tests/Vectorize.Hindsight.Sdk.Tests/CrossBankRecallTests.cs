@@ -21,13 +21,39 @@ public sealed class CrossBankRecallTests
     /// <summary>
     /// A transport that answers per bank, so each bank can return its own result set.
     /// </summary>
+    /// <remarks>
+    /// <b>Every mutable member is synchronised.</b> This double is deliberately used from several
+    /// threads at once, because the concurrency it observes is the behaviour under test. A plain
+    /// <c>List.Add</c> from concurrent writers silently loses entries — it failed exactly that way
+    /// once, dropping one of four recorded banks — and an unsynchronised counter would under-report
+    /// the peak. An unsynchronised test double would make the feature look broken on a fast machine
+    /// and correct on a slow one.
+    /// </remarks>
     private sealed class PerBankTransport : IHindsightTransport
     {
         private readonly Dictionary<string, (int Status, string Json)> _byBank = new(StringComparer.Ordinal);
 
-        internal List<string> RequestedBanks { get; } = [];
+        private readonly Lock _sync = new();
 
-        internal List<string> RequestedBodies { get; } = [];
+        private readonly List<string> _requestedBanks = [];
+
+        private readonly List<string> _requestedBodies = [];
+
+        private int _inFlight;
+
+        private int _peakInFlight;
+
+        /// <summary>The banks that were queried, in order.</summary>
+        internal IReadOnlyList<string> RequestedBanks
+        {
+            get { lock (_sync) { return [.. _requestedBanks]; } }
+        }
+
+        /// <summary>The request bodies sent, in order.</summary>
+        internal IReadOnlyList<string> RequestedBodies
+        {
+            get { lock (_sync) { return [.. _requestedBodies]; } }
+        }
 
         /// <summary>Banks that are answered slowly, to observe concurrency.</summary>
         internal TimeSpan Delay { get; set; } = TimeSpan.Zero;
@@ -35,13 +61,19 @@ public sealed class CrossBankRecallTests
         /// <summary>Banks to fail, and how.</summary>
         internal Dictionary<string, Exception> ThrowFor { get; } = new(StringComparer.Ordinal);
 
-        internal int InFlight { get; private set; }
-
-        internal int PeakInFlight { get; private set; }
+        /// <summary>The highest number of sends that were in flight at the same moment.</summary>
+        internal int PeakInFlight
+        {
+            get { lock (_sync) { return _peakInFlight; } }
+        }
 
         internal PerBankTransport Answer(string bankId, int status, string json)
         {
-            _byBank[bankId] = (status, json);
+            lock (_sync)
+            {
+                _byBank[bankId] = (status, json);
+            }
+
             return this;
         }
 
@@ -57,7 +89,13 @@ public sealed class CrossBankRecallTests
         private readonly List<string> _existingBanks = [];
 
         /// <summary>Declares which banks a listing request will report.</summary>
-        internal void ForListing(params string[] bankIds) => _existingBanks.AddRange(bankIds);
+        internal void ForListing(params string[] bankIds)
+        {
+            lock (_sync)
+            {
+                _existingBanks.AddRange(bankIds);
+            }
+        }
 
         public async Task<HindsightResponse> SendAsync(
             HindsightRequest request, bool streamResponse, CancellationToken cancellationToken)
@@ -67,9 +105,14 @@ public sealed class CrossBankRecallTests
             // A listing request is answered from the declared bank set.
             if (request.Path.EndsWith("/banks", StringComparison.Ordinal))
             {
-                RequestedBanks.Add("(listing)");
-                var items = _existingBanks.Select(id => $"{{\"bank_id\":\"{id}\"}}");
-                var listing = $"{{\"banks\":[{string.Join(",", items)}],\"total\":{_existingBanks.Count}}}";
+                string listing;
+                lock (_sync)
+                {
+                    _requestedBanks.Add("(listing)");
+                    var items = _existingBanks.Select(id => $"{{\"bank_id\":\"{id}\"}}");
+                    listing = $"{{\"banks\":[{string.Join(",", items)}],\"total\":{_existingBanks.Count}}}";
+                }
+
                 return new HindsightResponse
                 {
                     StatusCode = 200,
@@ -83,41 +126,57 @@ public sealed class CrossBankRecallTests
             var segments = request.Path.Split('/');
             var bankId = segments[^3];
 
-            InFlight++;
-            PeakInFlight = Math.Max(PeakInFlight, InFlight);
+            var body = request.Body is null
+                ? string.Empty
+                : System.Text.Encoding.UTF8.GetString(request.Body.Value.Span);
+
+            lock (_sync)
+            {
+                _requestedBanks.Add(bankId);
+                _requestedBodies.Add(body);
+
+                // Tracked under the same lock so the peak cannot miss an overlap, and so the
+                // increment and the peak update are one atomic observation rather than two.
+                _inFlight++;
+                _peakInFlight = Math.Max(_peakInFlight, _inFlight);
+            }
 
             try
             {
-                RequestedBanks.Add(bankId);
-                RequestedBodies.Add(request.Body is null
-                    ? string.Empty
-                    : System.Text.Encoding.UTF8.GetString(request.Body.Value.Span));
-
                 if (Delay > TimeSpan.Zero)
                 {
                     await Task.Delay(Delay, cancellationToken).ConfigureAwait(false);
                 }
 
-                if (ThrowFor.TryGetValue(bankId, out var exception))
+                Exception? failure;
+                (int Status, string Json) answer;
+                lock (_sync)
                 {
-                    throw exception;
+                    ThrowFor.TryGetValue(bankId, out failure);
+                    answer = _byBank.TryGetValue(bankId, out var configured)
+                        ? configured
+                        : (200, """{"results":[]}""");
                 }
 
-                var (status, json) = _byBank.TryGetValue(bankId, out var answer)
-                    ? answer
-                    : (200, """{"results":[]}""");
+                if (failure is not null)
+                {
+                    throw failure;
+                }
 
                 return new HindsightResponse
                 {
-                    StatusCode = status,
-                    Body = System.Text.Encoding.UTF8.GetBytes(json),
+                    StatusCode = answer.Status,
+                    Body = System.Text.Encoding.UTF8.GetBytes(answer.Json),
                     Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
                     ContentType = "application/json",
                 };
             }
             finally
             {
-                InFlight--;
+                lock (_sync)
+                {
+                    _inFlight--;
+                }
             }
         }
 
@@ -919,8 +978,23 @@ public sealed class CrossBankRecallTests
                 },
                 CancellationToken.None);
 
-            var regulated = transport.RequestedBodies[transport.RequestedBanks.IndexOf("bank-regulated")];
-            var notes = transport.RequestedBodies[transport.RequestedBanks.IndexOf("bank-notes")];
+            var banks = transport.RequestedBanks;
+            var bodies = transport.RequestedBodies;
+            int IndexOfBank(string id)
+            {
+                for (var index = 0; index < banks.Count; index++)
+                {
+                    if (banks[index] == id)
+                    {
+                        return index;
+                    }
+                }
+
+                return -1;
+            }
+
+            var regulated = bodies[IndexOfBank("bank-regulated")];
+            var notes = bodies[IndexOfBank("bank-notes")];
 
             Assert.Contains("\"max_tokens\":64", regulated, StringComparison.Ordinal);
             Assert.Contains("\"budget\":\"low\"", regulated, StringComparison.Ordinal);
@@ -951,6 +1025,391 @@ public sealed class CrossBankRecallTests
 
             Assert.Contains("the real question", transport.RequestedBodies[0], StringComparison.Ordinal);
             Assert.DoesNotContain("a different question", transport.RequestedBodies[0], StringComparison.Ordinal);
+        }
+    }
+
+    // --- Reranking ---------------------------------------------------------
+
+    /// <summary>A reranker that returns whatever scores the test asks for, keyed by passage text.</summary>
+    private sealed class StubReranker : Reranking.IReranker
+    {
+        private readonly Func<string, string, double> _score;
+
+        internal StubReranker(Func<string, string, double> score) => _score = score;
+
+        internal int CallCount { get; private set; }
+
+        internal IReadOnlyList<string>? LastDocuments { get; private set; }
+
+        internal string? LastQuery { get; private set; }
+
+        public Task<IReadOnlyList<double>> RerankAsync(
+            string query, IReadOnlyList<string> documents, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            LastQuery = query;
+            LastDocuments = documents;
+
+            IReadOnlyList<double> scores = [.. documents.Select(document => _score(query, document))];
+            return Task.FromResult(scores);
+        }
+    }
+
+    /// <summary>A reranker that always throws.</summary>
+    private sealed class FailingReranker : Reranking.IReranker
+    {
+        public Task<IReadOnlyList<double>> RerankAsync(
+            string query, IReadOnlyList<string> documents, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("the model is unavailable");
+    }
+
+    /// <summary>A reranker that returns the wrong number of scores.</summary>
+    private sealed class WrongCountReranker : Reranking.IReranker
+    {
+        public Task<IReadOnlyList<double>> RerankAsync(
+            string query, IReadOnlyList<string> documents, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<double>>([0.5]);
+    }
+
+    [Fact]
+    public async Task A_reranker_reorders_the_merged_candidates_by_relevance()
+    {
+        // The second stage: candidates from different banks compared under one query and one model.
+        // Bank C's best candidate is dragged to the top even though it was not first by merge order.
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", ("A1", 0.91));
+            transport.Answer("bank-b", ("B1", 0.86));
+            transport.Answer("bank-c", ("C1", 0.93));
+
+            var reranker = new StubReranker((_, document) => document.Contains("C1", StringComparison.Ordinal) ? 0.97 : 0.1);
+
+            var result = await client.RecallAcrossBanksAsync(
+                "q",
+                ["bank-a", "bank-b", "bank-c"],
+                new CrossBankRecallOptions { Reranker = reranker },
+                CancellationToken.None);
+
+            Assert.True(result.RerankApplied);
+            Assert.Null(result.RerankFailure);
+            Assert.Equal("C1", result.Candidates[0].Source.Id);
+            Assert.Equal(1, reranker.CallCount);
+        }
+    }
+
+    [Fact]
+    public async Task The_reranker_is_given_the_original_query_and_every_candidate_text()
+    {
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", ("A1", 0.9));
+            transport.Answer("bank-b", ("B1", 0.8));
+
+            var reranker = new StubReranker((_, _) => 0.5);
+
+            await client.RecallAcrossBanksAsync(
+                "the real question",
+                ["bank-a", "bank-b"],
+                new CrossBankRecallOptions { Reranker = reranker },
+                CancellationToken.None);
+
+            // The query is passed through unmodified, and the passages are the candidates' text.
+            Assert.Equal("the real question", reranker.LastQuery);
+            Assert.Equal(["text of A1", "text of B1"], reranker.LastDocuments);
+        }
+    }
+
+    [Fact]
+    public async Task Each_candidate_keeps_both_its_retrieval_and_its_rerank_score()
+    {
+        // The documented rule: prefer metadata over destructive score manipulation. Both values
+        // survive, so a surprising final order is traceable to whichever one caused it.
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", ("A1", 0.91), ("A2", 0.84));
+            transport.Answer("bank-b", ("B1", 0.86));
+
+            var reranker = new StubReranker((_, document) => document.Contains("B1", StringComparison.Ordinal) ? 0.97 : 0.5);
+
+            var result = await client.RecallAcrossBanksAsync(
+                "q",
+                ["bank-a", "bank-b"],
+                new CrossBankRecallOptions { Reranker = reranker },
+                CancellationToken.None);
+
+            var b1 = result.Candidates.Single(c => c.Source.Id == "B1");
+
+            // The reranker promoted it to first...
+            Assert.Equal("B1", result.Candidates[0].Source.Id);
+
+            // ...and the bank's own score is still there, unmodified.
+            Assert.Equal(0.86, b1.RetrievalScore!.Value, 3);
+            Assert.Equal(0.97, b1.RerankScore!.Value, 3);
+        }
+    }
+
+    [Fact]
+    public async Task Without_a_reranker_nothing_is_reranked()
+    {
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", ("A1", 0.9));
+            transport.Answer("bank-b", ("B1", 0.8));
+
+            var result = await client.RecallAcrossBanksAsync(
+                "q", ["bank-a", "bank-b"], null, CancellationToken.None);
+
+            Assert.False(result.RerankApplied);
+            Assert.Null(result.RerankFailure);
+            Assert.All(result.Candidates, candidate => Assert.Null(candidate.RerankScore));
+        }
+    }
+
+    [Fact]
+    public async Task A_failing_reranker_does_not_cost_the_caller_their_memories()
+    {
+        // The caller asked two questions - what is relevant, and in what order - and the banks
+        // already answered the first. Discarding the results would be a worse outcome than handing
+        // them back unranked with the degradation stated.
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", ("A1", 0.9));
+            transport.Answer("bank-b", ("B1", 0.8));
+
+            var result = await client.RecallAcrossBanksAsync(
+                "q",
+                ["bank-a", "bank-b"],
+                new CrossBankRecallOptions { Reranker = new FailingReranker() },
+                CancellationToken.None);
+
+            // Both candidates survive, in the pre-rerank order.
+            Assert.Equal(2, result.Candidates.Count);
+            Assert.Equal(["A1", "B1"], result.Candidates.Select(c => c.Source.Id));
+
+            // And the degradation is reported rather than hidden.
+            Assert.False(result.RerankApplied);
+            Assert.IsType<InvalidOperationException>(result.RerankFailure);
+        }
+    }
+
+    [Fact]
+    public async Task A_reranker_returning_the_wrong_number_of_scores_is_treated_as_a_failure()
+    {
+        // Silently attaching mismatched scores to passages would produce a plausible-looking order
+        // that is wrong, which is worse than not ranking at all.
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", ("A1", 0.9));
+            transport.Answer("bank-b", ("B1", 0.8));
+
+            var result = await client.RecallAcrossBanksAsync(
+                "q",
+                ["bank-a", "bank-b"],
+                new CrossBankRecallOptions { Reranker = new WrongCountReranker() },
+                CancellationToken.None);
+
+            Assert.False(result.RerankApplied);
+            Assert.IsType<HindsightProtocolException>(result.RerankFailure);
+            Assert.Equal(2, result.Candidates.Count);
+        }
+    }
+
+    [Fact]
+    public async Task The_context_states_that_a_failed_ranking_is_not_a_relevance_order()
+    {
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", ("A1", 0.9));
+
+            var result = await client.RecallAcrossBanksAsync(
+                "q",
+                ["bank-a"],
+                new CrossBankRecallOptions { Reranker = new FailingReranker() },
+                CancellationToken.None);
+
+            var context = result.ToContext();
+
+            Assert.Contains("RELEVANCE RANKING UNAVAILABLE", context, StringComparison.Ordinal);
+            Assert.Contains("not relevance order", context, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public async Task A_caller_cancellation_is_not_reported_as_a_reranker_failure()
+    {
+        // A reranker failure is the model's problem; a cancellation is the caller's decision.
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", ("A1", 0.9));
+
+            using var cts = new CancellationTokenSource();
+            await cts.CancelAsync();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.RecallAcrossBanksAsync(
+                "q",
+                ["bank-a"],
+                new CrossBankRecallOptions { Reranker = new StubReranker((_, _) => 0.5) },
+                cts.Token));
+        }
+    }
+
+    [Fact]
+    public async Task The_rerank_score_is_rendered_into_the_context()
+    {
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", ("A1", 0.9));
+
+            var result = await client.RecallAcrossBanksAsync(
+                "q",
+                ["bank-a"],
+                new CrossBankRecallOptions { Reranker = new StubReranker((_, _) => 0.812) },
+                CancellationToken.None);
+
+            Assert.Contains("| relevance 0.812", result.ToContext(), StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public async Task An_empty_candidate_pool_does_not_call_the_reranker()
+    {
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", 200, """{"results":[]}""");
+
+            var reranker = new StubReranker((_, _) => 0.5);
+
+            var result = await client.RecallAcrossBanksAsync(
+                "q",
+                ["bank-a"],
+                new CrossBankRecallOptions { Reranker = reranker },
+                CancellationToken.None);
+
+            Assert.Empty(result.Candidates);
+            Assert.False(result.RerankApplied);
+            Assert.Null(result.RerankFailure);
+
+            // Nothing to score, so the model is not loaded into doing work for an empty set.
+            Assert.Equal(0, reranker.CallCount);
+        }
+    }
+
+    [Fact]
+    public async Task Max_rerank_candidates_bounds_the_model_work_without_dropping_results()
+    {
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", Enumerable.Range(1, 10).Select(i => ($"A{i}", 1.0)).ToArray());
+
+            var reranker = new StubReranker((_, _) => 0.5);
+
+            var result = await client.RecallAcrossBanksAsync(
+                "q",
+                ["bank-a"],
+                new CrossBankRecallOptions
+                {
+                    PerBankLimit = 10,
+                    Reranker = reranker,
+                    // Only three go to the model...
+                    MaxRerankCandidates = 3,
+                },
+                CancellationToken.None);
+
+            Assert.Equal(3, reranker.LastDocuments!.Count);
+
+            // ...but all ten still come back. Truncating a caller's results is not this option's job.
+            Assert.Equal(10, result.Candidates.Count);
+        }
+    }
+
+    [Fact]
+    public async Task Rerank_failure_and_bank_failure_are_reported_separately()
+    {
+        // Different meanings: a failed bank means the candidate set is incomplete, a failed
+        // reranker means the set is complete but ranked by the fallback. A caller must be able to
+        // tell a missing source from a missing ranking.
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-good", ("G1", 0.9));
+            transport.Answer("bank-bad", 404, """{"detail":"missing"}""");
+
+            var result = await client.RecallAcrossBanksAsync(
+                "q",
+                ["bank-good", "bank-bad"],
+                new CrossBankRecallOptions { Reranker = new FailingReranker() },
+                CancellationToken.None);
+
+            Assert.True(result.IsPartial);
+            Assert.Equal("bank-bad", Assert.Single(result.Failures).BankId);
+            Assert.IsType<InvalidOperationException>(result.RerankFailure);
+            Assert.False(result.RerankApplied);
+        }
+    }
+
+    [Fact]
+    public async Task A_tied_rerank_score_orders_deterministically()
+    {
+        // Equal scores must not fall back to sort stability, or the same inputs could produce
+        // different orders across runs.
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", ("A1", 0.9), ("A2", 0.9));
+            transport.Answer("bank-b", ("B1", 0.9));
+
+            var reranker = new StubReranker((_, _) => 0.5);
+
+            var first = await client.RecallAcrossBanksAsync(
+                "q", ["bank-a", "bank-b"], new CrossBankRecallOptions { Reranker = reranker }, CancellationToken.None);
+            var second = await client.RecallAcrossBanksAsync(
+                "q", ["bank-a", "bank-b"], new CrossBankRecallOptions { Reranker = reranker }, CancellationToken.None);
+
+            Assert.Equal(
+                first.Candidates.Select(c => c.Source.Id),
+                second.Candidates.Select(c => c.Source.Id));
+
+            // Pre-rerank merge order is A1, B1, A2, so the tie-break on rank preserves it.
+            Assert.Equal(["A1", "B1", "A2"], first.Candidates.Select(c => c.Source.Id));
+        }
+    }
+
+    [Fact]
+    public async Task Deduplication_preserves_a_rerank_score_on_the_survivor()
+    {
+        // The ordering runs after the merge, so a collapsed duplicate's survivor must not lose the
+        // score it was given - that would silently un-rank the highest-scoring candidate.
+        var (client, transport) = Create();
+        using (client)
+        {
+            transport.Answer("bank-a", 200,
+                """{"results":[{"text":"same","document_id":"d"}]}""");
+            transport.Answer("bank-b", 200,
+                """{"results":[{"text":"other","document_id":"d2"}]}""");
+
+            var reranker = new StubReranker((_, document) => document.Contains("same", StringComparison.Ordinal) ? 0.9 : 0.1);
+
+            var result = await client.RecallAcrossBanksAsync(
+                "q",
+                ["bank-a", "bank-b"],
+                new CrossBankRecallOptions { Reranker = reranker },
+                CancellationToken.None);
+
+            Assert.Equal(2, result.Candidates.Count);
+            Assert.All(result.Candidates, candidate => Assert.NotNull(candidate.RerankScore));
+            Assert.Equal("same", result.Candidates[0].Text);
         }
     }
 

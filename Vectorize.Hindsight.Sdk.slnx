@@ -2,9 +2,11 @@
   <Project Path="src/Vectorize.Hindsight.Sdk/Vectorize.Hindsight.Sdk.csproj" />
   <Project Path="src/Vectorize.Hindsight.Sdk.Admin/Vectorize.Hindsight.Sdk.Admin.csproj" />
   <Project Path="src/Vectorize.Hindsight.Sdk.DependencyInjection/Vectorize.Hindsight.Sdk.DependencyInjection.csproj" />
+  <Project Path="src/Vectorize.Hindsight.Sdk.Reranking.Onnx/Vectorize.Hindsight.Sdk.Reranking.Onnx.csproj" />
   <Project Path="tests/Vectorize.Hindsight.Sdk.Admin.Tests/Vectorize.Hindsight.Sdk.Admin.Tests.csproj" />
   <Project Path="tests/Vectorize.Hindsight.Sdk.Tests/Vectorize.Hindsight.Sdk.Tests.csproj" />
   <Project Path="tests/Vectorize.Hindsight.Sdk.IntegrationTests/Vectorize.Hindsight.Sdk.IntegrationTests.csproj" />
+  <Project Path="tests/Vectorize.Hindsight.Sdk.Reranking.Tests/Vectorize.Hindsight.Sdk.Reranking.Tests.csproj" />
   <Project Path="samples/Vectorize.Hindsight.Sdk.Sample/Vectorize.Hindsight.Sdk.Sample.csproj" />
   <Project Path="samples/Vectorize.Hindsight.Sdk.CrossBankSample/Vectorize.Hindsight.Sdk.CrossBankSample.csproj" />
 </Solution>

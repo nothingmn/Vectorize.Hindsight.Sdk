@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Vectorize.Hindsight.Sdk/Vectorize.Hindsight.Sdk.csproj" />
+    <ProjectReference Include="../../src/Vectorize.Hindsight.Sdk.Reranking.Onnx/Vectorize.Hindsight.Sdk.Reranking.Onnx.csproj" />
   </ItemGroup>
 
 </Project>

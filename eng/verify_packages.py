@@ -35,6 +35,7 @@ from pathlib import Path
 EXPECTED = {
     "Vectorize.Hindsight.Sdk",
     "Vectorize.Hindsight.Sdk.Admin",
+    "Vectorize.Hindsight.Sdk.Reranking.Onnx",
     "Vectorize.Hindsight.Sdk.DependencyInjection",
 }
 

@@ -87,12 +87,21 @@ LINE_FLOORS = {
     "Vectorize.Hindsight.Sdk": 90.0,
     "Vectorize.Hindsight.Sdk.Admin": 90.0,
     "Vectorize.Hindsight.Sdk.DependencyInjection": 95.0,
+
+    # The reranker's floor reflects a real constraint rather than a lower standard: its whole
+    # behaviour only exists when the model assets are present, and those are a multi-hundred-megabyte
+    # download that CI does not perform. The configuration contract, the options, the provider
+    # fallback, the tokenizer and the batching are all measured without the model; the inference
+    # paths themselves are covered by the suite that skips when the assets are absent, so the
+    # measured number here is a floor for the always-runnable part, not for the package.
+    "Vectorize.Hindsight.Sdk.Reranking.Onnx": 80.0,
 }
 
 BRANCH_FLOORS = {
     "Vectorize.Hindsight.Sdk": 60.0,
     "Vectorize.Hindsight.Sdk.Admin": 60.0,
     "Vectorize.Hindsight.Sdk.DependencyInjection": 80.0,
+    "Vectorize.Hindsight.Sdk.Reranking.Onnx": 70.0,
 }
 
 # A run that reports fewer than this many tests is treated as a broken run rather

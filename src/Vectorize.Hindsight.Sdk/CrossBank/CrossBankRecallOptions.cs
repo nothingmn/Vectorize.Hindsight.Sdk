@@ -1,3 +1,6 @@
+using Vectorize.Hindsight.Sdk.Models;
+using Vectorize.Hindsight.Sdk.Reranking;
+
 namespace Vectorize.Hindsight.Sdk.CrossBank;
 
 /// <summary>
@@ -63,6 +66,24 @@ public enum CrossBankMergeOrder
     /// comparison took place.
     /// </remarks>
     BankOrder,
+
+    /// <summary>
+    /// Order by a reranker's score over the merged candidates, highest first.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The second stage of the documented pipeline, and the only order in which candidates from
+    /// different banks are genuinely compared against each other: one query, one model, every
+    /// candidate. This is what makes an ordering defensible when the retrieval scores are not on a
+    /// common scale.
+    /// </para>
+    /// <para>
+    /// Selected automatically when a reranker is supplied, because supplying one and then not
+    /// using its ordering would be surprising. If the reranker fails, the result falls back to the
+    /// pre-rerank order and reports it rather than failing the recall.
+    /// </para>
+    /// </remarks>
+    Reranked,
 }
 
 /// <summary>
@@ -152,6 +173,48 @@ public sealed class CrossBankRecallOptions
 
     /// <summary>How to order the merged candidates. Defaults to <see cref="CrossBankMergeOrder.InterleavedByRank"/>.</summary>
     public CrossBankMergeOrder MergeOrder { get; set; } = CrossBankMergeOrder.InterleavedByRank;
+
+    /// <summary>
+    /// An optional reranker to order the merged candidates by cross-bank relevance.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Null by default, and that default is the documented one: without a reranker the merge
+    /// interleaves by each bank's own rank, which assumes nothing about scores being comparable
+    /// across banks.
+    /// </para>
+    /// <para>
+    /// Supplying one adds the second stage — "of everything retrieved from every bank, what is
+    /// most useful for this query?" — and the ordering becomes
+    /// <see cref="CrossBankMergeOrder.Reranked"/>. The reranker sees every candidate under one
+    /// query and one model, which is the only way the comparison is meaningful.
+    /// </para>
+    /// <para>
+    /// A reranker that throws does not fail the recall: the failure is reported and the candidates
+    /// fall back to the pre-rerank order, because a ranking problem should not cost a caller the
+    /// memories they successfully retrieved. See
+    /// <see cref="CrossBankRecallResult.RerankFailure"/>.
+    /// </para>
+    /// </remarks>
+    public IReranker? Reranker { get; init; }
+
+    /// <summary>
+    /// How many of the merged candidates to send to the reranker.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Reranking costs one model evaluation per candidate, so this bounds that cost. Null, the
+    /// default, reranks the whole candidate pool — correct for the intended sizes (a handful of
+    /// banks at 8-15 results each, capped to 20-50 candidates) where reranking everything is cheap
+    /// and pre-trimming could discard the candidate that should have won.
+    /// </para>
+    /// <para>
+    /// Set it only when the pool is genuinely large. The candidates not sent to the reranker keep
+    /// their merge order and are placed after the reranked ones, rather than being dropped:
+    /// silently truncating a caller's results is not this option's job.
+    /// </para>
+    /// </remarks>
+    public int? MaxRerankCandidates { get; init; }
 
     /// <summary>
     /// Whether to confirm every bank exists before recalling from it.
