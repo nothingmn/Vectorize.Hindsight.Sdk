@@ -162,15 +162,30 @@ internal sealed class StubHttpMessageHandler : HttpMessageHandler
     /// <param name="statusCode">The status.</param>
     /// <param name="content">The body content, or null for none.</param>
     /// <param name="contentType">The content type.</param>
+    /// <param name="responseHeaders">Headers to place on the RESPONSE, not the content.</param>
     internal StubHttpMessageHandler Enqueue(
-        HttpStatusCode statusCode, HttpContent? content = null, string contentType = "application/json")
+        HttpStatusCode statusCode,
+        HttpContent? content = null,
+        string contentType = "application/json",
+        IReadOnlyDictionary<string, string>? responseHeaders = null)
     {
         _responses.Enqueue(_ =>
         {
             var response = new HttpResponseMessage(statusCode) { Content = content };
-            if (content is not null && !string.IsNullOrEmpty(contentType))
+            if (content is not null && !string.IsNullOrEmpty(contentType) &&
+                content.Headers.ContentType is null)
             {
                 content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+            }
+
+            if (responseHeaders is not null)
+            {
+                foreach (var header in responseHeaders)
+                {
+                    // A response-level header. Retry-After is legal here and NOT on
+                    // content, which is what the earlier version of this test got wrong.
+                    response.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
             }
 
             return response;

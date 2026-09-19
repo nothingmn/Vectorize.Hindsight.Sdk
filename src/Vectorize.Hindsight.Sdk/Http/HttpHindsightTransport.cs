@@ -102,24 +102,39 @@ internal sealed class HttpHindsightTransport : IHindsightTransport
                 $"The request to {request.Method} {request.PathTemplate} could not be completed.", ex);
         }
 
-        using (response)
-        {
-            var headers = ReadHeaders(response);
+        var headers = ReadHeaders(response);
 
-            // A body read is bounded by the attempt deadline too, otherwise a
-            // server that stalls mid-body defeats the timeout entirely.
-            if (streamResponse)
+        if (streamResponse)
+        {
+            // The stream outlives this method, so the message cannot be disposed here:
+            // disposing it disposes the content and with it the stream, which made a
+            // buffered read of a downloaded archive throw ObjectDisposedException.
+            // Ownership is transferred to the caller through the returned stream, so
+            // there is still exactly one disposal point.
+            try
             {
-                var stream = await ReadStreamAsync(response, request, attemptToken).ConfigureAwait(false);
+                var inner = await ReadStreamAsync(response, request, attemptToken).ConfigureAwait(false);
                 return new HindsightResponse
                 {
                     StatusCode = (int)response.StatusCode,
-                    Stream = stream,
+                    Stream = new OwnedResponseStream(inner, response),
                     Headers = headers,
                     ContentType = response.Content.Headers.ContentType?.ToString(),
                 };
             }
+            catch
+            {
+                // Nothing is handed to the caller, so nothing else will release it.
+                response.Dispose();
+                throw;
+            }
+        }
 
+        // A body read is bounded by the attempt deadline too, otherwise a server that
+        // stalls mid-body defeats the timeout entirely. Once buffered, the message is
+        // released immediately.
+        using (response)
+        {
             var body = await ReadBodyAsync(response, request, attemptToken).ConfigureAwait(false);
 
             return new HindsightResponse
@@ -326,13 +341,26 @@ internal sealed class MultipartFormDataContentAdapter : HttpContent
                     content.Headers.ContentType = MediaTypeHeaderValue.Parse(part.ContentType);
                 }
 
-                _inner.Add(content, part.Name);
+                // The filename must be passed through the Add overload that takes one.
+                // Setting a Content-Disposition header on the content does not work:
+                // MultipartFormDataContent writes its own, so the filename was silently
+                // dropped and the server never saw the name it uses to pick a parser.
+                if (part.FileName is not null)
+                {
+                    _inner.Add(content, part.Name, part.FileName);
+                }
+                else
+                {
+                    _inner.Add(content, part.Name);
+                }
+
                 continue;
             }
 
             if (part.ContentSource is not null)
             {
-                var streamContent = new StreamContent(part.ContentSource(CancellationToken.None).GetAwaiter().GetResult());
+                var streamContent = new StreamContent(
+                    part.ContentSource(CancellationToken.None).GetAwaiter().GetResult());
                 if (part.ContentType is not null)
                 {
                     streamContent.Headers.ContentType = MediaTypeHeaderValue.Parse(part.ContentType);
