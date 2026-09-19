@@ -90,9 +90,17 @@ public sealed class EnvironmentApiKeyProvider : IApiKeyProvider
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// A resolved value is trimmed, matching <c>ConfigurationApiKeyProvider</c>. A
+    /// padded environment variable — a trailing newline from a mounted secret, a
+    /// stray space from a copy-paste — otherwise fails authentication with a message
+    /// that gives no hint the whitespace is the cause.
+    /// </remarks>
     public ValueTask<string?> GetApiKeyAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var value = _read(_variableName);
-        return new ValueTask<string?>(string.IsNullOrWhiteSpace(value) ? null : value);
+        return new ValueTask<string?>(string.IsNullOrWhiteSpace(value) ? null : value.Trim());
     }
 }

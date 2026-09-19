@@ -147,7 +147,9 @@ public sealed class ConfigurationTests
 
         var key = await provider.GetApiKeyAsync(CancellationToken.None);
 
-        Assert.Equal("  key-from-env  ", key);
+        // Trimmed: a padded value is a common accident and fails authentication with
+        // no hint that whitespace is the cause.
+        Assert.Equal("key-from-env", key);
     }
 
     [Theory]

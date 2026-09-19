@@ -57,9 +57,18 @@ public sealed class ConfigurationApiKeyProvider : IApiKeyProvider
 
     /// <inheritdoc />
     /// <remarks>
+    /// <para>
     /// A missing, empty or whitespace-only value is reported as
     /// <see langword="null"/> — the deployment needs no key — rather than as an
     /// empty string that would put a bare <c>Bearer </c> on the wire.
+    /// </para>
+    /// <para>
+    /// A resolved value is trimmed. A padded key is a common accident — a trailing
+    /// newline from a mounted secret file, a stray space from a copy-paste — and it
+    /// fails authentication with a message that gives no hint the whitespace is the
+    /// cause. Trimming costs nothing and removes an entire class of confusing
+    /// failure.
+    /// </para>
     /// </remarks>
     public ValueTask<string?> GetApiKeyAsync(CancellationToken cancellationToken)
     {
@@ -67,6 +76,6 @@ public sealed class ConfigurationApiKeyProvider : IApiKeyProvider
 
         var value = _configuration[_configurationKey];
 
-        return new ValueTask<string?>(string.IsNullOrWhiteSpace(value) ? null : value);
+        return new ValueTask<string?>(string.IsNullOrWhiteSpace(value) ? null : value.Trim());
     }
 }

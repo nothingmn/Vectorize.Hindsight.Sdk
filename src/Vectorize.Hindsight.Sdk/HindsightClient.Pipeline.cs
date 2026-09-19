@@ -142,6 +142,68 @@ public sealed partial class HindsightClient
         await SendAsync<Unit>(request, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Sends a request whose success body is text rather than JSON.
+    /// </summary>
+    /// <remarks>
+    /// Needed because an operation can declare no schema and still not be JSON:
+    /// <c>/metrics</c> returns the Prometheus exposition format as
+    /// <c>text/plain</c>. Parsing that as JSON throws, so the content type decides
+    /// which reader is used rather than the absence of a declared schema.
+    /// </remarks>
+    /// <param name="request">The request.</param>
+    /// <param name="cancellationToken">Honoured through every await.</param>
+    internal async Task<string> SendForTextAsync(HindsightRequest request, CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var operationName = request.PathTemplate;
+        using var activity = _telemetry.StartCall(operationName, request.Method.Method);
+        var started = TimeProvider.GetTimestamp();
+
+        var attempt = 0;
+        while (true)
+        {
+            attempt++;
+            HindsightResponse response;
+
+            try
+            {
+                response = await _transport
+                    .SendAsync(request, streamResponse: false, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (HindsightConnectionException)
+            {
+                if (CanRetry(request, attempt))
+                {
+                    await DelayBeforeRetryAsync(operationName, attempt, null, cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                _telemetry.CompleteCall(activity, operationName, null, attempt - 1, Elapsed(started), false);
+                throw;
+            }
+
+            if (IsSuccess(response.StatusCode))
+            {
+                _telemetry.CompleteCall(activity, operationName, response.StatusCode, attempt - 1, Elapsed(started), true);
+                return response.Body is null ? string.Empty : System.Text.Encoding.UTF8.GetString(response.Body);
+            }
+
+            var retryAfter = HindsightRetryPolicy.ReadRetryAfter(response.Headers);
+            if (CanRetry(request, attempt) && HindsightRetryPolicy.IsRetryableStatus(response.StatusCode))
+            {
+                await DelayBeforeRetryAsync(operationName, attempt, retryAfter, cancellationToken)
+                    .ConfigureAwait(false);
+                continue;
+            }
+
+            _telemetry.CompleteCall(activity, operationName, response.StatusCode, attempt - 1, Elapsed(started), false);
+            throw MapError(request, response);
+        }
+    }
+
     /// <summary>Sends a request and returns the raw body, for the declared-empty responses.</summary>
     /// <param name="request">The request.</param>
     /// <param name="cancellationToken">Honoured through every await.</param>
@@ -190,6 +252,26 @@ public sealed partial class HindsightClient
                     // "no body" distinguishable from "body present and null" without
                     // inventing a shape the API does not define.
                     return default;
+                }
+
+                // A declared-empty success is not necessarily JSON. /metrics declares no
+                // content type at all and returns the Prometheus exposition format as
+                // text/plain, so parsing it as JSON throws. The response's own content
+                // type decides: JSON is parsed, anything else is surfaced as a JSON
+                // string value so the caller can still read it.
+                if (!IsJsonContentType(response.ContentType))
+                {
+                    // Built by hand rather than with SerializeToElement, which the trim
+                    // and AOT analyzers reject: the generic overload is annotated as
+                    // requiring dynamic code, and this library promises neither.
+                    var text = System.Text.Encoding.UTF8.GetString(response.Body);
+                    using var buffer = new System.IO.MemoryStream();
+                    using (var writer = new Utf8JsonWriter(buffer))
+                    {
+                        writer.WriteStringValue(text);
+                    }
+
+                    return JsonDocument.Parse(buffer.ToArray()).RootElement.Clone();
                 }
 
                 return JsonDocument.Parse(response.Body).RootElement.Clone();
@@ -301,6 +383,18 @@ public sealed partial class HindsightClient
     }
 
     private static bool IsSuccess(int statusCode) => statusCode is >= 200 and <= 299;
+
+    /// <summary>
+    /// Whether a response content type is JSON this library can parse.
+    /// </summary>
+    /// <remarks>
+    /// A null content type is treated as JSON, because a server that omits the header
+    /// on a JSON endpoint is common and the parse failure is a clearer signal than
+    /// guessing text.
+    /// </remarks>
+    private static bool IsJsonContentType(string? contentType) =>
+        contentType is null ||
+        contentType.Contains("json", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Maps a non-success response onto a typed exception.</summary>
     internal static HindsightApiException MapError(HindsightRequest request, HindsightResponse response)
