@@ -322,6 +322,29 @@ public sealed class HindsightRateLimitException : HindsightApiException
     public TimeSpan? RetryAfter { get; }
 }
 
+/// <summary>
+/// A non-success status this library does not map to a dedicated type.
+/// </summary>
+/// <remarks>
+/// Carries the status the server actually sent. Mapping an unmapped status onto
+/// <see cref="HindsightBadRequestException"/> would have reported 400 for
+/// everything, which is a property that lies about the response — 405 is real and
+/// undeclared by the specification, and a caller reading <c>StatusCode</c> must be
+/// able to trust it.
+/// </remarks>
+public sealed class HindsightUnexpectedStatusException : HindsightApiException
+{
+    /// <summary>Creates the exception.</summary>
+    /// <param name="message">A description safe to log.</param>
+    /// <param name="statusCode">The status the server sent.</param>
+    /// <param name="endpoint">The route template.</param>
+    /// <param name="responseBody">The raw body.</param>
+    public HindsightUnexpectedStatusException(string message, int statusCode, string endpoint, string? responseBody)
+        : base(message, statusCode, endpoint, responseBody)
+    {
+    }
+}
+
 /// <summary>A server-side failure (5xx).</summary>
 public class HindsightServerException : HindsightApiException
 {

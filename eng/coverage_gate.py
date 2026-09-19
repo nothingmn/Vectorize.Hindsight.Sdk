@@ -67,6 +67,7 @@ reports, and can be overridden with the HINDSIGHT_TRX_GLOB environment variable.
 from __future__ import annotations
 
 import glob
+import hashlib
 import os
 import re
 import sys
@@ -135,6 +136,27 @@ def normalize(filename: str) -> str:
     return "/" + (filename or "").replace("\\", "/")
 
 
+def canonical_filename(filename: str, package: str) -> str:
+    """Collapses the two filename shapes this solution produces into one.
+
+    The two test projects are instrumented with different source roots, so the
+    SAME file is reported two ways:
+
+        Tests            -> "Http/HindsightRetryPolicy.cs"
+        IntegrationTests -> "Vectorize.Hindsight.Sdk/Http/HindsightRetryPolicy.cs"
+
+    Without collapsing them, one physical line becomes two records and is counted
+    twice. Stripping a leading "<assembly>/" segment keys both to the same line.
+    """
+    normalized = normalize(filename)
+    prefix = f"/{package}/"
+
+    if package and normalized.startswith(prefix):
+        return "/" + normalized[len(prefix):]
+
+    return normalized
+
+
 def is_generated(normalized_filename: str) -> bool:
     return any(marker in normalized_filename for marker in GENERATED_PATH_MARKERS)
 
@@ -174,24 +196,42 @@ def merge_reports(reports: list[Path]) -> dict[str, dict[tuple[str, int], list[i
     Why merge rather than pick the most recent: this solution has TWO test
     projects, so `dotnet test` writes TWO coverage reports, one per project.
     Picking only the most recent would measure whichever project happened to
-    finish last and silently discard the other project's contribution. Merging
-    takes the best observed hit count per (file, line) across every report, which
-    is what "coverage of the library" actually means. With a single report — the
-    usual case, and the sibling project's case — this is identical to using that
-    one report.
+    finish last and silently discard the other project's contribution.
+
+    The `trx` logger ALSO copies each report under an `In/<host>/` directory, so
+    the same report can be seen twice. Identical reports are de-duplicated by
+    content hash, and the merge keeps the best hit count per (file, line), so a
+    duplicate can never inflate the total. Filenames are canonicalised too,
+    because the two test projects are instrumented with different source roots
+    and would otherwise key the same physical line twice.
+
+    With a single report — the usual case, and the sibling project's case — this
+    is identical to using that one report.
 
     Each record is [hits, branches_covered, branches_total].
     """
     records: dict[str, dict[tuple[str, int], list[int]]] = defaultdict(dict)
+    seen_digests: set[str] = set()
 
     for report in reports:
+        digest = hashlib.sha256(report.read_bytes()).hexdigest()
+        if digest in seen_digests:
+            print(f"    (skipping duplicate report: {report})")
+            continue
+
+        seen_digests.add(digest)
         root = ET.parse(report).getroot()
 
         for package in root.iter("package"):
             name = package.get("name") or "(unnamed)"
 
+            # Touch the entry so an assembly that reports no measurable
+            # hand-written lines (for example a package with no tests yet) still
+            # appears as a row rather than vanishing.
+            records.setdefault(name, {})
+
             for cls in package.iter("class"):
-                filename = normalize(cls.get("filename") or "")
+                filename = canonical_filename(cls.get("filename") or "", name)
 
                 if is_generated(filename):
                     continue

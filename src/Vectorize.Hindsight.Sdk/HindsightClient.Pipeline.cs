@@ -296,7 +296,10 @@ public sealed partial class HindsightClient
     /// <summary>Maps a non-success response onto a typed exception.</summary>
     internal static HindsightApiException MapError(HindsightRequest request, HindsightResponse response)
     {
-        var endpoint = $"{request.Method.Method} {request.PathTemplate}";
+        // PathTemplate already carries the method, which is what makes it readable
+        // in a log without the caller having to reconstruct it. Prepending the method
+        // again produced "GET GET /v1/...".
+        var endpoint = request.PathTemplate;
         var body = response.Body is null ? null : System.Text.Encoding.UTF8.GetString(response.Body);
         var detail = ExtractDetail(body);
 
@@ -316,7 +319,10 @@ public sealed partial class HindsightClient
             429 => new HindsightRateLimitException(
                 message, endpoint, body, HindsightRetryPolicy.ReadRetryAfter(response.Headers)),
             >= 500 and <= 599 => new HindsightServerException(message, response.StatusCode, endpoint, body),
-            _ => new HindsightBadRequestException(message, endpoint, body),
+
+            // An unmapped status - 405 and 3xx redirects are both real and declared
+            // nowhere - keeps its true status rather than being reported as a 400.
+            _ => new HindsightUnexpectedStatusException(message, response.StatusCode, endpoint, body),
         };
     }
 
