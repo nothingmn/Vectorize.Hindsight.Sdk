@@ -464,6 +464,15 @@ The package depends on an `IChoiceAsker` seam rather than a TypeSafe client, bec
 published to nuget.org and a published package cannot depend on an unpublished one. Adapting your
 client is one small class, shown in that package's README.
 
+**Verified live** against the real TypeSafe API through the real `Jev.Sdk` client: one JevClient call
+ranked ten candidates retrieved from three banks, moved the correct passage from third to first, and
+pushed an irrelevant one to 0.01. The full run and its limits are in
+[`docs/reranker-live-verification.md`](docs/reranker-live-verification.md).
+
+- **Ranking quality is not measured, only the mechanism.** The live run has one clearly correct
+  passage and one clearly irrelevant one, so it proves the plumbing and the direction of the order.
+  Whether either reranker orders *near-miss* candidates well needs labelled data, and neither has
+  been scored against ground truth.
 - **The tokenizer is verified against the reference implementation**, not assumed. This is the part
   that goes silently wrong — ONNX Runtime runs happily on wrong input and returns plausible numbers.
   An XLM-R reranker needs two assets that disagree: the HF vocabulary inserts a `<pad>` at index 1
@@ -631,6 +640,8 @@ inventory/                                       derived operation and schema in
 - [`inventory/`](inventory/) — every operation and schema, derived from the spec in code.
 - [`docs/admin-cli-surface.md`](docs/admin-cli-surface.md) — the admin CLI surface, verified against
   the deployed binary, including observed exit codes and output formats.
+- [`docs/reranker-live-verification.md`](docs/reranker-live-verification.md) — the live TypeSafe
+  rerank run, what it establishes, and what it does not.
 - [`test-infra/README.md`](test-infra/README.md) — the local rig and its isolation guarantees.
 
 ---
