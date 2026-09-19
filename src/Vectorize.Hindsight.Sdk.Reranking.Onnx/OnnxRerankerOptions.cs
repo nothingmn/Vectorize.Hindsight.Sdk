@@ -35,7 +35,7 @@ public enum OnnxExecutionProvider
 /// Every setting here has a working default except the model path and the tokenizer assets, which
 /// cannot be invented. See <see cref="OnnxRerankerOptions.ModelPath"/>.
 /// </remarks>
-public sealed class OnnxRerankerOptions
+public sealed record OnnxRerankerOptions
 {
     /// <summary>The ONNX model file. Required.</summary>
     /// <remarks>
@@ -159,6 +159,15 @@ public sealed class OnnxRerankerOptions
     /// </remarks>
     public bool ValidateGraphAtStartup { get; init; } = true;
 
-    /// <summary>Optional diagnostics sink for load and scoring notes.</summary>
+    /// <summary>
+    /// Optional diagnostics sink for load and scoring notes.
+    /// </summary>
+    /// <remarks>
+    /// This is the one member that makes value equality awkward — two options differing only by
+    /// logger are equal to the compiler and different in effect. That is accepted rather than
+    /// worked around because nothing compares options for equality; the type is a record so that
+    /// <c>with</c> can derive a variant (the factory uses it to inject a container-resolved logger)
+    /// and so the defaults are visible in one place.
+    /// </remarks>
     public Microsoft.Extensions.Logging.ILogger? Logger { get; init; }
 }

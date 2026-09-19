@@ -1028,6 +1028,104 @@ public sealed class CrossBankRecallTests
         }
     }
 
+    // --- Reranker seam and the identity default ----------------------------
+
+    [Fact]
+    public async Task A_client_with_no_reranker_does_not_claim_to_have_reranked()
+    {
+        // The identity default is a no-op, and a no-op must not report as a successful rerank —
+        // otherwise a caller cannot tell relevance-ordered results from merge-ordered ones, which is
+        // the one distinction this stage exists to make.
+        var transport = new PerBankTransport();
+        using var client = new HindsightClient(
+            new Configuration.HindsightClientOptions { BaseAddress = "http://localhost:8888", Transport = transport });
+
+        transport.Answer("bank-a", ("A1", 0.9));
+        transport.Answer("bank-b", ("B1", 0.8));
+
+        Assert.True(client.Reranker.IsIdentity);
+
+        var result = await client.RecallAcrossBanksAsync(
+            "q", ["bank-a", "bank-b"], null, CancellationToken.None);
+
+        Assert.False(result.RerankApplied);
+        Assert.Null(result.RerankFailure);
+        Assert.Equal(["A1", "B1"], result.Candidates.Select(c => c.Source.Id));
+    }
+
+    [Fact]
+    public async Task The_clients_reranker_is_used_when_a_call_supplies_none()
+    {
+        // The point of taking a reranker in the constructor: a host wires it once and every
+        // cross-bank call uses it without naming it again.
+        var transport = new PerBankTransport();
+        var reranker = new StubReranker((_, document) =>
+            document.Contains("B1", StringComparison.Ordinal) ? 0.99 : 0.01);
+
+        using var client = new HindsightClient(
+            new Configuration.HindsightClientOptions { BaseAddress = "http://localhost:8888", Transport = transport },
+            logger: null,
+            reranker);
+
+        transport.Answer("bank-a", ("A1", 0.9));
+        transport.Answer("bank-b", ("B1", 0.8));
+
+        var result = await client.RecallAcrossBanksAsync(
+            "q", ["bank-a", "bank-b"], null, CancellationToken.None);
+
+        Assert.True(result.RerankApplied);
+        Assert.Equal("B1", result.Candidates[0].Source.Id);
+        Assert.Equal(1, reranker.CallCount);
+    }
+
+    [Fact]
+    public async Task A_per_call_reranker_overrides_the_clients()
+    {
+        var transport = new PerBankTransport();
+        var clientWide = new StubReranker((_, _) => 0.1);
+        var perCall = new StubReranker((_, document) =>
+            document.Contains("A1", StringComparison.Ordinal) ? 0.9 : 0.1);
+
+        using var client = new HindsightClient(
+            new Configuration.HindsightClientOptions { BaseAddress = "http://localhost:8888", Transport = transport },
+            logger: null,
+            clientWide);
+
+        transport.Answer("bank-a", ("A1", 0.9));
+        transport.Answer("bank-b", ("B1", 0.8));
+
+        var result = await client.RecallAcrossBanksAsync(
+            "q",
+            ["bank-a", "bank-b"],
+            new CrossBankRecallOptions { Reranker = perCall },
+            CancellationToken.None);
+
+        Assert.Equal("A1", result.Candidates[0].Source.Id);
+        Assert.Equal(1, perCall.CallCount);
+        Assert.Equal(0, clientWide.CallCount);
+    }
+
+    [Fact]
+    public async Task An_identity_reranker_supplied_per_call_is_skipped_rather_than_run()
+    {
+        // An identity reranker is the default, so running it and discarding the result would be
+        // wasted work on every call. It is skipped, and the result says so.
+        var transport = new PerBankTransport();
+        using var client = new HindsightClient(
+            new Configuration.HindsightClientOptions { BaseAddress = "http://localhost:8888", Transport = transport });
+
+        transport.Answer("bank-a", ("A1", 0.9));
+
+        var result = await client.RecallAcrossBanksAsync(
+            "q",
+            ["bank-a"],
+            new CrossBankRecallOptions { Reranker = Reranking.Providers.IdentityReranker.Instance },
+            CancellationToken.None);
+
+        Assert.False(result.RerankApplied);
+        Assert.All(result.Candidates, candidate => Assert.Null(candidate.RerankScore));
+    }
+
     // --- Reranking ---------------------------------------------------------
 
     /// <summary>A reranker that returns whatever scores the test asks for, keyed by passage text.</summary>

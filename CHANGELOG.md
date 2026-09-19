@@ -18,6 +18,35 @@ mixing a 0.1.0 client with a 0.2.0 admin bridge would be reading a contract that
 
 ### Added
 
+**Reranker selection by registration.** `IRerankerFactory` in the core library and the registration
+helpers in the DI package. Selecting a reranker is a registration, not a branch: nothing compares a
+provider name or switches on a type to decide which reranker to build, so a provider added in a later
+package needs no change to the core or to this one. `HindsightClient` takes a nullable reranker and
+defaults to the pure-C# `IdentityReranker`, which preserves the merge order — so a call site never
+null-checks one, and `IReranker.IsIdentity` distinguishes "no judgement was made" from "relevance was
+evaluated". An identity reranker is skipped rather than run, so the default costs nothing, and it is
+never reported as a successful rerank.
+
+**`Vectorize.Hindsight.Sdk.Reranking.TypeSafe`** — reranking with TypeSafe System One.
+
+- Asks one **Choice** question whose options are the candidates, so they compete inside a single
+  judgement and the returned probability distribution ranks them. Verified against the vendor's
+  documented answer shape: `choice`, `probabilities` over every option, and `confidence`.
+- The obvious alternative does not work and that is why it is not the default: asking "is this
+  relevant?" once per candidate returns **independent** answers, so any number of unrelated 0.9s rank
+  nothing. It is available as `TypeSafeRerankMode.Noul` for pools too large to list as Choice options,
+  documented as not mutually comparable.
+- Depends on an `IChoiceAsker` seam rather than a TypeSafe client, because `Jev.Sdk` is not published
+  to nuget.org and a published package cannot depend on an unpublished one. The adapter is one small
+  class, shown in the package README.
+- `LastDiagnostics` and `LastRerankDiscriminated()` surface the failure that does not raise: a
+  successful call whose distribution put all probability on one option, so the resulting order is not
+  evidence of anything. Documented as a heuristic for "did the model express a preference", not for
+  "is the ranking correct".
+
+**`OnnxRerankerFactory`** — the local ONNX reranker is now selectable through the container, lazily
+and cached, with the same fall-back-to-identity posture.
+
 **`Vectorize.Hindsight.Sdk.Reranking.Onnx`** — optional local ONNX cross-encoder reranking.
 
 - Implements the `IReranker` seam declared in the core library, adding the second stage of

@@ -28,7 +28,7 @@ if [[ ! -d "$PACKAGES_DIR" ]]; then
   exit 2
 fi
 
-for package in Vectorize.Hindsight.Sdk Vectorize.Hindsight.Sdk.DependencyInjection Vectorize.Hindsight.Sdk.Admin Vectorize.Hindsight.Sdk.Reranking.Onnx; do
+for package in Vectorize.Hindsight.Sdk Vectorize.Hindsight.Sdk.DependencyInjection Vectorize.Hindsight.Sdk.Admin Vectorize.Hindsight.Sdk.Reranking.Onnx Vectorize.Hindsight.Sdk.Reranking.TypeSafe; do
   if ! ls "$PACKAGES_DIR/${package}.${VERSION}.nupkg" >/dev/null 2>&1; then
     printf '[consume] ERROR: %s.%s.nupkg is missing from %s\n' "$package" "$VERSION" "$PACKAGES_DIR" >&2
     exit 2
@@ -53,7 +53,7 @@ printf '[consume] scratch directory: %s\n' "$WORK"
 # is immutable). For local iteration the cache must be purged explicitly, or this gate is measuring
 # the cache rather than the archive.
 CACHE_DIR="${NUGET_PACKAGES:-$HOME/.nuget/packages}"
-for package in Vectorize.Hindsight.Sdk Vectorize.Hindsight.Sdk.DependencyInjection Vectorize.Hindsight.Sdk.Admin Vectorize.Hindsight.Sdk.Reranking.Onnx; do
+for package in Vectorize.Hindsight.Sdk Vectorize.Hindsight.Sdk.DependencyInjection Vectorize.Hindsight.Sdk.Admin Vectorize.Hindsight.Sdk.Reranking.Onnx Vectorize.Hindsight.Sdk.Reranking.TypeSafe; do
   cached="$CACHE_DIR/$(printf '%s' "$package" | tr '[:upper:]' '[:lower:]')/$VERSION"
   if [[ -d "$cached" ]]; then
     printf '[consume] purging cached %s %s (a cached copy would be restored instead of the archive)\n' "$package" "$VERSION"
@@ -92,6 +92,7 @@ cat > "$WORK/Consumer.csproj" <<EOF
     <PackageReference Include="Vectorize.Hindsight.Sdk.DependencyInjection" Version="$VERSION" />
     <PackageReference Include="Vectorize.Hindsight.Sdk.Admin" Version="$VERSION" />
     <PackageReference Include="Vectorize.Hindsight.Sdk.Reranking.Onnx" Version="$VERSION" />
+    <PackageReference Include="Vectorize.Hindsight.Sdk.Reranking.TypeSafe" Version="$VERSION" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
   </ItemGroup>
 </Project>
@@ -108,6 +109,7 @@ using Vectorize.Hindsight.Sdk.DependencyInjection;
 using Vectorize.Hindsight.Sdk.Errors;
 using Vectorize.Hindsight.Sdk.Reranking;
 using Vectorize.Hindsight.Sdk.Reranking.Onnx;
+using Vectorize.Hindsight.Sdk.Reranking.TypeSafe;
 using Vectorize.Hindsight.Sdk.Models;
 
 var failures = new List<string>();
@@ -182,6 +184,45 @@ catch (Exception ex)
     failures.Add($"reranking package: {ex.GetType().Name}: {ex.Message}");
 }
 
+// 1c. The TypeSafe reranking package's public surface is present, and its seam is real.
+//
+// Does NOT make a remote call: no TypeSafe key exists in CI, and the point here is that the types
+// and the provider contract survived packing. Behaviour is covered by that package's own suite
+// through a stubbed IChoiceAsker.
+try
+{
+    if (!typeof(TypeSafeChoiceReranker).IsAssignableTo(typeof(IReranker)))
+    {
+        failures.Add("TypeSafeChoiceReranker no longer implements IReranker");
+    }
+
+    // The provider must remain usable without any TypeSafe client package, which is what keeps it
+    // publishable at all: the seam it depends on has to be part of its own surface.
+    if (!typeof(IChoiceAsker).IsInterface)
+    {
+        failures.Add("IChoiceAsker is no longer an interface");
+    }
+
+    // A limit above the service maximum is rejected locally, so the mistake names the option
+    // rather than failing remotely with a service error.
+    try
+    {
+        _ = new TypeSafeChoiceReranker(
+            new NoOpAsker(),
+            new TypeSafeRerankerOptions { MaxCandidatesPerQuestion = TypeSafeChoiceReranker.MaxChoiceOptions + 1 });
+
+        failures.Add("a candidate limit above the service maximum should have been rejected");
+    }
+    catch (HindsightConfigurationException)
+    {
+        // Expected.
+    }
+}
+catch (Exception ex)
+{
+    failures.Add($"typesafe reranking package: {ex.GetType().Name}: {ex.Message}");
+}
+
 // 2. The DI package registers and resolves.
 try
 {
@@ -244,6 +285,17 @@ if (failures.Count > 0)
 
 Console.WriteLine("CONSUME OK: every package restored and its public surface is callable.");
 return 0;
+// Declared after the top-level statements, because a type declaration cannot precede them.
+sealed class NoOpAsker : IChoiceAsker
+{
+    public Task<IReadOnlyDictionary<string, double>> AskChoiceAsync(
+        string instructions,
+        string state,
+        IReadOnlyDictionary<string, string> options,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyDictionary<string, double>>(new Dictionary<string, double>());
+}
+
 EOF
 
 printf '[consume] restoring from the local feed...\n'

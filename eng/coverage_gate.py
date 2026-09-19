@@ -104,6 +104,10 @@ BRANCH_FLOORS = {
 # checkout, and removing the floor would stop enforcing it everywhere, including on the machine that
 # does have the assets. So the floor is conditional on the requirement being met, and when it is not
 # the gate says the package is *unmeasured* rather than passing it.
+# Floors for packages whose tests always run.
+LINE_FLOORS["Vectorize.Hindsight.Sdk.Reranking.TypeSafe"] = 85.0
+BRANCH_FLOORS["Vectorize.Hindsight.Sdk.Reranking.TypeSafe"] = 75.0
+
 CONDITIONAL_FLOORS = {
     "Vectorize.Hindsight.Sdk.Reranking.Onnx": (
         80.0,

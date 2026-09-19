@@ -4,10 +4,13 @@
     <RootNamespace>Vectorize.Hindsight.Sdk.Reranking.Tests</RootNamespace>
     <AssemblyName>Vectorize.Hindsight.Sdk.Reranking.Tests</AssemblyName>
     <IsPackable>false</IsPackable>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/Vectorize.Hindsight.Sdk.Reranking.Onnx/Vectorize.Hindsight.Sdk.Reranking.Onnx.csproj" />
+    <ProjectReference Include="../../src/Vectorize.Hindsight.Sdk.Reranking.TypeSafe/Vectorize.Hindsight.Sdk.Reranking.TypeSafe.csproj" />
+    <ProjectReference Include="../../src/Vectorize.Hindsight.Sdk.DependencyInjection/Vectorize.Hindsight.Sdk.DependencyInjection.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -16,6 +19,7 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="Xunit.SkippableFact" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>
 
 </Project>

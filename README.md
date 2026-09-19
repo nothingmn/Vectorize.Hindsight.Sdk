@@ -24,6 +24,7 @@ dotnet add package Vectorize.Hindsight.Sdk
 dotnet add package Vectorize.Hindsight.Sdk.DependencyInjection   # optional: DI integration
 dotnet add package Vectorize.Hindsight.Sdk.Admin                 # optional: admin CLI bridge
 dotnet add package Vectorize.Hindsight.Sdk.Reranking.Onnx        # optional: local cross-encoder reranking
+dotnet add package Vectorize.Hindsight.Sdk.Reranking.TypeSafe    # optional: TypeSafe Choice reranking
 ```
 
 Target framework: `net10.0`. The core library is trimmable and Native AOT friendly — every
@@ -374,6 +375,42 @@ Run it against the rig with:
 dotnet run --project samples/Vectorize.Hindsight.Sdk.CrossBankSample
 ```
 
+### Choosing a reranker
+
+Reranking is **opt-in, and selecting a provider is a registration rather than a branch**. There is no
+switch statement over provider names and no registry to update: an `IRerankerFactory` is registered
+and that registration is the selection, so a provider added later needs no change to the core.
+
+```csharp
+// The default: no judgement, no cost, no dependency. Preserves the merge order.
+services.AddHindsight();
+
+// Local ONNX. Free per call; needs the model assets.
+services.AddOnnxReranker(new OnnxRerankerOptions { ModelPath = ..., ... });
+
+// TypeSafe. A model call per recall; needs an IChoiceAsker adapter over your TypeSafe client.
+services.AddTypeSafeReranker();
+```
+
+```csharp
+var result = await client.RecallAcrossBanksAsync(query, banks, options, ct);
+Console.WriteLine(result.RerankApplied);   // false when the identity default ran
+```
+
+`HindsightClient` takes a **nullable reranker** and defaults to the pure-C# `IdentityReranker`, so a
+call site never null-checks one and `IReranker.IsIdentity` is how a caller tells "no judgement was
+made" from "relevance was evaluated". A client built from the container carries whichever provider
+was registered.
+
+**Registration order does not matter.** An earlier version had `AddHindsight` register the identity
+factory eagerly, and because every registration uses `TryAdd` the first one won — so a host calling
+`AddHindsight()` before `AddTypeSafeReranker()` silently kept the no-op reranker and never ranked
+anything. There is now a regression test for exactly that.
+
+A provider that cannot be built **falls back to the identity reranker** rather than failing, because
+losing cross-bank recall entirely is worse than losing its ranking; `ResolveReranker(out var reason)`
+reports why. A host that disagrees registers with `required: true` and fails at first use instead.
+
 ### Optional reranking
 
 The merge above deliberately does **not** rerank. Adding that second stage is opt-in, through an
@@ -411,6 +448,22 @@ The model assets are fetched with `test-infra/fetch-reranker-model.sh`. Design p
   separated only in the sixth decimal. The order was right and the magnitudes were near-meaningless
   — normal for a quantized cross-encoder. Order by the score; do not threshold on it.
 - **A missing GPU falls back to CPU with a warning** rather than failing. Check `ProviderInUse`.
+- **Each provider answers a different question.** ONNX is local and free per call, so it scales with
+  traffic; TypeSafe is a model call per recall, so it costs money and a round trip but needs no assets
+  and no deployment. Pick on that axis, not on benchmark folklore.
+
+**TypeSafe `Choice` as a reranker.** It fits, and the reason is specific: a
+[Choice](https://docs.typesafe.ai/primitives/choice) question returns a **probability distribution
+over the options you supply**, so putting every candidate in as an option makes them compete inside
+one judgement and the probabilities rank. The obvious alternative does not work — asking "is this
+relevant?" once per candidate returns *independent* answers, so twenty unrelated 0.9s rank nothing.
+That mode (`TypeSafeRerankMode.Noul`) exists for pools too large to list as options and is documented
+as not mutually comparable.
+
+The package depends on an `IChoiceAsker` seam rather than a TypeSafe client, because `Jev.Sdk` is not
+published to nuget.org and a published package cannot depend on an unpublished one. Adapting your
+client is one small class, shown in that package's README.
+
 - **The tokenizer is verified against the reference implementation**, not assumed. This is the part
   that goes silently wrong — ONNX Runtime runs happily on wrong input and returns plausible numbers.
   An XLM-R reranker needs two assets that disagree: the HF vocabulary inserts a `<pad>` at index 1
@@ -540,7 +593,8 @@ src/Vectorize.Hindsight.Sdk/                     the HTTP client
   Models/                                        generated DTOs (181) + HindsightValues
   Operations/                                    generated operations (15 files, tagged)
   CrossBank/                                     recall across banks: fan-out, merge, provenance
-  Reranking/                                     the IReranker seam (no inference dependency)
+  Reranking/                                     the IReranker + IRerankerFactory seams, and the
+                                                 pure-C# identity default (no inference dependency)
   Unions/                                        the four hand-written unions + converters
   Http/                                          transport, JSON, retry policy
   Errors/                                        the exception surface
@@ -550,12 +604,14 @@ src/Vectorize.Hindsight.Sdk/                     the HTTP client
 src/Vectorize.Hindsight.Sdk.Admin/               the admin-CLI bridge (process, not HTTP)
 src/Vectorize.Hindsight.Sdk.DependencyInjection/ DI integration
 src/Vectorize.Hindsight.Sdk.Reranking.Onnx/      local ONNX cross-encoder reranker
+src/Vectorize.Hindsight.Sdk.Reranking.TypeSafe/  TypeSafe System One Choice reranker
 tests/Vectorize.Hindsight.Sdk.Tests/             unit suite (no network, no credentials)
 tests/Vectorize.Hindsight.Sdk.Admin.Tests/       admin bridge (stub, real-process, and live levels)
 tests/Vectorize.Hindsight.Sdk.IntegrationTests/  live suite + the coverage assertions
 tests/Vectorize.Hindsight.Sdk.Reranking.Tests/   reranker, incl. tokenizer parity vs the reference
 samples/Vectorize.Hindsight.Sdk.Sample/          runnable example
 samples/Vectorize.Hindsight.Sdk.CrossBankSample/ multi-bank recall against the rig
+samples/Vectorize.Hindsight.Sdk.RerankerSample/  choosing a reranker by registration
 eng/                                             generators, gates, and CI helpers
 .github/workflows/                               build and release pipelines
 spec/                                            the pinned OpenAPI specification

@@ -5,6 +5,8 @@ using System.Text.Json.Serialization.Metadata;
 using Vectorize.Hindsight.Sdk.Configuration;
 using Vectorize.Hindsight.Sdk.Errors;
 using Vectorize.Hindsight.Sdk.Http;
+using Vectorize.Hindsight.Sdk.Reranking;
+using Vectorize.Hindsight.Sdk.Reranking.Providers;
 using Vectorize.Hindsight.Sdk.Telemetry;
 
 namespace Vectorize.Hindsight.Sdk;
@@ -55,9 +57,53 @@ public sealed partial class HindsightClient : IDisposable
     /// <param name="options">The options. Null means defaults.</param>
     /// <param name="logger">An optional logger. Absent means silent.</param>
     public HindsightClient(HindsightClientOptions? options = null, ILogger<HindsightClient>? logger = null)
+        : this(options, logger, reranker: null)
+    {
+    }
+
+    /// <summary>Creates a client with a reranker for cross-bank recall.</summary>
+    /// <param name="reranker">
+    /// The reranker to use, or null for the default. See the remarks.
+    /// </param>
+    public HindsightClient(IReranker? reranker)
+        : this(new HindsightClientOptions(), logger: null, reranker)
+    {
+    }
+
+    /// <summary>Creates a client.</summary>
+    /// <param name="options">The options. Null means defaults.</param>
+    /// <param name="logger">An optional logger. Absent means silent.</param>
+    /// <param name="reranker">
+    /// <para>
+    /// The reranker to use for cross-bank recall, or <b>null for the default</b>, which is
+    /// <see cref="Reranking.Providers.IdentityReranker"/> — a pure-C# reranker that makes no
+    /// judgement and preserves the merge order.
+    /// </para>
+    /// <para>
+    /// Passing null is not the same as leaving reranking unsupported: the client always has a
+    /// reranker, so a call site never null-checks one, and
+    /// <see cref="Reranking.IReranker.IsIdentity"/> is how a caller tells
+    /// "no judgement was made" from "relevance was evaluated". A host that has registered an
+    /// <see cref="Reranking.IRerankerFactory"/> should pass
+    /// <c>services.ResolveReranker()</c>, which is the same default when nothing is registered.
+    /// </para>
+    /// <para>
+    /// A reranker supplied on <see cref="CrossBank.CrossBankRecallOptions.Reranker"/> for a specific
+    /// call takes precedence over this one; this is the client-wide default for calls that do not
+    /// supply their own.
+    /// </para>
+    /// </param>
+    public HindsightClient(
+        HindsightClientOptions? options,
+        ILogger<HindsightClient>? logger,
+        IReranker? reranker)
     {
         _options = options ?? new HindsightClientOptions();
         HindsightClientOptionsValidator.Validate(_options);
+
+        // Never null: the identity reranker carries the "no judgement" meaning explicitly, so no
+        // call site and no test has to handle a nullable reranker.
+        Reranker = reranker ?? IdentityReranker.Instance;
 
         _json = new HindsightJson(_options.ConfigureJson);
 
@@ -77,6 +123,15 @@ public sealed partial class HindsightClient : IDisposable
 
     /// <summary>The options this client was built with.</summary>
     public HindsightClientOptions Options => _options;
+
+    /// <summary>
+    /// The reranker this client uses when a cross-bank call does not supply its own.
+    /// </summary>
+    /// <remarks>
+    /// Never null. <see cref="Reranking.IReranker.IsIdentity"/> distinguishes the default no-op
+    /// from a reranker that actually judges relevance.
+    /// </remarks>
+    public IReranker Reranker { get; }
 
     /// <summary>The base address requests are sent to.</summary>
     public string BaseAddress => _options.BaseAddress;

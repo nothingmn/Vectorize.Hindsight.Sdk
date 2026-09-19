@@ -36,6 +36,7 @@ EXPECTED = {
     "Vectorize.Hindsight.Sdk",
     "Vectorize.Hindsight.Sdk.Admin",
     "Vectorize.Hindsight.Sdk.Reranking.Onnx",
+    "Vectorize.Hindsight.Sdk.Reranking.TypeSafe",
     "Vectorize.Hindsight.Sdk.DependencyInjection",
 }
 

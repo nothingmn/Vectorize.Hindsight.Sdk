@@ -29,6 +29,18 @@ namespace Vectorize.Hindsight.Sdk.Reranking;
 public interface IReranker
 {
     /// <summary>
+    /// True when this reranker makes no judgement and preserves the order it is given.
+    /// </summary>
+    /// <remarks>
+    /// Read by the cross-bank pipeline to decide whether to report the result as reranked. A
+    /// no-op default must not be able to claim that relevance was evaluated, or a caller cannot
+    /// tell a relevance-ordered result from a merge-ordered one — which is the single distinction
+    /// this stage exists to provide.
+    /// </remarks>
+    bool IsIdentity => false;
+
+
+    /// <summary>
     /// Scores every document against the query.
     /// </summary>
     /// <remarks>

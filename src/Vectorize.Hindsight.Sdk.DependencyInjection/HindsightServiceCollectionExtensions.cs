@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Vectorize.Hindsight.Sdk.Authentication;
 using Vectorize.Hindsight.Sdk.Configuration;
+using Vectorize.Hindsight.Sdk.Reranking;
+using Vectorize.Hindsight.Sdk.Reranking.Providers;
 using Vectorize.Hindsight.Sdk.Errors;
 using Vectorize.Hindsight.Sdk.Http;
 
@@ -88,6 +90,14 @@ public static class HindsightServiceCollectionExtensions
         // outranks it, so either overload resolves the same way in any order.
         services.TryAddSingleton<EnvironmentApiKeyProvider>();
 
+        // Deliberately NOT registering a default reranker factory here.
+        //
+        // Registering the identity factory eagerly looked tidy and was a real bug: every provider
+        // registration uses TryAdd, so the first one wins, and a host that called
+        // `AddHindsight()` before `AddTypeSafeReranker()` would silently keep the no-op default and
+        // never rank anything. The absence of a registration is the default instead, and
+        // ResolveReranker falls back to identity when none is present — so a provider registered in
+        // any order wins, and a host with no provider still gets a reranker rather than null.
         services.TryAddSingleton<HindsightClient>(CreateClient);
 
         if (configure is not null)
@@ -235,7 +245,13 @@ public static class HindsightServiceCollectionExtensions
             options.ApiKeyProvider = provider.GetService<EnvironmentApiKeyProvider>();
         }
 
-        return new HindsightClient(options, provider.GetService<ILogger<HindsightClient>>());
+        // The reranker is resolved from whichever IRerankerFactory is registered, and this never
+        // returns null: with no provider registered it is the identity reranker, which preserves
+        // the merge order. So a client built here always has a reranker and no call site or test
+        // has to handle a nullable one — the same shape as `new HindsightClient(null, null, null)`.
+        var reranker = provider.ResolveReranker();
+
+        return new HindsightClient(options, provider.GetService<ILogger<HindsightClient>>(), reranker);
     }
 
     /// <summary>

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Vectorize.Hindsight.Sdk.Reranking.TypeSafe</RootNamespace>
+    <AssemblyName>Vectorize.Hindsight.Sdk.Reranking.TypeSafe</AssemblyName>
+    <PackageId>Vectorize.Hindsight.Sdk.Reranking.TypeSafe</PackageId>
+
+    <Description>TypeSafe System One Choice-based reranking for Vectorize.Hindsight.Sdk. Scores cross-bank candidates by asking one Choice question over all of them, so the model's probability distribution ranks the candidates in a single remote call.</Description>
+    <PackageTags>hindsight;vectorize;reranker;typesafe;systemone;choice;rag;retrieval</PackageTags>
+
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Deliberately references no TypeSafe client package: Jev.Sdk is not published, and a
+         published package cannot depend on an unpublished one. The provider depends on the
+         IChoiceAsker seam instead, and a host adapts its own client in a few lines. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Vectorize.Hindsight.Sdk/Vectorize.Hindsight.Sdk.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

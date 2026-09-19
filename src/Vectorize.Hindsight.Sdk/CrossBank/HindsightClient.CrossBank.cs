@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Vectorize.Hindsight.Sdk.CrossBank;
 using Vectorize.Hindsight.Sdk.Errors;
 using Vectorize.Hindsight.Sdk.Models;
+using Vectorize.Hindsight.Sdk.Reranking;
 
 namespace Vectorize.Hindsight.Sdk;
 
@@ -152,10 +153,14 @@ public sealed partial class HindsightClient
         var rerankApplied = false;
         Exception? rerankFailure = null;
 
-        if (options.Reranker is not null && candidates.Count > 0)
+        // The per-call reranker wins; otherwise the client's, which is never null. An identity
+        // reranker is skipped entirely rather than run and discarded, so the default costs nothing.
+        var reranker = options.Reranker ?? Reranker;
+
+        if (!reranker.IsIdentity && candidates.Count > 0)
         {
             (candidates, rerankApplied, rerankFailure) =
-                await RerankAsync(query, candidates, options, cancellationToken).ConfigureAwait(false);
+                await RerankAsync(query, candidates, reranker, options, cancellationToken).ConfigureAwait(false);
         }
 
         var selectedCounts = candidates
@@ -211,6 +216,7 @@ public sealed partial class HindsightClient
         RerankAsync(
             string query,
             IReadOnlyList<CrossBankCandidate> candidates,
+            IReranker reranker,
             CrossBankRecallOptions options,
             CancellationToken cancellationToken)
     {
@@ -227,7 +233,7 @@ public sealed partial class HindsightClient
         IReadOnlyList<double> scores;
         try
         {
-            scores = await options.Reranker!.RerankAsync(query, documents, cancellationToken)
+            scores = await reranker.RerankAsync(query, documents, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -187,15 +187,27 @@ public sealed class CoverageTests
     {
         // No sync counterparts, no sync-over-async. A method that performs I/O and does
         // not return a Task would be the first step back to a blocking client.
+        //
+        // Property accessors are excluded as a category rather than by name. A getter returns state
+        // the client already holds and cannot perform I/O, so it is not a synchronous I/O surface
+        // however it is named — and naming them individually (get_Options, get_BaseAddress, …) meant
+        // every new property needed this test edited, which is how a guard quietly stops guarding.
         var synchronous = typeof(HindsightClient)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(m => !m.IsSpecialName)
             .Where(m => !m.Name.EndsWith("Async", StringComparison.Ordinal))
             .Where(m => m.Name is not ("Dispose" or "GetType" or "ToString" or "Equals" or "GetHashCode"))
             .Where(m => m.ReturnType != typeof(void) || m.GetParameters().Length > 0)
-            .Where(m => m.Name != "get_Options" && m.Name != "get_BaseAddress")
             .Select(m => m.Name)
             .ToList();
 
         Assert.Empty(synchronous);
+
+        // And the exclusion above proves itself: a property that *did* expose something async-only
+        // must not be reachable synchronously, which this asserts by name so the category exclusion
+        // cannot hide a genuine offender.
+        Assert.All(
+            typeof(HindsightClient).GetProperties().Where(p => p.Name == "Reranker"),
+            property => Assert.NotNull(property.GetMethod));
     }
 }
