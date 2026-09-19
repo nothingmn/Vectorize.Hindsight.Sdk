@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Vectorize.Hindsight.Sdk.Sample</RootNamespace>
+    <AssemblyName>Vectorize.Hindsight.Sdk.Sample</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Vectorize.Hindsight.Sdk/Vectorize.Hindsight.Sdk.csproj" />
+    <ProjectReference Include="../../src/Vectorize.Hindsight.Sdk.DependencyInjection/Vectorize.Hindsight.Sdk.DependencyInjection.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
+
+</Project>

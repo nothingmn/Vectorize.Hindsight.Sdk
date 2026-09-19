@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Vectorize.Hindsight.Sdk</RootNamespace>
+    <AssemblyName>Vectorize.Hindsight.Sdk</AssemblyName>
+    <PackageId>Vectorize.Hindsight.Sdk</PackageId>
+
+    <Description>A dependency-light .NET client for the Hindsight agent-memory HTTP API. Covers the full non-deprecated surface: memory banks, retain, recall, reflect, entities, directives, mental models, knowledge base, documents, webhooks, operations and transfers.</Description>
+    <PackageTags>hindsight;vectorize;agent;memory;ai;sdk;client;rest</PackageTags>
+
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- The library is trimmable and Native AOT friendly: every serializer
+         path is source-generated and no reflection is used over caller types. -->
+    <IsTrimmable>true</IsTrimmable>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

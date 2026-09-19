@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Vectorize.Hindsight.Sdk.DependencyInjection</RootNamespace>
+    <AssemblyName>Vectorize.Hindsight.Sdk.DependencyInjection</AssemblyName>
+    <PackageId>Vectorize.Hindsight.Sdk.DependencyInjection</PackageId>
+
+    <Description>Microsoft.Extensions.DependencyInjection integration for Vectorize.Hindsight.Sdk.</Description>
+    <PackageTags>hindsight;vectorize;agent;memory;ai;sdk;client;dependency-injection</PackageTags>
+
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Vectorize.Hindsight.Sdk/Vectorize.Hindsight.Sdk.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

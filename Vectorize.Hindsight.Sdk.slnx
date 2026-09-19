@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="src/Vectorize.Hindsight.Sdk/Vectorize.Hindsight.Sdk.csproj" />
+  <Project Path="src/Vectorize.Hindsight.Sdk.DependencyInjection/Vectorize.Hindsight.Sdk.DependencyInjection.csproj" />
+  <Project Path="tests/Vectorize.Hindsight.Sdk.Tests/Vectorize.Hindsight.Sdk.Tests.csproj" />
+  <Project Path="tests/Vectorize.Hindsight.Sdk.IntegrationTests/Vectorize.Hindsight.Sdk.IntegrationTests.csproj" />
+  <Project Path="samples/Vectorize.Hindsight.Sdk.Sample/Vectorize.Hindsight.Sdk.Sample.csproj" />
+</Solution>

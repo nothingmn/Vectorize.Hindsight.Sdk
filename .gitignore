@@ -1,2 +1,19 @@
+# Build output
+bin/
+obj/
+artifacts/
+TestResults/
+
+# Local test rig state and credentials
+test-infra/.env
+test-infra/secrets/
+test-infra/.state/
+
+# Third-party reference clone (reconnaissance only)
 vendor/
-# Not tracked: third-party clone used for reference only.
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo

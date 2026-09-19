@@ -22,17 +22,15 @@ log() { printf '[up] %s\n' "$*"; }
 die() { printf '[up] ERROR: %s\n' "$*" >&2; exit "${2:-1}"; }
 
 # --- Resolve the LLM credentials ---------------------------------------------
-# Order: explicit environment, then the Hermes .env, which is where this machine
-# already keeps a working Ollama key.
+# Delegated to resolve-llm-key.sh, which prefers the Ollama account Hermes is
+# actually using. The two available keys belong to different accounts with
+# separate quota, and the .env one is frequently exhausted.
 if [[ -z "${HINDSIGHT_API_LLM_API_KEY:-}" ]]; then
-  HERMES_ENV="${HOME}/.hermes/.env"
-  if [[ -f "$HERMES_ENV" ]]; then
-    HINDSIGHT_API_LLM_API_KEY="$(grep -m1 '^OLLAMA_API_KEY=' "$HERMES_ENV" | cut -d= -f2- || true)"
-  fi
+  HINDSIGHT_API_LLM_API_KEY="$(./resolve-llm-key.sh || true)"
 fi
 
 [[ -n "${HINDSIGHT_API_LLM_API_KEY:-}" ]] \
-  || die "no LLM API key. Set HINDSIGHT_API_LLM_API_KEY, or make sure OLLAMA_API_KEY is present in ${HOME}/.hermes/.env" 2
+  || die "no LLM API key. Set HINDSIGHT_API_LLM_API_KEY, or make sure the Hermes config/.env carries one." 2
 
 export HINDSIGHT_API_LLM_API_KEY
 export HINDSIGHT_API_LLM_PROVIDER="${HINDSIGHT_API_LLM_PROVIDER:-openai}"

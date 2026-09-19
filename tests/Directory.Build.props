@@ -1,0 +1,16 @@
+<Project>
+
+  <!-- A Directory.Build.props in a subdirectory replaces the root one; it does
+       not inherit. Import the parent explicitly. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <!-- CA1707: xunit test method names use underscores by convention.
+         CS1591: test types are not part of the public API surface. -->
+    <NoWarn>$(NoWarn);CA1707;CS1591</NoWarn>
+  </PropertyGroup>
+
+</Project>

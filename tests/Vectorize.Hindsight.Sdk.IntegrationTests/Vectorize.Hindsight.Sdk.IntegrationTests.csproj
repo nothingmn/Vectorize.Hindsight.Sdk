@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Vectorize.Hindsight.Sdk.IntegrationTests</RootNamespace>
+    <AssemblyName>Vectorize.Hindsight.Sdk.IntegrationTests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Vectorize.Hindsight.Sdk/Vectorize.Hindsight.Sdk.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The spec the suite pins its expectations to. -->
+    <None Include="../../spec/openapi.json" Link="spec/openapi.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
