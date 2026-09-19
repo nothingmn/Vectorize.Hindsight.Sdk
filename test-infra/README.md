@@ -56,7 +56,12 @@ version relationship.
 ```
 
 `up.sh` exits non-zero with the container logs if startup fails, rather than leaving a half-started
-instance behind.
+instance behind. `down.sh` needs no credentials — it supplies inert placeholders so that
+`docker compose` interpolation succeeds — and is idempotent: stopping an already-stopped rig is a
+no-op, not an error.
+
+Both scripts are safe to re-run, and the rig is verified to come back up from the pinned digest
+serving the same `api_version`, which is what makes a test result reproducible.
 
 ### Credentials
 
@@ -87,14 +92,32 @@ the bulk of the 89 live operations can be exercised without spending provider qu
 
 ## Image variant
 
-The compose file uses the **full** image (`ghcr.io/vectorize-io/hindsight`, ~9 GB) because it bundles
-the local embedding and reranker models, which makes the rig self-contained.
+The compose file pins the image **by digest**, not by tag:
+
+```
+ghcr.io/vectorize-io/hindsight@sha256:3edcb6165cefdeaa6721dd0fce43cfd13b7a9c346ce0d2c5f4b4bf7bc3c8ac0b
+```
+
+built `2026-09-14`, serving `api_version` **0.10.0**. A tag like `latest` moves, which would make
+"the tests passed" unrepeatable — the same suite could run against a different server next week and
+nobody would notice. Override with `HINDSIGHT_TEST_IMAGE` only when deliberately testing a different
+release.
+
+The pinned image is the **full** variant (~9 GB) because it bundles the local embedding and reranker
+models, which keeps the rig self-contained.
+
+To verify the running container matches the pin:
+
+```bash
+docker inspect hindsight-sdk-test --format '{{.Image}}'
+# -> sha256:e7815cac45c526ebc09d44b94574f9a93a8646c464aaf7a9bf63d8f6d49b9fcb
+```
 
 The **slim** variant is ~500 MB but requires external embedding and reranker providers. Switching is
-a one-line change:
+a one-line change — set `HINDSIGHT_TEST_IMAGE` to the slim digest, or:
 
 ```yaml
-image: ghcr.io/vectorize-io/hindsight:${HINDSIGHT_TEST_IMAGE_TAG:-latest-slim}
+image: ghcr.io/vectorize-io/hindsight:latest-slim
 ```
 
 It is not the default because it would add a second external dependency to every test run.

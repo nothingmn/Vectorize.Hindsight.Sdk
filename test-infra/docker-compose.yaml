@@ -14,7 +14,17 @@ name: hindsight-sdk-test
 
 services:
   hindsight:
-    image: ghcr.io/vectorize-io/hindsight:${HINDSIGHT_TEST_IMAGE_TAG:-latest}
+    # Pinned by digest for reproducibility: `latest` is a moving target and would
+    # make "the tests passed" unrepeatable. Override with HINDSIGHT_TEST_IMAGE
+    # only when deliberately testing a different release.
+    #
+    # Pinned digest : sha256:3edcb6165cefdeaa6721dd0fce43cfd13b7a9c346ce0d2c5f4b4bf7bc3c8ac0b
+    # Image id      : sha256:e7815cac45c526ebc09d44b94574f9a93a8646c464aaf7a9bf63d8f6d49b9fcb
+    # Built         : 2026-09-14
+    # Serves        : api_version 0.10.0 (published spec is also 0.10.0 — but note the
+    #                 served spec carries 71 paths / 91 ops against the published
+    #                 74 / 94; see docs/live-verification.md section 1)
+    image: ${HINDSIGHT_TEST_IMAGE:-ghcr.io/vectorize-io/hindsight@sha256:3edcb6165cefdeaa6721dd0fce43cfd13b7a9c346ce0d2c5f4b4bf7bc3c8ac0b}
     container_name: hindsight-sdk-test
     restart: "no"
 
