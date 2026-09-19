@@ -1,0 +1,48 @@
+# Keep dependencies current without a human remembering to look.
+#
+# A client library's dependency risk is concentrated in what it pulls in, and this
+# library deliberately pulls in almost nothing: the core has one package dependency.
+# That makes a dependency update cheap to review and worth doing promptly.
+version: 2
+
+updates:
+  # NuGet packages. Versions are pinned centrally in Directory.Packages.props, so one
+  # pull request moves a dependency for the whole solution rather than one project
+  # drifting ahead of the others.
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      # Microsoft.Extensions.* move together and are released together. Grouping them
+      # into one pull request keeps the review to a single version bump rather than six
+      # that must all land or none.
+      microsoft-extensions:
+        patterns:
+          - "Microsoft.Extensions.*"
+      # SourceLink is build-only and must stay on the SDK's version line: 8.0.0 pulls a
+      # dependency carrying an advisory, which fails this build outright. A grouped
+      # update makes that constraint visible rather than silently applied.
+      sourcelink:
+        patterns:
+          - "Microsoft.SourceLink.*"
+          - "Microsoft.Build.Tasks.Git"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+
+  # The actions used by the workflows. An action pinned to a stale major is a supply-chain
+  # gap, and there is no package-lock to notice it for you.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci"

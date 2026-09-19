@@ -1,0 +1,95 @@
+# Editor conventions, so an editor and the build agree.
+#
+# The build enforces most of what matters through the analyzers
+# (EnforceCodeStyleInBuild is on), but an editor that disagrees with the build
+# produces a stream of warnings that train people to ignore them.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,csproj,props,targets,slnx}]
+indent_size = 2
+
+[*.md]
+# Trailing whitespace is significant in Markdown: two spaces force a line break.
+trim_trailing_whitespace = false
+
+[*.{cs,csx}]
+indent_size = 4
+
+# C# conventions. These mirror what the analyzers enforce, so a suggestion in the
+# editor is the same suggestion the build would make.
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:error
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = when_on_single_line:suggestion
+
+# Prefer the language keywords over the framework type names.
+dotnet_style_predefined_type_for_locals_parameters_members = true:error
+dotnet_style_predefined_type_for_member_access = true:error
+
+# `this.` is noise: it adds nothing a reader needs.
+dotnet_style_qualification_for_field = false:error
+dotnet_style_qualification_for_property = false:error
+dotnet_style_qualification_for_method = false:error
+dotnet_style_qualification_for_event = false:error
+
+# Explicit accessibility matters on a public API surface, so it is required on types
+# and their members. Interface members are excluded because C# makes them implicitly
+# public: writing `public void Foo();` on an interface member adds a keyword the
+# language already guarantees, and the analyzer's own default agrees.
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
+
+# `using` directives outside the namespace, sorted.
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:error
+
+# Braces on their own line, always, including for a single statement: a one-line
+# `if (x) return;` is where a second statement gets added without braces.
+csharp_prefer_braces = true:error
+csharp_new_line_before_open_brace = all
+
+# Null checks: prefer pattern matching and the framework's own guards.
+csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
+csharp_style_throw_expression = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+
+# IDE0005 (unnecessary using) is a suggestion, NOT an error. Verified: enforcing it
+# reported usings that the compiler requires - `System.Text.Json.Serialization.Metadata`
+# in HindsightJson.cs resolves `JsonTypeInfo<T>` and was still flagged - so the rule
+# produces false positives here and cannot gate the build. The build already fails
+# outright on a genuinely unused using in the cases that matter, because the repo builds
+# with warnings as errors and the compiler reports the ones it cares about.
+dotnet_diagnostic.IDE0005.severity = suggestion
+
+# Private fields are _camelCase with an underscore prefix, which distinguishes them
+# from a constructor parameter of the same name at a glance.
+dotnet_naming_rule.private_fields_underscore.severity = error
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+dotnet_naming_style.underscore_camel.required_prefix = _
+
+# Generated code is not held to any of the above: it is produced, not written.
+[src/Vectorize.Hindsight.Sdk/Models/*.cs]
+generated_code = true
+dotnet_diagnostic.IDE0005.severity = none
+
+[src/Vectorize.Hindsight.Sdk/Operations/*.cs]
+generated_code = true
+dotnet_diagnostic.IDE0005.severity = none
+
+[src/Vectorize.Hindsight.Sdk/Http/HindsightJsonContext.g.cs]
+generated_code = true
+dotnet_diagnostic.IDE0005.severity = none

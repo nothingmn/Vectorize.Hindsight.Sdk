@@ -4,6 +4,13 @@ obj/
 artifacts/
 TestResults/
 
+# Coverage and test-run output
+coverage.cobertura.xml
+*.trx
+*.coverage
+*.snupkg
+*.nupkg
+
 # Local test rig state and credentials
 test-infra/.env
 test-infra/secrets/

@@ -308,40 +308,77 @@ replacement among the 87 (except the last, which has none declared), so no capab
 
 ---
 
-## Building and verifying
+## Building, packaging, and CI
+
+### Locally
 
 ```bash
+# Every gate CI runs, in the same order, from committed state.
+bash eng/ci_local.sh
+
+# Or step by step:
 dotnet build Vectorize.Hindsight.Sdk.slnx -c Release
 dotnet test  Vectorize.Hindsight.Sdk.slnx -c Release
 
-# Generated code must match the spec - CI fails on drift.
+# Generated code must match the pinned spec - CI fails on drift.
 python3 eng/generate_models.py --check
 python3 eng/generate_operations.py --check
+python3 eng/generate_inventory.py --check
 
-# Coverage floors: 90% line / 60% branch core, 95% / 80% DI.
+# Coverage floors: 90% line / 60% branch per library, 95% / 80% for the DI package.
 dotnet test Vectorize.Hindsight.Sdk.slnx -c Release \
   --collect:"XPlat Code Coverage" --results-directory ./artifacts/test-results --logger trx
 python3 eng/coverage_gate.py
+
+# Package, then verify and consume what was produced.
+dotnet pack Vectorize.Hindsight.Sdk.slnx -c Release -o ./artifacts/packages
+python3 eng/verify_packages.py ./artifacts/packages --expect-version "$(python3 eng/package_version.py)"
+bash eng/consume_package.sh
 ```
 
-### Measured state
+`eng/ci_local.sh` runs twelve gates and names the four things it cannot reproduce. It is the
+honest substitute for a workflow that has not executed on GitHub, not a claim that it has.
 
-| Assembly | Line | Branch | Floor |
-| --- | --- | --- | --- |
-| `Vectorize.Hindsight.Sdk` | 91.7% | 80.3% | 90% / 60% |
-| `Vectorize.Hindsight.Sdk.Admin` | 91.0% | 82.5% | 90% / 60% |
-| `Vectorize.Hindsight.Sdk.DependencyInjection` | 100% | 97.7% | 95% / 80% |
+### Workflows
 
-250 tests, zero exemptions — nothing is excluded from the measurement, so every counted line is
-one a test exercises. Coverage describes hand-written code only; the generated model, operation
-and metadata layers are excluded, because counting them would measure the compiler rather than
-the library.
+| Workflow | Trigger | Does |
+| --- | --- | --- |
+| `build.yml` | push, pull request, manual | Validates its own definitions, checks for spec drift, builds, tests, enforces coverage, packs, verifies and consumes the packages, uploads them as artifacts |
+| `release.yml` | version tag, manual | Re-runs every gate, refuses a tag that disagrees with the declared version, verifies the changelog describes that version, extracts the release notes, records SHA-256 checksums, and attaches the packages to a GitHub release |
 
-The integration suite runs against a live server when one is present and **skips with a
-visible reason** when it is not, rather than failing — and it never silently passes without
-running.
+**Publishing to nuget.org is deliberately not automated.** The release workflow produces artifacts
+and attaches them to a GitHub release; a separate, deliberate act publishes them. A workflow that
+pushed to a public feed on a tag would be one mistyped tag away from an irreversible mistake.
 
----
+### The version is declared once
+
+`Directory.Build.props` holds `VersionPrefix`; `eng/package_version.py` reads it. The release
+workflow refuses to proceed when a tag and that value disagree, because the alternative is a release
+page advertising one version while the package contains another.
+
+### What the packaging checks actually catch
+
+Each was verified by injecting the failure it guards against:
+
+| Check | Catches |
+| --- | --- |
+| `generate_* --check` | A generated file that has drifted from the pinned spec |
+| `validate_workflows.py` | An action pinned to a branch; a step with neither `uses` nor `run`; a step with both; a reference to a script that does not exist |
+| `verify_packages.py` | A missing package or symbol package; a placeholder description; an absent README or LICENSE; no `lib/` payload; a sibling dependency on a version that cannot exist; a version that disagrees with the build |
+| `consume_package.sh` | A package that packs but cannot be restored, loaded, or called |
+| `coverage_gate.py` | A floor that stopped applying, and a test run that discovered zero tests |
+| `EnablePackageValidation` | A public member removed since the baseline |
+
+### Dependency hygiene
+
+`Dependabot` runs weekly for NuGet and for the workflow actions themselves, with
+`Microsoft.Extensions.*` and the SourceLink packages grouped so a review is one version bump rather
+than six that must all land together.
+
+One constraint is worth knowing before updating: **SourceLink must stay on the SDK's version line.**
+The widely-cited 8.0.0 pulls `Microsoft.Build.Tasks.Git` 8.0.0, which carries a known
+moderate-severity advisory — and because warnings are errors here, restoring it fails the build
+outright with `NU1902`. Verified, not assumed.
 
 ## Not verified
 
@@ -385,7 +422,8 @@ tests/Vectorize.Hindsight.Sdk.Tests/             unit suite (no network, no cred
 tests/Vectorize.Hindsight.Sdk.Admin.Tests/       admin bridge (stub, real-process, and live levels)
 tests/Vectorize.Hindsight.Sdk.IntegrationTests/  live suite + the coverage assertions
 samples/Vectorize.Hindsight.Sdk.Sample/          runnable example
-eng/                                             generators + coverage gate
+eng/                                             generators, gates, and CI helpers
+.github/workflows/                               build and release pipelines
 spec/                                            the pinned OpenAPI specification
 test-infra/                                      the local server rig
 docs/                                            verified API notes, live findings, decisions

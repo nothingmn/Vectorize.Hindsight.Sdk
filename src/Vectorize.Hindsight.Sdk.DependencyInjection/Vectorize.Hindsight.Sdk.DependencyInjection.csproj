@@ -5,13 +5,18 @@
     <AssemblyName>Vectorize.Hindsight.Sdk.DependencyInjection</AssemblyName>
     <PackageId>Vectorize.Hindsight.Sdk.DependencyInjection</PackageId>
 
-    <Description>Microsoft.Extensions.DependencyInjection integration for Vectorize.Hindsight.Sdk.</Description>
+    <Description>Microsoft.Extensions.DependencyInjection integration for Vectorize.Hindsight.Sdk, the .NET client for the Hindsight agent-memory HTTP API.</Description>
     <PackageTags>hindsight;vectorize;agent;memory;ai;sdk;client;dependency-injection</PackageTags>
 
     <IsPackable>true</IsPackable>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <IsTrimmable>true</IsTrimmable>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +32,7 @@
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>

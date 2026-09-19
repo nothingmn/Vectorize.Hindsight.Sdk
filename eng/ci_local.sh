@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# Run every gate the build workflow runs, in the same order, from committed state.
+#
+# GitHub Actions cannot be executed locally, so this is the closest honest substitute:
+# the same commands, the same sequence, the same environment variables the workflow sets.
+# Anything this script cannot reproduce — the runner image, the action versions, the
+# artifact upload — is stated as unverified rather than implied.
+#
+# Usage:
+#   bash eng/ci_local.sh            # full run
+#   bash eng/ci_local.sh --quick    # skip the test-and-coverage stages
+#
+# Exit codes: 0 all gates passed, 1 a gate failed, 2 misconfiguration.
+
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+ROOT="$(pwd)"
+
+QUICK=0
+[[ "${1:-}" == "--quick" ]] && QUICK=1
+
+# The workflow's own environment, so a local run matches CI rather than approximating it.
+export CI=true
+export GITHUB_ACTIONS=true
+export DOTNET_NOLOGO=true
+export DOTNET_CLI_TELEMETRY_OPTOUT=true
+export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
+
+PASSED=0
+FAILED=()
+STEP=0
+
+run() {
+  local label="$1"; shift
+  STEP=$((STEP + 1))
+  printf '\n\033[1m[%d] %s\033[0m\n' "$STEP" "$label"
+  local start
+  start=$(date +%s)
+
+  if "$@"; then
+    printf '    ok (%ds)\n' "$(( $(date +%s) - start ))"
+    PASSED=$((PASSED + 1))
+  else
+    printf '    FAILED (%ds)\n' "$(( $(date +%s) - start ))"
+    FAILED+=("$label")
+  fi
+}
+
+# --- Static gates -------------------------------------------------------------
+
+run "Validate the workflow definitions" \
+  python3 eng/validate_workflows.py
+
+run "Verify the generated models match the spec" \
+  python3 eng/generate_models.py --check
+
+run "Verify the generated operations match the spec" \
+  python3 eng/generate_operations.py --check
+
+run "Verify the committed inventory matches the spec" \
+  python3 eng/generate_inventory.py --check
+
+run "Report the version the build will produce" \
+  python3 eng/package_version.py
+
+# --- Build and test -----------------------------------------------------------
+
+run "Restore" \
+  dotnet restore Vectorize.Hindsight.Sdk.slnx
+
+run "Build (Release)" \
+  dotnet build Vectorize.Hindsight.Sdk.slnx --configuration Release --no-restore
+
+if [[ "$QUICK" -eq 0 ]]; then
+  run "Test with coverage" \
+    dotnet test Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build \
+      --collect:"XPlat Code Coverage" \
+      --results-directory ./artifacts/test-results \
+      --logger "trx"
+
+  run "Check coverage floors" \
+    python3 eng/coverage_gate.py './artifacts/test-results/**/coverage.cobertura.xml'
+else
+  printf '\n\033[1m[skipped] Test and coverage (--quick)\033[0m\n'
+fi
+
+# --- Package ------------------------------------------------------------------
+
+run "Pack" \
+  bash -c "dotnet pack Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build \
+    --output ./artifacts/packages"
+
+run "Verify the produced packages" \
+  bash -c "python3 eng/verify_packages.py ./artifacts/packages --expect-version \"\$(python3 eng/package_version.py)\""
+
+# A packed archive is not a usable one. This consumes the package the way a real
+# consumer would — restore it from a local feed and call into it — which is the only
+# check that proves the lib/ payload actually loads.
+run "Consume the packed package from a local feed" \
+  bash eng/consume_package.sh
+
+# --- Verdict ------------------------------------------------------------------
+
+printf '\n\033[1m────────────────────────────────────────────────────────\033[0m\n'
+printf 'gates passed: %d\n' "$PASSED"
+
+if [[ ${#FAILED[@]} -gt 0 ]]; then
+  printf 'gates failed: %d\n' "${#FAILED[@]}"
+  for failure in "${FAILED[@]}"; do
+    printf '  - %s\n' "$failure"
+  done
+  printf '\n\033[1mCI simulation FAILED\033[0m\n'
+  exit 1
+fi
+
+printf '\033[1mCI simulation passed\033[0m\n'
+printf '\nNot reproduced by this script, and therefore unverified:\n'
+printf '  - the ubuntu-latest runner image and its toolchain versions\n'
+printf '  - the actions themselves (checkout, setup-dotnet, upload-artifact)\n'
+printf '  - SourceLink, which only produces a source link in a clone with a remote\n'
+printf '    and is therefore referenced only when GITHUB_ACTIONS is set\n'
+printf '  - the artifact upload and the release job in release.yml\n'
+printf '    (validate it with: gh workflow run release.yml)\n'

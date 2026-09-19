@@ -1,0 +1,198 @@
+name: release
+
+# Produces the release artifacts for a version tag and attaches them to a GitHub
+# release. It does NOT publish to nuget.org: publishing is a deliberate, separate act
+# requiring a credential this workflow does not hold, and a release that pushed to a
+# public feed automatically would be a mistake waiting for a mistyped tag.
+#
+# Everything here is verifiable before the tag exists: run this workflow via
+# workflow_dispatch against a branch to produce and inspect the same artifacts.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  CI: true
+  GITHUB_ACTIONS: true
+
+jobs:
+  release:
+    name: Pack and release
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Required to create the release and upload assets.
+      contents: write
+      # Required by SourceLink's keyless signing of the symbol package.
+      id-token: write
+
+    steps:
+      # Full history: SourceLink embeds the commit, and a shallow clone cannot.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # ---------------------------------------------------------------------
+      # Decide the version, and refuse to proceed on a disagreement.
+      # ---------------------------------------------------------------------
+
+      - name: Determine the intended version
+        id: version
+        run: |
+          DECLARED="$(python3 eng/package_version.py)"
+          echo "declared=$DECLARED" >> "$GITHUB_OUTPUT"
+          echo "Declared version: $DECLARED"
+
+          # A tag and the declared version must agree. A tag that says v0.2.0 while the
+          # build produces 0.1.0 is the failure this check exists to prevent: the release
+          # page would advertise one version and the package would contain another.
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME#v}"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            if [[ "$TAG" != "$DECLARED" ]]; then
+              echo "::error::Tag ${GITHUB_REF_NAME} implies version $TAG but Directory.Build.props declares $DECLARED."
+              echo "::error::Bump VersionPrefix in Directory.Build.props, or retag."
+              exit 1
+            fi
+          else
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "Not a tag build; producing artifacts for inspection only."
+          fi
+
+      # ---------------------------------------------------------------------
+      # The same drift gates the build workflow applies. A release must not be the
+      # first place a stale generated file is noticed.
+      # ---------------------------------------------------------------------
+
+      - name: Verify generated code matches the spec
+        run: |
+          python3 eng/generate_models.py --check
+          python3 eng/generate_operations.py --check
+          python3 eng/generate_inventory.py --check
+
+      # ---------------------------------------------------------------------
+      # Build, test, pack.
+      # ---------------------------------------------------------------------
+
+      - name: Restore
+        run: dotnet restore Vectorize.Hindsight.Sdk.slnx
+
+      - name: Build
+        run: dotnet build Vectorize.Hindsight.Sdk.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build
+             --collect:"XPlat Code Coverage"
+             --results-directory ./artifacts/test-results
+             --logger "trx"
+
+      - name: Check coverage floors
+        run: python3 eng/coverage_gate.py './artifacts/test-results/**/coverage.cobertura.xml'
+
+      - name: Pack
+        run: dotnet pack Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build
+             --output ./artifacts/packages
+
+      - name: Verify the produced packages
+        run: python3 eng/verify_packages.py ./artifacts/packages --expect-version "${{ steps.version.outputs.declared }}"
+
+      # Confirm the release notes for this version exist. A release with a placeholder
+      # changelog is worse than one with none: it claims a summary that is not there.
+      - name: Verify the changelog describes this version
+        run: |
+          VERSION="${{ steps.version.outputs.declared }}"
+          if ! grep -qE "^## \[${VERSION}\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [${VERSION}]' section."
+            echo "::error::Add the release notes before tagging."
+            exit 1
+          fi
+          echo "Changelog contains a section for ${VERSION}."
+
+      - name: Extract this version's release notes
+        id: notes
+        run: |
+          VERSION="${{ steps.version.outputs.declared }}"
+          # Everything from this version's heading up to the next version heading.
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > ./artifacts/release-notes.md
+          echo "Extracted $(wc -l < ./artifacts/release-notes.md) line(s) of release notes."
+
+      # A package checksum lets a consumer verify what they downloaded matches what was
+      # published, without trusting the transport.
+      - name: Record package checksums
+        run: |
+          cd ./artifacts/packages
+          sha256sum *.nupkg *.snupkg > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      # ---------------------------------------------------------------------
+      # Publish the release, only for a tag.
+      # ---------------------------------------------------------------------
+
+      - name: Create GitHub release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ steps.version.outputs.declared }}
+          body_path: ./artifacts/release-notes.md
+          # Not a draft: the artifacts and notes have both been verified by this point.
+          draft: false
+          # Not a pre-release for 0.x, because every 0.x release is the current one.
+          prerelease: false
+          files: |
+            ./artifacts/packages/*.nupkg
+            ./artifacts/packages/*.snupkg
+            ./artifacts/packages/SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # On a manual run there is no tag, so the artifacts are uploaded for inspection
+      # instead. That is how this workflow is validated before a real release.
+      - name: Upload artifacts for inspection
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            ./artifacts/packages/*
+            ./artifacts/release-notes.md
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Summarise
+        run: |
+          {
+            echo "### Release ${{ steps.version.outputs.declared }}"
+            echo ""
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Declared version | \`${{ steps.version.outputs.declared }}\` |"
+            echo "| Tag | \`${{ steps.version.outputs.tag || '(manual run)' }}\` |"
+            echo "| Commit | \`${GITHUB_SHA:0:7}\` |"
+            echo "| Published to nuget.org | **no** — artifacts attached to the release |"
+            echo ""
+            echo "### Packages"
+            echo ""
+            echo '```'
+            cat ./artifacts/packages/SHA256SUMS.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

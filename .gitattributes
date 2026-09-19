@@ -1,0 +1,40 @@
+# Normalise line endings so a Windows and a Linux checkout produce the same bytes.
+# Without this, a contributor on Windows can change every line of a file without
+# changing anything meaningful, and a diff becomes unreadable.
+* text=auto eol=lf
+
+# MSBuild and solution files are LF here too. Verified: MSBuild and the .NET CLI read LF
+# without complaint, and an earlier revision of this file specified CRLF for them - which
+# produced a "LF will be replaced by CRLF the next time Git touches it" warning on every
+# single commit, for no benefit. One line ending across the repository is simpler and the
+# diff stays a diff.
+
+# Binary assets are never touched.
+*.png binary
+*.jpg binary
+*.ico binary
+*.zip binary
+*.nupkg binary
+*.snupkg binary
+*.dll binary
+*.pdb binary
+
+# The pinned specification is a data file that a generator reads and diffs.
+# Treating it as text keeps a spec bump reviewable instead of "binary files differ".
+spec/openapi.json text eol=lf
+spec/openapi.yaml text eol=lf
+
+# Diff drivers, so a review shows what changed rather than that something did.
+*.cs diff=csharp
+*.md diff=markdown
+
+# Generated code is excluded from language statistics: it is produced by eng/, and
+# counting it would make the repository look like a hand-written codebase several
+# times its actual size.
+src/Vectorize.Hindsight.Sdk/Models/*.cs linguist-generated=true
+src/Vectorize.Hindsight.Sdk/Operations/*.cs linguist-generated=true
+src/Vectorize.Hindsight.Sdk/Http/HindsightJsonContext.g.cs linguist-generated=true
+spec/openapi.json linguist-generated=true
+spec/openapi.yaml linguist-generated=true
+inventory/*.json linguist-generated=true
+inventory/*.csv linguist-generated=true

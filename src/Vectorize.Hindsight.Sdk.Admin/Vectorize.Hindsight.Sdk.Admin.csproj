@@ -16,6 +16,7 @@
     <IsTrimmable>true</IsTrimmable>
     <EnableAotAnalyzer>true</EnableAotAnalyzer>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,14 +24,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The shared exception root and conventions come from the client package. Sharing the root
-         means one catch covers both surfaces: an operator driving the CLI and a caller reading an
-         API failure handle errors the same way. -->
+    <!-- The shared exception root and conventions come from the client package.
+         Sharing the root means one catch covers both surfaces: an operator
+         driving the CLI and a caller reading an API failure handle errors the
+         same way. -->
     <ProjectReference Include="../Vectorize.Hindsight.Sdk/Vectorize.Hindsight.Sdk.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>

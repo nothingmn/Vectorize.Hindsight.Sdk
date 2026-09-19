@@ -1,6 +1,36 @@
 {
- "ops": 94,
+ "specVersion": "0.10.0",
+ "openapi": "3.1.0",
+ "paths": 74,
+ "operations": 94,
+ "deprecatedOperations": [
+  "GET /v1/default/banks/{bank_id}/document-transfer",
+  "GET /v1/default/banks/{bank_id}/profile",
+  "POST /v1/default/banks/{bank_id}/background",
+  "POST /v1/default/banks/{bank_id}/document-transfer",
+  "POST /v1/default/banks/{bank_id}/document-transfer/export",
+  "POST /v1/default/banks/{bank_id}/entities/{entity_id}/regenerate",
+  "PUT /v1/default/banks/{bank_id}/profile"
+ ],
  "schemas": 181,
- "reachable": 181,
- "orphan": []
+ "reachableSchemas": 181,
+ "orphanSchemas": [],
+ "tagCounts": {
+  "Audit": 2,
+  "Bank Templates": 3,
+  "Bank Transfer": 3,
+  "Banks": 17,
+  "Directives": 5,
+  "Document Transfer": 4,
+  "Documents": 7,
+  "Entities": 4,
+  "Files": 1,
+  "Knowledge Base": 8,
+  "LLM Traces": 2,
+  "Memory": 14,
+  "Mental Models": 9,
+  "Monitoring": 5,
+  "Operations": 5,
+  "Webhooks": 5
+ }
 }

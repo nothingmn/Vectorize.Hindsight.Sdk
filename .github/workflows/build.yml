@@ -1,5 +1,10 @@
 name: build
 
+# The gate every change passes through. It is deliberately thorough: this repository's
+# risk is not compile errors (those are loud) but the quiet divergences — a generated
+# file drifting from the pinned specification, a package that packs but is unusable, a
+# coverage floor that silently stops applying.
+
 on:
   push:
     branches: [ main, master ]
@@ -7,11 +12,21 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+# A new push to the same branch makes the previous run irrelevant. Cancelling it frees
+# the runner rather than letting a superseded build finish and report a stale result.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   CI: true
+  # Read by Directory.Build.props to enable ContinuousIntegrationBuild and to reference
+  # SourceLink. Set explicitly rather than relying on the implicit variable, so a local
+  # run with these vars reproduces CI exactly.
+  GITHUB_ACTIONS: true
 
 jobs:
   build:
@@ -19,22 +34,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # fetch-depth: 0 is required, not cosmetic: SourceLink embeds the commit into the
+      # symbol package, and a shallow clone has no commit to read. Without it the source
+      # link is empty and the symbol package resolves to nothing.
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
 
-      # Generated code must match the specification. This runs BEFORE the build so a
-      # stale generated file is caught as a drift rather than as whatever compile error
-      # it happens to produce.
-      - name: Check generated models are in sync with the spec
+      # ---------------------------------------------------------------------
+      # Static checks first: the workflow files themselves, then the generated
+      # code. A stale generated file is reported as drift rather than as whatever
+      # confusing compile error it happens to produce against the new model shapes.
+      # ---------------------------------------------------------------------
+
+      # The workflows are the one thing here that only fails on GitHub. Everything
+      # checkable without a runner is checked before anything expensive runs.
+      - name: Validate the workflow definitions
+        run: python3 eng/validate_workflows.py
+
+      - name: Verify the generated models match the spec
         run: python3 eng/generate_models.py --check
 
-      - name: Check generated operations are in sync with the spec
+      - name: Verify the generated operations match the spec
         run: python3 eng/generate_operations.py --check
+
+      - name: Verify the committed inventory matches the spec
+        run: python3 eng/generate_inventory.py --check
+
+      # ---------------------------------------------------------------------
+      # Build and test.
+      # ---------------------------------------------------------------------
 
       - name: Restore
         run: dotnet restore Vectorize.Hindsight.Sdk.slnx
@@ -42,8 +77,8 @@ jobs:
       - name: Build
         run: dotnet build Vectorize.Hindsight.Sdk.slnx --configuration Release --no-restore
 
-      # The integration suite skips itself when no server is present, reporting the reason
-      # rather than failing. The unit suite needs neither network nor credentials.
+      # The integration suite skips itself when no server is present, stating the reason
+      # rather than failing. The unit suites need neither network nor credentials.
       - name: Test
         run: dotnet test Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build
              --collect:"XPlat Code Coverage"
@@ -53,17 +88,54 @@ jobs:
       - name: Check coverage floors
         run: python3 eng/coverage_gate.py './artifacts/test-results/**/coverage.cobertura.xml'
 
+      # ---------------------------------------------------------------------
+      # Package, then verify what was produced.
+      # ---------------------------------------------------------------------
+
       - name: Pack
         run: dotnet pack Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build
              --output ./artifacts/packages
 
-      - name: Report package contents
+      # `dotnet pack` succeeds on a well-formed archive; it says nothing about whether
+      # the archive contains what a consumer needs. This is the check that a package with
+      # no README, a placeholder description, or a dependency on a version that cannot
+      # exist fails here rather than in someone else's restore.
+      - name: Verify the produced packages
+        run: python3 eng/verify_packages.py ./artifacts/packages --expect-version "$(python3 eng/package_version.py)"
+
+      # Neither `dotnet pack` nor the check above proves the archive can be *restored and
+      # called*. This consumes the packages from a local feed in a throwaway project, so a
+      # missing dependency, a broken lib/ payload, or an unsatisfiable sibling version fails
+      # here rather than in someone else's restore.
+      - name: Consume the packages from a local feed
+        run: bash eng/consume_package.sh ./artifacts/packages
+
+      # ---------------------------------------------------------------------
+      # Report and upload.
+      # ---------------------------------------------------------------------
+
+      - name: Summarise
         run: |
-          echo "### NuGet packages produced" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          ls -la ./artifacts/packages >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Build result"
+            echo ""
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Version | \`$(python3 eng/package_version.py)\` |"
+            echo "| Commit | \`${GITHUB_SHA:0:7}\` |"
+            echo ""
+            echo "### Coverage"
+            echo ""
+            echo '```'
+            python3 eng/coverage_gate.py './artifacts/test-results/**/coverage.cobertura.xml' 2>&1 | tail -12
+            echo '```'
+            echo ""
+            echo "### Packages"
+            echo ""
+            echo '```'
+            ls -la ./artifacts/packages
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload NuGet packages
         uses: actions/upload-artifact@v4
@@ -72,6 +144,7 @@ jobs:
           path: |
             ./artifacts/packages/*.nupkg
             ./artifacts/packages/*.snupkg
+          # A build that produced no package has failed, even if it exited zero.
           if-no-files-found: error
           retention-days: 90
 

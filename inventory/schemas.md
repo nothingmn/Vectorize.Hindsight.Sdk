@@ -21,9 +21,9 @@ _A single audit log entry._
 - `started_at` **REQ** : string|null  
 - `ended_at` **REQ** : string|null  
 - `duration_ms` opt : integer|null  Server-computed duration in milliseconds (started_at → ended_at). Null if not yet completed.
-- `request` **REQ** : object|null  
-- `response` **REQ** : object|null  
-- `metadata` **REQ** : map<string,?>  
+- `request` **REQ** : map<string, any>|null  
+- `response` **REQ** : map<string, any>|null  
+- `metadata` **REQ** : map<string, any>  
 
 ### AuditLogListResponse
 _Response model for list audit logs endpoint._
@@ -36,7 +36,7 @@ _Response model for list audit logs endpoint._
 ### AuditLogStatsBucket
 _A single time bucket in audit log stats._
 - `time` **REQ** : string  
-- `actions` **REQ** : map<string,integer>  
+- `actions` **REQ** : map<string, integer>  
 - `total` **REQ** : integer  
 
 ### AuditLogStatsResponse
@@ -56,12 +56,12 @@ _Response model for background update. Deprecated: use MissionResponse instead._
 ### BankConfigResponse
 _Response model for bank configuration._
 - `bank_id` **REQ** : string  Bank identifier
-- `config` **REQ** : map<string,?>  Fully resolved configuration with all hierarchical overrides applied (Python field names)
-- `overrides` **REQ** : map<string,?>  Bank-specific configuration overrides only (Python field names)
+- `config` **REQ** : map<string, any>  Fully resolved configuration with all hierarchical overrides applied (Python field names)
+- `overrides` **REQ** : map<string, any>  Bank-specific configuration overrides only (Python field names)
 
 ### BankConfigUpdate
 _Request model for updating bank configuration._
-- `updates` **REQ** : map<string,?>  Configuration overrides. Keys can be in Python field format (retain_extraction_mode) or environment variable format (HINDSIGHT_API
+- `updates` **REQ** : map<string, any>  Configuration overrides. Keys can be in Python field format (retain_extraction_mode) or environment variable format (HINDSIGHT_API
 
 ### BankListItem
 _Bank list item with profile summary and stats._
@@ -83,9 +83,7 @@ _Response model for listing banks, one page at a time._
 - `offset` **REQ** : integer  
 
 ### BankLlmHealthResponse
-_Per-bank LLM connectivity probe across retain/consolidation/reflect. Operations
-that share a configuration are probed once. Discloses status only — never the
-provider, model, endpoint, API key, or raw_
+_Per-bank LLM connectivity probe across retain/consolidation/reflect. Operations that share a configuration are probed once. Discloses status only — never the provider, model, endpoint, API key, or raw_
 - `bank_id` **REQ** : string  Bank identifier
 - `operations` **REQ** : array<LlmOperationHealth>  Connectivity status per operation (retain, consolidation, reflect)
 
@@ -103,13 +101,13 @@ _Response model for bank statistics endpoint._
 - `total_nodes` **REQ** : integer  
 - `total_links` **REQ** : integer  
 - `total_documents` **REQ** : integer  
-- `nodes_by_fact_type` **REQ** : map<string,integer>  
-- `links_by_link_type` **REQ** : map<string,integer>  
-- `links_by_fact_type` **REQ** : map<string,integer>  
-- `links_breakdown` **REQ** : map<string,object>  
+- `nodes_by_fact_type` **REQ** : map<string, integer>  
+- `links_by_link_type` **REQ** : map<string, integer>  
+- `links_by_fact_type` **REQ** : map<string, integer>  
+- `links_breakdown` **REQ** : map<string, map<string, integer>>  
 - `pending_operations` **REQ** : integer  
 - `failed_operations` **REQ** : integer  
-- `operations_by_status` opt : map<string,integer>  Async operations grouped by status (pending, processing, completed, failed, cancelled).
+- `operations_by_status` opt : map<string, integer>  Async operations grouped by status (pending, processing, completed, failed, cancelled).
 - `last_consolidated_at` opt : string|null  When consolidation last ran (ISO format)
 - `last_memory_write_at` opt : string|null  When a memory was last written in this bank — stored, edited, or consolidated (ISO format). Null if the bank has no memories. A me
 - `pending_consolidation` opt : integer default=0  Number of source memories (world/experience) still queued for consolidation into observations. Excludes memories whose consolidati
@@ -117,10 +115,7 @@ _Response model for bank statistics endpoint._
 - `total_observations` opt : integer default=0  Total number of observations
 
 ### BankTemplateConfig
-_Bank configuration fields within a template manifest.
-
-Only includes configurable (per-bank) fields. Credential fields
-(API keys, base URLs) are intentionally excluded for security._
+_Bank configuration fields within a template manifest.  Only includes configurable (per-bank) fields. Credential fields (API keys, base URLs) are intentionally excluded for security._
 - `reflect_mission` opt : string|null  Mission/context for Reflect operations
 - `retain_mission` opt : string|null  Steers what gets extracted during retain
 - `retain_extraction_mode` opt : string|null  Fact extraction mode: 'concise' (default), 'verbose', 'custom', 'verbatim', or 'chunks'
@@ -136,23 +131,23 @@ Only includes configurable (per-bank) fields. Credential fields
 - `disposition_skepticism` opt : integer|null  Skepticism trait (1-5)
 - `disposition_literalism` opt : integer|null  Literalism trait (1-5)
 - `disposition_empathy` opt : integer|null  Empathy trait (1-5)
-- `entity_labels` opt : array|null  Controlled vocabulary for entity labels
+- `entity_labels` opt : array<LabelGroup-Output>|null  Controlled vocabulary for entity labels
 - `entities_allow_free_form` opt : boolean|null  Allow entities outside the label vocabulary
 - `retain_default_strategy` opt : string|null  Name of the default retain strategy (key into retain_strategies map)
-- `retain_strategies` opt : object|null  Map of retain strategy name to per-strategy config dict
+- `retain_strategies` opt : map<string, any>|null  Map of retain strategy name to per-strategy config dict
 - `retain_chunk_batch_size` opt : integer|null  Max chunks per streaming batch (0 disables batching)
 - `retain_max_attachments_per_chunk` opt : integer|null  Hard cap on inline images in a single extraction chunk
-- `mcp_enabled_tools` opt : array|null  MCP tool allowlist for this bank (None = all tools)
+- `mcp_enabled_tools` opt : array<string>|null  MCP tool allowlist for this bank (None = all tools)
 - `consolidation_llm_batch_size` opt : integer|null  LLM batch size for observation consolidation
 - `consolidation_source_facts_max_tokens` opt : integer|null  Max tokens of source facts per consolidation batch
 - `consolidation_source_facts_max_tokens_per_observation` opt : integer|null  Max tokens of source facts per observation
 - `max_observations_per_scope` opt : integer|null  Max observations to retain per consolidation scope
-- `observation_scope_limits` opt : array|null  Per-scope overrides of max_observations_per_scope: [{"scope": ["run_*", "shared"], "limit": 1}]. Each scope is a list of fnmatch t
+- `observation_scope_limits` opt : array<map<string, any>>|null  Per-scope overrides of max_observations_per_scope: [{"scope": ["run_*", "shared"], "limit": 1}]. Each scope is a list of fnmatch t
 - `reflect_source_facts_max_tokens` opt : integer|null  Max tokens of source facts per reflect call
-- `knowledge_page_default_trigger` opt : object|null  Trigger fields merged over the built-in knowledge-page default when a page is created (e.g. {"refresh_cron": "0 * * * *"}). A trig
-- `reflect_default_options` opt : object|null  Default reflect options for this bank (e.g. {"reflect_search_observations_max_tokens": 3000, "reflect_search_observations_include_
+- `knowledge_page_default_trigger` opt : map<string, any>|null  Trigger fields merged over the built-in knowledge-page default when a page is created (e.g. {"refresh_cron": "0 * * * *"}). A trig
+- `reflect_default_options` opt : map<string, any>|null  Default reflect options for this bank (e.g. {"reflect_search_observations_max_tokens": 3000, "reflect_search_observations_include_
 - `mental_model_min_refresh_interval_seconds` opt : integer|null  Minimum seconds between two automatic refreshes of the same mental model in this bank. 0 (the default) means no floor. Overridable
-- `llm_gemini_safety_settings` opt : array|null  Per-bank Gemini/VertexAI safety filter settings
+- `llm_gemini_safety_settings` opt : array<?>|null  Per-bank Gemini/VertexAI safety filter settings
 - `recall_budget_function` opt : string|null  Recall budget mapping function: 'fixed' or 'adaptive'
 - `recall_budget_fixed_low` opt : integer|null  Fixed thinking_budget for budget=low (function='fixed')
 - `recall_budget_fixed_mid` opt : integer|null  Fixed thinking_budget for budget=mid (function='fixed')
@@ -170,13 +165,10 @@ Only includes configurable (per-bank) fields. Credential fields
 - `recall_include_chunks` opt : boolean|null  Include raw chunks in recall results
 - `recall_max_tokens` opt : integer|null  Max tokens of results returned by recall
 - `recall_chunks_max_tokens` opt : integer|null  Max tokens of raw chunks returned by recall (when recall_include_chunks is set)
-- `memory_defense` opt : object|null  Memory Defense policy for this bank (validated against the DefensePolicy schema on write)
+- `memory_defense` opt : map<string, any>|null  Memory Defense policy for this bank (validated against the DefensePolicy schema on write)
 
 ### BankTemplateDirective
-_A directive definition within a bank template manifest.
-
-Directives are matched by name on re-import: existing directives
-with the same name are updated, new ones are created._
+_A directive definition within a bank template manifest.  Directives are matched by name on re-import: existing directives with the same name are updated, new ones are created._
 - `name` **REQ** : string  Human-readable name for the directive (used as match key on re-import)
 - `content` **REQ** : string  The directive text to inject into prompts
 - `priority` opt : integer default=0  Higher priority directives are injected first
@@ -195,14 +187,11 @@ _Response model for the bank template import endpoint._
 - `dry_run` opt : boolean default=False  True if this was a validation-only run
 
 ### BankTemplateManifest
-_A bank template manifest for import/export.
-
-Version field enables forward-compatible schema evolution: the API
-auto-upgrades older manifest versions to the current schema on import._
+_A bank template manifest for import/export.  Version field enables forward-compatible schema evolution: the API auto-upgrades older manifest versions to the current schema on import._
 - `version` **REQ** : string  Manifest schema version (currently '1')
 - `bank` opt : BankTemplateConfig|null  Bank configuration to apply. Omit to leave config unchanged.
-- `mental_models` opt : array|null  Mental models to create or update (matched by id). Omit to leave unchanged.
-- `directives` opt : array|null  Directives to create or update (matched by name). Omit to leave unchanged.
+- `mental_models` opt : array<BankTemplateMentalModel>|null  Mental models to create or update (matched by id). Omit to leave unchanged.
+- `directives` opt : array<BankTemplateDirective>|null  Directives to create or update (matched by name). Omit to leave unchanged.
 
 ### BankTemplateMentalModel
 _A mental model definition within a bank template manifest._
@@ -214,20 +203,12 @@ _A mental model definition within a bank template manifest._
 - `trigger` opt : MentalModelTrigger-Output default={}  Trigger settings
 
 ### BankTransferSubmitResponse
-_Response for the unified bank-transfer endpoints (202).
-
-The transfer runs in the background; poll
-GET /v1/default/banks/{bank_id}/operations/{operation_id}. An export's
-``result_metadata`` carries ``_
+_Response for the unified bank-transfer endpoints (202).  The transfer runs in the background; poll GET /v1/default/banks/{bank_id}/operations/{operation_id}. An export's ``result_metadata`` carries ``_
 - `operation_id` **REQ** : string  
 - `status` opt : string default='pending'  
 
 ### Base64AttachmentSource
-_Inline attachment bytes, base64-encoded.
-
-The only source type in this version. ``url`` (server-side fetch) and
-``blob_id`` (pre-uploaded handle) are the natural next ones, which is why this
-is modell_
+_Inline attachment bytes, base64-encoded.  The only source type in this version. ``url`` (server-side fetch) and ``blob_id`` (pre-uploaded handle) are the natural next ones, which is why this is modell_
 - `type` opt : string default='base64'  
 - `media_type` **REQ** : string  MIME type of the attachment, e.g. 'image/png' or 'application/pdf'. Any well-formed type is accepted; whether the model can read i
 - `data` **REQ** : string  Base64-encoded bytes (no data: URI prefix).
@@ -244,7 +225,7 @@ is modell_
 
 ### Budget
 _Budget levels for recall/reflect operations._
-- shape: {"type": "string", "enum": ["low", "mid", "high"], "title": "Budget", "description": "Budget levels for recall/reflect operations."}
+- shape: enum(string)
 
 ### CancelOperationResponse
 _Response model for cancel operation endpoint._
@@ -276,7 +257,7 @@ _Chunk data for a single chunk._
 - `text` **REQ** : string  
 - `chunk_index` **REQ** : integer  
 - `truncated` opt : boolean default=False  Whether the chunk text was truncated due to token limits
-- `attachments` opt : array|null  Attachments this chunk's text references, in order of first appearance, when it was retained with inline content. The text keeps e
+- `attachments` opt : array<ChunkAttachment>|null  Attachments this chunk's text references, in order of first appearance, when it was retained with inline content. The text keeps e
 
 ### ChunkIncludeOptions
 _Options for including chunks in recall results._
@@ -290,7 +271,7 @@ _Response model for get chunk endpoint._
 - `chunk_index` **REQ** : integer  
 - `chunk_text` **REQ** : string  
 - `created_at` **REQ** : string  
-- `attachments` opt : array|null  Attachments referenced by this chunk's text, when it was retained with inline content. Each carries a bank-scoped `url` serving th
+- `attachments` opt : array<ChunkAttachment>|null  Attachments referenced by this chunk's text, when it was retained with inline content. Each carries a bank-scoped `url` serving th
 
 ### ClearMemoryObservationsResponse
 _Response model for clearing observations for a specific memory._
@@ -298,7 +279,7 @@ _Response model for clearing observations for a specific memory._
 
 ### ConsolidationRequest
 _Request model for consolidation trigger endpoint._
-- `observation_scopes` opt : array|null  Optional list of tag scopes to consolidate. Each scope is a list of tags. Only unconsolidated memories whose tags contain all tags
+- `observation_scopes` opt : array<array<string>>|null  Optional list of tag scopes to consolidate. Each scope is a list of tags. Only unconsolidated memories whose tags contain all tags
 
 ### ConsolidationResponse
 _Response model for consolidation trigger endpoint._
@@ -366,7 +347,7 @@ _Create a page (a mental model + tree node) under an optional parent folder._
 - `name` **REQ** : string  
 - `source_query` **REQ** : string  
 - `parent_id` opt : string|null  
-- `tags` opt : array|null  Tags that SCOPE which memories this page is built from — not labels. Every tag here, including a `type:<x>` tag used to set the pa
+- `tags` opt : array<string>|null  Tags that SCOPE which memories this page is built from — not labels. Every tag here, including a `type:<x>` tag used to set the pa
 - `max_tokens` opt : integer|null  
 - `trigger` opt : MentalModelTrigger-Input|null  
 
@@ -423,27 +404,17 @@ _Disposition traits that influence how memories are formed and interpreted._
 - `empathy` **REQ** : integer  How much to consider emotional context (1=detached, 5=empathetic)
 
 ### DocumentExportSubmitResponse
-_Response for the async document-export endpoint (202).
-
-The export runs in the background; poll the operations endpoint for status.
-On completion the operation's ``result_metadata`` carries ``download_
+_Response for the async document-export endpoint (202).  The export runs in the background; poll the operations endpoint for status. On completion the operation's ``result_metadata`` carries ``download_
 - `operation_id` **REQ** : string  
 - `status` opt : string default='pending'  
 
 ### DocumentImportSubmitResponse
-_Response for the async document-import endpoint (202).
-
-The import runs in the background; poll the operations endpoint for status.
-The imported/skipped counts (documents_imported, facts_imported,
-obs_
+_Response for the async document-import endpoint (202).  The import runs in the background; poll the operations endpoint for status. The imported/skipped counts (documents_imported, facts_imported, obs_
 - `operation_id` **REQ** : string  
 - `status` opt : string default='pending'  
 
 ### DocumentListItem
-_One row of the document listing — a document's metadata without its text.
-
-Extra keys are allowed and passed through: the rows used to be an open object, and
-typing them must not drop a field an older_
+_One row of the document listing — a document's metadata without its text.  Extra keys are allowed and passed through: the rows used to be an open object, and typing them must not drop a field an older_
 - `id` **REQ** : string  Document ID
 - `bank_id` opt : string default=''  Bank the document belongs to
 - `content_hash` opt : string|null  Hash of the document text, for idempotent retain
@@ -451,8 +422,8 @@ typing them must not drop a field an older_
 - `updated_at` opt : string default=''  When the document was last written (ISO 8601)
 - `text_length` opt : integer default=0  Length of the stored document text in characters
 - `memory_unit_count` opt : integer default=0  Number of memory units extracted from this document
-- `retain_params` opt : object|null  Parameters used during retain
-- `document_metadata` opt : object|null  Document metadata
+- `retain_params` opt : map<string, any>|null  Parameters used during retain
+- `document_metadata` opt : map<string, any>|null  Document metadata
 - `tags` opt : array<string> default=[]  Tags associated with this document
 
 ### DocumentResponse
@@ -464,18 +435,15 @@ _Response model for get document endpoint._
 - `created_at` **REQ** : string  
 - `updated_at` **REQ** : string  
 - `memory_unit_count` **REQ** : integer  
-- `nodes_by_fact_type` opt : object|null  Memory count per fact type (world, experience, observation)
+- `nodes_by_fact_type` opt : map<string, integer>|null  Memory count per fact type (world, experience, observation)
 - `tags` opt : array<string> default=[]  Tags associated with this document
-- `document_metadata` opt : object|null  Document metadata
-- `retain_params` opt : object|null  Parameters used during retain
-- `observation_scopes` opt : string|array|null  The observation_scopes spec configured at retain time (e.g. 'all_combinations', 'per_tag', or explicit tag-set lists), captured in
-- `attachments` opt : array|null  Attachments referenced by this document, when it was retained with inline content. Each carries a bank-scoped `url` serving the or
+- `document_metadata` opt : map<string, any>|null  Document metadata
+- `retain_params` opt : map<string, any>|null  Parameters used during retain
+- `observation_scopes` opt : string|array<array<string>>|null  The observation_scopes spec configured at retain time (e.g. 'all_combinations', 'per_tag', or explicit tag-set lists), captured in
+- `attachments` opt : array<ChunkAttachment>|null  Attachments referenced by this document, when it was retained with inline content. Each carries a bank-scoped `url` serving the or
 
 ### DryRunExtractRequest
-_Request to run fact extraction ONLY (no resolution/links/embeddings/persistence).
-
-Every field below the content/context/date is a prompt-affecting override applied just for this
-call — used to previe_
+_Request to run fact extraction ONLY (no resolution/links/embeddings/persistence).  Every field below the content/context/date is a prompt-affecting override applied just for this call — used to previe_
 - `content` **REQ** : string  Text to extract facts from (e.g. a document or a single chunk).
 - `context` opt : string default=''  Optional context about the content.
 - `timestamp` opt : string|null  Reference timestamp for resolving relative times (ISO 8601).
@@ -486,13 +454,12 @@ call — used to previe_
 - `retain_custom_instructions` opt : string|null  
 - `retain_extract_causal_links` opt : boolean|null  
 - `retain_chunk_size` opt : integer|null  
-- `entity_labels` opt : array|null  Controlled vocabulary for entity labels (overrides the bank's config for this call)
+- `entity_labels` opt : array<LabelGroup-Input>|null  Controlled vocabulary for entity labels (overrides the bank's config for this call)
 - `entities_allow_free_form` opt : boolean|null  
 - `llm_output_language` opt : string|null  
 
 ### DryRunExtractionResult
-_Result of dry-run fact extraction: candidate facts, the chunks they came from,
-and aggregated LLM token usage._
+_Result of dry-run fact extraction: candidate facts, the chunks they came from, and aggregated LLM token usage._
 - `facts` opt : array<ExtractedFact>  Candidate facts the retain step would extract.
 - `chunks` opt : array<ExtractionChunk>  The chunks the input was cut into before extraction. Already computed on every path; returned because `retain_chunk_size` is other
 - `usage` opt : TokenUsage  Aggregated token usage across the extraction LLM calls.
@@ -504,7 +471,7 @@ _Response model for entity detail endpoint._
 - `mention_count` **REQ** : integer  
 - `first_seen` opt : string|null  
 - `last_seen` opt : string|null  
-- `metadata` opt : object|null  
+- `metadata` opt : map<string, any>|null  
 - `observations` **REQ** : array<EntityObservationResponse>  
 
 ### EntityGraphEdge
@@ -527,10 +494,7 @@ _An entity node, in the Cytoscape ``{"data": {...}}`` envelope the graph uses._
 - `data` **REQ** : EntityGraphNodeData  
 
 ### EntityGraphNodeData
-_The payload of one entity node in the co-occurrence graph.
-
-Extra keys are allowed and passed through: the graph payload has always been an open
-object, and typing it must not drop a field an older or_
+_The payload of one entity node in the co-occurrence graph.  Extra keys are allowed and passed through: the graph payload has always been an open object, and typing it must not drop a field an older or_
 - `id` **REQ** : string  Entity ID
 - `label` opt : string default=''  Entity canonical name
 - `mentionCount` opt : integer default=0  How many times this entity was mentioned
@@ -560,7 +524,7 @@ _Entity list item with summary._
 - `mention_count` **REQ** : integer  
 - `first_seen` opt : string|null  
 - `last_seen` opt : string|null  
-- `metadata` opt : object|null  
+- `metadata` opt : map<string, any>|null  
 
 ### EntityListResponse
 _Response model for entity list endpoint._
@@ -581,10 +545,7 @@ _Current mental model of an entity._
 - `observations` **REQ** : array<EntityObservationResponse>  
 
 ### ExtractedFact
-_A single candidate fact produced by dry-run extraction (no resolution/links/persistence).
-
-A deliberate subset of the persisted memory-unit shape — only the fields a fresh extraction
-yields. Storage/c_
+_A single candidate fact produced by dry-run extraction (no resolution/links/persistence).  A deliberate subset of the persisted memory-unit shape — only the fields a fresh extraction yields. Storage/c_
 - `text` **REQ** : string  The extracted fact text.
 - `fact_type` **REQ** : string  Perspective classification: 'world' or 'experience'.
 - `occurred_start` opt : string|null  ISO timestamp the fact's event started, if dated.
@@ -599,7 +560,7 @@ _One chunk the extractor was handed, and how much it yielded._
 
 ### FactsIncludeOptions
 _Options for including facts (based_on) in reflect results._
-- shape: {"properties": {}, "type": "object", "title": "FactsIncludeOptions", "description": "Options for including facts (based_on) in reflect results."}
+- shape: object
 
 ### FeaturesInfo
 _Feature flags indicating which capabilities are enabled._
@@ -616,10 +577,7 @@ _Feature flags indicating which capabilities are enabled._
 - `store_document_text` **REQ** : boolean  Whether raw source text is persisted. When false, document/chunk source text is not stored.
 
 ### FileContentBlock
-_A non-image attachment — a PDF, a spreadsheet — in the position it was written.
-
-Split from ``image`` rather than folded into one type because the providers
-split it: Anthropic has distinct image and _
+_A non-image attachment — a PDF, a spreadsheet — in the position it was written.  Split from ``image`` rather than folded into one type because the providers split it: Anthropic has distinct image and _
 - `type` **REQ** : string  
 - `source` **REQ** : Base64AttachmentSource  
 - `filename` opt : string|null  Original filename, passed to providers that show one to the model (e.g. OpenAI).
@@ -651,10 +609,7 @@ _Options for including additional data in recall results._
 - `source_facts` opt : SourceFactsIncludeOptions|null  Include source facts for observation-type results. Set to {} to enable, null to disable (default: disabled).
 
 ### KnowledgeNode
-_A node in the knowledge-base tree — a folder or a page.
-
-Pages carry ``description``/``tags`` from their backing mental model. The
-knowledge base is client-managed (CRUD); ``managed`` lets a client ta_
+_A node in the knowledge-base tree — a folder or a page.  Pages carry ``description``/``tags`` from their backing mental model. The knowledge base is client-managed (CRUD); ``managed`` lets a client ta_
 - `id` **REQ** : string  
 - `kind` **REQ** : enum(string)  
 - `name` **REQ** : string  
@@ -733,8 +688,8 @@ _A single LLM request trace row, as returned by the read API._
 - `input` opt : ?  
 - `output` opt : ?  
 - `error` **REQ** : string|null  
-- `llm_info` **REQ** : map<string,?>  
-- `metadata` **REQ** : map<string,?>  
+- `llm_info` **REQ** : map<string, any>  
+- `metadata` **REQ** : map<string, any>  
 
 ### LLMRequestListResponse
 _Paginated list of LLM request traces for a bank._
@@ -747,7 +702,7 @@ _Paginated list of LLM request traces for a bank._
 ### LLMRequestStatsBucket
 _A single time bucket in LLM request stats._
 - `time` **REQ** : string  
-- `statuses` **REQ** : map<string,integer>  
+- `statuses` **REQ** : map<string, integer>  
 - `total` **REQ** : integer  
 - `tokens` **REQ** : LLMRequestTokenSums  
 
@@ -774,7 +729,7 @@ _A label group (dimension) with its type and allowed values._
 - `optional` opt : boolean default=True  
 - `tag` opt : boolean default=False  
 - `values` opt : array<LabelValue> default=[]  
-- `fields` opt : map<string,MapField-Input> default={}  
+- `fields` opt : map<string, MapField-Input> default={}  
 
 ### LabelGroup-Output
 _A label group (dimension) with its type and allowed values._
@@ -784,7 +739,7 @@ _A label group (dimension) with its type and allowed values._
 - `optional` opt : boolean default=True  
 - `tag` opt : boolean default=False  
 - `values` opt : array<LabelValue> default=[]  
-- `fields` opt : map<string,MapField-Output> default={}  
+- `fields` opt : map<string, MapField-Output> default={}  
 
 ### LabelValue
 _A single allowed value for a label group._
@@ -826,8 +781,7 @@ _Payload for the API's DB-free liveness probe._
 - `uptime_seconds` **REQ** : number  Seconds since the process started
 
 ### LlmOperationHealth
-_LLM connectivity status for a single operation. Status only — no provider/model/
-endpoint/error, so the probe never discloses the LLM configuration._
+_LLM connectivity status for a single operation. Status only — no provider/model/ endpoint/error, so the probe never discloses the LLM configuration._
 - `operation` **REQ** : enum(string)  Operation whose LLM was probed
 - `ok` **REQ** : boolean  True only when the probe connected successfully
 - `status` **REQ** : enum(string)  'connected'; 'not_configured' (provider is 'none'); 'auth_failed' (rejected — usually a wrong/expired API key); 'unreachable' (cal
@@ -838,14 +792,14 @@ _A field within a map-type entity label group. Supports recursion via type='map'
 - `type` opt : enum(string) default='text'  
 - `description` opt : string default=''  
 - `values` opt : array<LabelValue> default=[]  
-- `fields` opt : map<string,MapField-Input> default={}  
+- `fields` opt : map<string, MapField-Input> default={}  
 
 ### MapField-Output
 _A field within a map-type entity label group. Supports recursion via type='map'._
 - `type` opt : enum(string) default='text'  
 - `description` opt : string default=''  
 - `values` opt : array<LabelValue> default=[]  
-- `fields` opt : map<string,MapField-Output> default={}  
+- `fields` opt : map<string, MapField-Output> default={}  
 
 ### MemoriesTimeseriesResponse
 _Time-series of memory ingestion bucketed by time and fact type._
@@ -875,10 +829,7 @@ _A memory-unit node, in the Cytoscape ``{"data": {...}}`` envelope the graph use
 - `data` **REQ** : MemoryGraphNodeData  
 
 ### MemoryGraphNodeData
-_The payload of one memory-unit node in the memory graph.
-
-Extra keys are allowed and passed through, so typing this never drops a field the
-server also returns._
+_The payload of one memory-unit node in the memory graph.  Extra keys are allowed and passed through, so typing this never drops a field the server also returns._
 - `id` **REQ** : string  Memory unit ID
 - `label` opt : string default=''  Short display label (the text, truncated)
 - `text` opt : string default=''  Full memory unit text
@@ -906,17 +857,17 @@ _One row of the flat table view that accompanies the memory graph._
 
 ### MemoryItem
 _Single memory item for retain._
-- `content` **REQ** : string|array  The raw content to retain. Either a plain string, or an ordered list of content blocks so images sit inline where they actually ap
+- `content` **REQ** : string|array<?>  The raw content to retain. Either a plain string, or an ordered list of content blocks so images sit inline where they actually ap
 - `timestamp` opt : string|string|null  When the content occurred. Accepts an ISO 8601 datetime string (e.g. '2024-01-15T10:30:00Z'), null/omitted (defaults to now), or t
 - `context` opt : string|null  
-- `metadata` opt : object|null  
+- `metadata` opt : map<string, string>|null  
 - `document_id` opt : string|null  Optional document ID for this memory item. Provide a distinct document_id per source document — items sharing a document_id are gr
-- `entities` opt : array|null  Optional entities to combine with auto-extracted entities.
+- `entities` opt : array<EntityInput>|null  Optional entities to combine with auto-extracted entities.
 - `resolve_entities` opt : boolean default=True  Whether the names in 'entities' are resolved against the entities already in the bank. True (default) matches each name to a simil
-- `tags` opt : array|null  Optional tags for visibility scoping. Memories with tags can be filtered during recall.
-- `observation_scopes` opt : string|array|null  How to scope observations during consolidation. 'per_tag' runs one consolidation pass per individual tag, creating separate observ
+- `tags` opt : array<string>|null  Optional tags for visibility scoping. Memories with tags can be filtered during recall.
+- `observation_scopes` opt : enum(string)|array<array<string>>|null  How to scope observations during consolidation. 'per_tag' runs one consolidation pass per individual tag, creating separate observ
 - `strategy` opt : string|null  Named retain strategy for this item. Overrides the bank's default strategy for this item only. Strategies are defined in the bank 
-- `update_mode` opt : string|null  How to handle an existing document with the same document_id. 'replace' (default) deletes old data and reprocesses from scratch. '
+- `update_mode` opt : enum(string)|null  How to handle an existing document with the same document_id. 'replace' (default) deletes old data and reprocesses from scratch. '
 
 ### MemoryTimeseriesBucket
 _One bucket in the memory ingestion time-series._
@@ -926,10 +877,7 @@ _One bucket in the memory ingestion time-series._
 - `observation` opt : integer default=0  Observations recorded in this bucket.
 
 ### MemoryUnitListItem
-_One row of the memory-unit listing.
-
-Extra keys are allowed and passed through: the rows used to be an open object, and
-typing them must not drop a field an older or newer server also returns._
+_One row of the memory-unit listing.  Extra keys are allowed and passed through: the rows used to be an open object, and typing them must not drop a field an older or newer server also returns._
 - `id` **REQ** : string  Memory unit ID
 - `text` opt : string default=''  The fact text
 - `context` opt : string default=''  Context the memory was captured in
@@ -943,7 +891,7 @@ typing them must not drop a field an older or newer server also returns._
 - `chunk_id` opt : string|null  Source chunk ID
 - `proof_count` opt : integer default=1  How many times the fact was independently seen
 - `tags` opt : array<string> default=[]  Tags on this memory unit
-- `metadata` opt : map<string,?> default={}  Arbitrary metadata stored with the memory
+- `metadata` opt : map<string, any> default={}  Arbitrary metadata stored with the memory
 - `consolidated_at` opt : string|null  When consolidation last succeeded (ISO 8601)
 - `consolidation_failed_at` opt : string|null  When consolidation last failed permanently (ISO 8601)
 - `state` opt : string default='valid'  Curation state: 'valid' or 'invalidated'
@@ -955,25 +903,22 @@ typing them must not drop a field an older or newer server also returns._
 
 ### MentalModelDeltaOperations
 _Structured operations a delta refresh emitted against the existing document._
-- `applied` opt : array<object>  Operations applied to the document, in order.
-- `skipped` opt : array<object>  Operations dropped as invalid, each with a reason.
+- `applied` opt : array<map<string, any>>  Operations applied to the document, in order.
+- `skipped` opt : array<map<string, any>>  Operations dropped as invalid, each with a reason.
 
 ### MentalModelDryRunRefreshResult
-_Preview of what a mental model refresh would do, having changed nothing.
-
-Runs the real pipeline — same scope resolution, same reflect call, same
-delta operations — then reports the result instead of _
+_Preview of what a mental model refresh would do, having changed nothing.  Runs the real pipeline — same scope resolution, same reflect call, same delta operations — then reports the result instead of _
 - `mental_model_id` **REQ** : string  The mental model previewed.
 - `name` **REQ** : string  Display name of the mental model.
 - `requested_mode` **REQ** : enum(string)  The mode asked for (from the model's trigger, or overridden).
 - `effective_mode` **REQ** : enum(string)  The mode the refresh actually ran in.
-- `mode_fallback_reason` opt : string|null  Why delta was requested but not applied, if that happened.
+- `mode_fallback_reason` opt : enum(string)|null  Why delta was requested but not applied, if that happened.
 - `outcome` **REQ** : enum(string)  What a real refresh would do with the document.
 - `would_persist` **REQ** : boolean  Whether a real refresh would write new content.
 - `scope` **REQ** : MentalModelRefreshScope  The resolved memory scope.
 - `window` **REQ** : MentalModelRefreshWindow  The snapshot window read from.
 - `facts` **REQ** : MentalModelFactCounts  Facts retrieved versus actually used.
-- `based_on` opt : map<string,array>  The evidence this run would ground the document on, keyed by fact type — the same shape a refresh persists under reflect_response.
+- `based_on` opt : map<string, array<map<string, any>>>  The evidence this run would ground the document on, keyed by fact type — the same shape a refresh persists under reflect_response.
 - `current_content` **REQ** : string  The model's content as it stands now.
 - `candidate_content` **REQ** : string  Raw reflect synthesis, before any delta operations.
 - `preview_content` **REQ** : string  The content a real refresh would store: the delta-edited document, or the candidate in full mode.
@@ -986,13 +931,9 @@ delta operations — then reports the result instead of _
 - `warnings` opt : array<string>  Conditions worth a human's attention, in plain language.
 
 ### MentalModelFactCounts
-_Facts the refresh saw, keyed by fact type.
-
-``retrieved`` and ``used`` diverging is the single most common cause of a
-disappointing refresh: recall found plenty, but the reflect agent declared
-none of_
-- `retrieved` opt : map<string,integer>  Facts the reflect agent's tool calls returned, by fact type.
-- `used` opt : map<string,integer>  Facts the agent declared it actually based the answer on, by fact type.
+_Facts the refresh saw, keyed by fact type.  ``retrieved`` and ``used`` diverging is the single most common cause of a disappointing refresh: recall found plenty, but the reflect agent declared none of_
+- `retrieved` opt : map<string, integer>  Facts the reflect agent's tool calls returned, by fact type.
+- `used` opt : map<string, integer>  Facts the agent declared it actually based the answer on, by fact type.
 
 ### MentalModelListResponse
 _Response model for listing mental models._
@@ -1002,26 +943,19 @@ _Response model for listing mental models._
 - `offset` **REQ** : integer  Offset that was applied
 
 ### MentalModelRefreshScope
-_The memory scope a refresh actually resolved to.
-
-A model's stored ``tags`` are not what filters memories — ``tags_match``
-defaults to ``all_strict`` when tags are present, and ``tag_groups``
-override_
-- `tags` opt : array|null  Flat tags used to filter memories (null when unused).
+_The memory scope a refresh actually resolved to.  A model's stored ``tags`` are not what filters memories — ``tags_match`` defaults to ``all_strict`` when tags are present, and ``tag_groups`` override_
+- `tags` opt : array<string>|null  Flat tags used to filter memories (null when unused).
 - `tags_match` **REQ** : enum(string)  Resolved tag match mode.
-- `tag_groups` opt : array|null  Compound tag expressions used instead of flat tags, when set.
-- `fact_types` opt : array|null  Fact types retrieved (null means all).
+- `tag_groups` opt : array<TagGroupLeaf|TagGroupAnd-Output|TagGroupOr-Output|TagGroupNot-Output>|null  Compound tag expressions used instead of flat tags, when set.
+- `fact_types` opt : array<string>|null  Fact types retrieved (null means all).
 - `exclude_mental_models` **REQ** : boolean  Whether other mental models were excluded from the reflect loop.
 - `exclude_mental_model_ids` opt : array<string>  Mental models excluded by ID (always includes the model being refreshed).
 
 ### MentalModelRefreshTrace
-_Execution trace of a mental model refresh, recorded when trigger.keep_trace is on.
-
-Deliberately shaped like reflect's trace — the calls the agent made, plus the
-refresh-specific decision — and nothin_
+_Execution trace of a mental model refresh, recorded when trigger.keep_trace is on.  Deliberately shaped like reflect's trace — the calls the agent made, plus the refresh-specific decision — and nothin_
 - `recorded_at` opt : string|null  When this trace was recorded.
 - `effective_mode` **REQ** : enum(string)  Whether the refresh ran as full or delta.
-- `mode_fallback_reason` opt : string|null  Why delta was requested but not applied, if that happened.
+- `mode_fallback_reason` opt : enum(string)|null  Why delta was requested but not applied, if that happened.
 - `outcome` **REQ** : enum(string)  What the refresh did with the document.
 - `tool_calls` opt : array<MentalModelTraceToolCall>  Reflect tool calls made during the refresh.
 - `llm_calls` opt : array<LLMCallTrace>  LLM calls made during the refresh.
@@ -1050,84 +984,67 @@ _Response model for a mental model (stored reflect response)._
 - `last_refreshed_at` opt : string|null  When a refresh last finished for this model — wall-clock, in ISO format. Advances on every refresh that completes, including one t
 - `last_memory_seen_at` opt : string|null  How far through the bank's memories this model is written — the newest in-scope memory the last refresh saw, in ISO format. Stands
 - `created_at` opt : string|null  
-- `reflect_response` opt : object|null  Full reflect API response payload including based_on facts and observations
+- `reflect_response` opt : map<string, any>|null  Full reflect API response payload including based_on facts and observations
 - `is_stale` opt : boolean|null  True when memories matching this mental model's tag/fact_type scope have been written since last_memory_seen_at — the same check t
 
 ### MentalModelRetraction
-_Facts the document cited that no longer exist, and what was done about them.
-
-A retraction is the one refresh input that is *invisible* in every other
-report: the fact is gone from the bank, so it app_
+_Facts the document cited that no longer exist, and what was done about them.  A retraction is the one refresh input that is *invisible* in every other report: the fact is gone from the bank, so it app_
 - `fact_ids` opt : array<string>  Ids the document's based_on cites that no longer exist in the bank.
 - `fact_texts` opt : array<string>  What those facts said, as the document recorded them. The rows themselves are gone — an observation swept away with its source kee
 - `applied` **REQ** : boolean  Whether the pass that removes them ran to completion (zero edits still counts).
 - `deferred_reason` opt : string|null  Why removal was postponed, when it was. Re-ingested facts return under new ids once consolidation catches up, so a retraction seen
 
 ### MentalModelTraceToolCall
-_One reflect tool call made during a refresh.
-
-``output`` is carried only by the dry run, which persists nothing. The trace
-stored on the model row keeps ``result_count`` instead: it is re-read on ever_
+_One reflect tool call made during a refresh.  ``output`` is carried only by the dry run, which persists nothing. The trace stored on the model row keeps ``result_count`` instead: it is re-read on ever_
 - `tool` **REQ** : string  Tool name: recall, search_observations, get_mental_model, expand, …
 - `reason` opt : string|null  The agent's stated reason for the call.
-- `input` opt : map<string,?>  Tool input parameters.
-- `output` opt : object|null  What the tool returned. Present on a dry run, which stores nothing; omitted from the trace persisted by a real refresh to keep tha
+- `input` opt : map<string, any>  Tool input parameters.
+- `output` opt : map<string, any>|null  What the tool returned. Present on a dry run, which stores nothing; omitted from the trace persisted by a real refresh to keep tha
 - `updated_at` opt : string|null  The refresh window's lower bound as given to this call — the delta watermark. Named for what it actually filters: the predicate is
 - `result_count` opt : integer|null  Number of items the tool returned, when countable.
 - `duration_ms` **REQ** : integer  Execution time in milliseconds.
 - `iteration` opt : integer default=0  Agent loop iteration (1-based) this call belongs to.
 
 ### MentalModelTrigger-Input
-_Trigger settings for a mental model.
-
-Inherits the reflect options an operator can also default per bank
-(``reflect_default_options``): set here they apply to this model's refreshes
-only, and win over_
+_Trigger settings for a mental model.  Inherits the reflect options an operator can also default per bank (``reflect_default_options``): set here they apply to this model's refreshes only, and win over_
 - `reflect_search_observations_max_tokens` opt : integer|null  Token budget for reflect's search_observations tool when the model names none. Observation evidence is often the largest contribut
 - `reflect_search_observations_include_entities` opt : boolean|null  Whether search_observations attaches resolved entity names to each observation. Entities can be more than half the serialized tool
 - `mode` opt : enum(string) default='full'  Refresh mode. 'full' (default) regenerates the mental model content from scratch on each refresh. 'delta' performs surgical edits 
 - `refresh_after_consolidation` opt : boolean default=False  If true, refresh this mental model after observations consolidation (real-time mode)
 - `refresh_cron` opt : string|null  Cron expression (UTC, standard 5-field syntax, e.g. '0 3 * * *' for daily at 03:00 UTC) for refreshing this mental model on a fixe
 - `min_refresh_interval_seconds` opt : integer|null  Minimum seconds between two automatic refreshes of this mental model. A triggered refresh that arrives sooner is not dropped: it i
-- `fact_types` opt : array|null  Filter which fact types are retrieved during reflect. None means all types (world, experience, observation).
+- `fact_types` opt : array<enum(string)>|null  Filter which fact types are retrieved during reflect. None means all types (world, experience, observation).
 - `exclude_mental_models` opt : boolean default=False  If true, exclude all mental models from the reflect loop (skip search_mental_models tool).
-- `exclude_mental_model_ids` opt : array|null  Exclude specific mental models by ID from the reflect loop.
-- `tags_match` opt : string|null  Override how the model's tags filter memories during refresh. If not set, defaults to 'all_strict' when the model has tags (securi
-- `tag_groups` opt : array|null  Compound boolean tag expressions to use during refresh instead of the model's own tags. When set, these tag groups are passed to r
+- `exclude_mental_model_ids` opt : array<string>|null  Exclude specific mental models by ID from the reflect loop.
+- `tags_match` opt : enum(string)|null  Override how the model's tags filter memories during refresh. If not set, defaults to 'all_strict' when the model has tags (securi
+- `tag_groups` opt : array<TagGroupLeaf|TagGroupAnd-Input|TagGroupOr-Input|TagGroupNot-Input>|null  Compound boolean tag expressions to use during refresh instead of the model's own tags. When set, these tag groups are passed to r
 - `include_chunks` opt : boolean|null  Override whether the internal recall used during refresh returns raw chunk text. None means use the bank/global config default (re
 - `recall_max_tokens` opt : integer|null  Override the token budget for facts returned by the internal recall during refresh. None means use the bank/global config default 
 - `recall_chunks_max_tokens` opt : integer|null  Override the token budget for raw chunks returned by the internal recall during refresh. None means use the bank/global config def
-- `response_schema` opt : object|null  Optional JSON Schema for structured output. When set, each refresh runs the same structured-output extraction as reflect's respons
+- `response_schema` opt : map<string, any>|null  Optional JSON Schema for structured output. When set, each refresh runs the same structured-output extraction as reflect's respons
 - `keep_trace` opt : boolean default=False  If true, every refresh of this mental model records how it reached its result under reflect_response.trace: the mode it ran in and
 
 ### MentalModelTrigger-Output
-_Trigger settings for a mental model.
-
-Inherits the reflect options an operator can also default per bank
-(``reflect_default_options``): set here they apply to this model's refreshes
-only, and win over_
+_Trigger settings for a mental model.  Inherits the reflect options an operator can also default per bank (``reflect_default_options``): set here they apply to this model's refreshes only, and win over_
 - `reflect_search_observations_max_tokens` opt : integer|null  Token budget for reflect's search_observations tool when the model names none. Observation evidence is often the largest contribut
 - `reflect_search_observations_include_entities` opt : boolean|null  Whether search_observations attaches resolved entity names to each observation. Entities can be more than half the serialized tool
 - `mode` opt : enum(string) default='full'  Refresh mode. 'full' (default) regenerates the mental model content from scratch on each refresh. 'delta' performs surgical edits 
 - `refresh_after_consolidation` opt : boolean default=False  If true, refresh this mental model after observations consolidation (real-time mode)
 - `refresh_cron` opt : string|null  Cron expression (UTC, standard 5-field syntax, e.g. '0 3 * * *' for daily at 03:00 UTC) for refreshing this mental model on a fixe
 - `min_refresh_interval_seconds` opt : integer|null  Minimum seconds between two automatic refreshes of this mental model. A triggered refresh that arrives sooner is not dropped: it i
-- `fact_types` opt : array|null  Filter which fact types are retrieved during reflect. None means all types (world, experience, observation).
+- `fact_types` opt : array<enum(string)>|null  Filter which fact types are retrieved during reflect. None means all types (world, experience, observation).
 - `exclude_mental_models` opt : boolean default=False  If true, exclude all mental models from the reflect loop (skip search_mental_models tool).
-- `exclude_mental_model_ids` opt : array|null  Exclude specific mental models by ID from the reflect loop.
-- `tags_match` opt : string|null  Override how the model's tags filter memories during refresh. If not set, defaults to 'all_strict' when the model has tags (securi
-- `tag_groups` opt : array|null  Compound boolean tag expressions to use during refresh instead of the model's own tags. When set, these tag groups are passed to r
+- `exclude_mental_model_ids` opt : array<string>|null  Exclude specific mental models by ID from the reflect loop.
+- `tags_match` opt : enum(string)|null  Override how the model's tags filter memories during refresh. If not set, defaults to 'all_strict' when the model has tags (securi
+- `tag_groups` opt : array<TagGroupLeaf|TagGroupAnd-Output|TagGroupOr-Output|TagGroupNot-Output>|null  Compound boolean tag expressions to use during refresh instead of the model's own tags. When set, these tag groups are passed to r
 - `include_chunks` opt : boolean|null  Override whether the internal recall used during refresh returns raw chunk text. None means use the bank/global config default (re
 - `recall_max_tokens` opt : integer|null  Override the token budget for facts returned by the internal recall during refresh. None means use the bank/global config default 
 - `recall_chunks_max_tokens` opt : integer|null  Override the token budget for raw chunks returned by the internal recall during refresh. None means use the bank/global config def
-- `response_schema` opt : object|null  Optional JSON Schema for structured output. When set, each refresh runs the same structured-output extraction as reflect's respons
+- `response_schema` opt : map<string, any>|null  Optional JSON Schema for structured output. When set, each refresh runs the same structured-output extraction as reflect's respons
 - `keep_trace` opt : boolean default=False  If true, every refresh of this mental model records how it reached its result under reflect_response.trace: the mode it ran in and
 
 ### MinScores
-_Optional per-stage score floors for recall. Every floor is inclusive (``>=``).
-
-The four floors act at two different levels, and the distinction decides what a
-returned result is guaranteed to satisfy_
+_Optional per-stage score floors for recall. Every floor is inclusive (``>=``).  The four floors act at two different levels, and the distinction decides what a returned result is guaranteed to satisfy_
 - `semantic` opt : number|null  Retrieval-level, semantic arm only: minimum vector similarity (0-1). A result the semantic arm did not surface reports `semantic: 
 - `keyword` opt : number|null  Retrieval-level, keyword arm only: minimum keyword/full-text (BM25) score. A result the keyword arm did not surface reports `keywo
 - `reranker` opt : number|null  Post-query: minimum normalized reranker score (0-1). Applied to every returned result.
@@ -1146,15 +1063,12 @@ _Response model for the observation scopes enumeration endpoint._
 - `offset` **REQ** : integer  Offset this page started at
 
 ### OperationProgress
-_Last-known progress snapshot for a long-running async operation.
-
-Written at coarse phase/batch boundaries by the worker (consolidation, batch
-retain). Lets an operator polling the operation status AP_
+_Last-known progress snapshot for a long-running async operation.  Written at coarse phase/batch boundaries by the worker (consolidation, batch retain). Lets an operator polling the operation status AP_
 - `stage` **REQ** : string  Coarse phase the operation last reported (e.g. 'processing_batch').
 - `at` **REQ** : string  ISO-8601 timestamp when this snapshot was written.
 - `processed` opt : integer|null  Units of work finished so far (sub-batches, memories), when known.
 - `total` opt : integer|null  Total units of work for the operation, when known.
-- `detail` opt : object|null  Operation-specific counters (e.g. observations_created, round, items_in_sub_batch).
+- `detail` opt : map<string, integer>|null  Operation-specific counters (e.g. observations_created, round, items_in_sub_batch).
 
 ### OperationResponse
 _Response model for a single async operation._
@@ -1185,10 +1099,10 @@ _Response model for getting a single operation status._
 - `retry_count` opt : integer|null  Number of times this operation has been retried after failure.
 - `next_retry_at` opt : string|null  When the worker will next attempt this operation. For a pending operation, a value in the future indicates the task is parked — a 
 - `progress` opt : OperationProgress|null  Last-known progress snapshot for a running operation; null if none was recorded.
-- `result_metadata` opt : object|null  Internal metadata for debugging. Structure may change without notice. Not for production use.
+- `result_metadata` opt : map<string, any>|null  Internal metadata for debugging. Structure may change without notice. Not for production use.
 - `details` opt : RefreshMentalModelOperationDetails|null  Typed, per-operation-type outcome detail, discriminated by its own `operation_type`. Populated for `refresh_mental_model` operatio
-- `child_operations` opt : array|null  Child operations for batch operations (if applicable)
-- `task_payload` opt : object|null  Raw task payload (params the operation was submitted with). Only populated when include_payload=true.
+- `child_operations` opt : array<ChildOperationStatus>|null  Child operations for batch operations (if applicable)
+- `task_payload` opt : map<string, any>|null  Raw task payload (params the operation was submitted with). Only populated when include_payload=true.
 
 ### OperationsListResponse
 _Response model for list operations endpoint._
@@ -1199,10 +1113,7 @@ _Response model for list operations endpoint._
 - `operations` **REQ** : array<OperationResponse>  
 
 ### PromptBlockModel
-_One block of a message: its text, and the setting that decides it.
-
-The **active** blocks of a message concatenate back to the exact text sent, so a
-client can render them separately without showing t_
+_One block of a message: its text, and the setting that decides it.  The **active** blocks of a message concatenate back to the exact text sent, so a client can render them separately without showing t_
 - `text` **REQ** : string  The block's text; empty when the block is inactive.
 - `source` **REQ** : enum(string)  `config` — produced by a setting (`field` names it); `builtin` — Hindsight's own wording.
 - `field` opt : string default=''  Config field behind this block; empty when no single field owns it.
@@ -1211,7 +1122,7 @@ client can render them separately without showing t_
 - `active` opt : boolean default=True  Whether this block is in the prompt as configured.
 - `value` opt : string|null  The field's effective value; null when unset.
 - `kind` **REQ** : enum(string)  Shape of the value, so a client can offer the right control for editing it.
-- `choices` opt : array|null  Allowed values, when `kind` is `choice`.
+- `choices` opt : array<string>|null  Allowed values, when `kind` is `choice`.
 - `editable` opt : boolean default=False  Whether this bank may override the field via the bank config API. Server-level fields shape the prompt but cannot be set per bank,
 
 ### PromptMessageModel
@@ -1220,48 +1131,42 @@ _One message of the request, as the blocks it is built from._
 - `blocks` opt : array<PromptBlockModel>  
 
 ### PromptPreviewRequest
-_Request to render the prompts an operation would send, without calling an LLM.
-
-The operation is the whole request: everything that shapes the prompt comes from
-the bank — its resolved config, profile_
+_Request to render the prompts an operation would send, without calling an LLM.  The operation is the whole request: everything that shapes the prompt comes from the bank — its resolved config, profile_
 - `operation` opt : enum(string) default='retain'  Which operation's prompts to render.
 - `strategy` opt : string|null  Name of a retain strategy to render under (a key of the bank's `retain_strategies`). Retain only. Omit it and the bank's `retain_d
 
 ### PromptPreviewResponse
-_The messages one call of the requested operation would send.
-
-`messages` is in send order, system first. Both are always present because a
-mission is not necessarily in the system prompt: retain and c_
+_The messages one call of the requested operation would send.  `messages` is in send order, system first. Both are always present because a mission is not necessarily in the system prompt: retain and c_
 - `messages` opt : array<PromptMessageModel>  Request messages, in send order. Each is given as the blocks it is built from.
 - `strategy` opt : string|null  The retain strategy these prompts were rendered under, if any.
 - `strategies` opt : array<string>  Names of the bank's retain strategies, so a client can offer them without a second call.
 - `run_settings` opt : array<RunSettingModel>  Settings that shape the operation without appearing in its prompt, such as chunk sizes.
-- `response_schema` opt : object|null  JSON schema the response is constrained to, when the operation constrains it.
+- `response_schema` opt : map<string, any>|null  JSON schema the response is constrained to, when the operation constrains it.
 - `skipped_reason` opt : string|null  Why no prompt is sent, when the configuration means none is.
 
 ### RecallRequest
 _Request model for recall endpoint._
 - `query` **REQ** : string  
-- `types` opt : array|null  List of fact types to recall: 'world', 'experience', 'observation'. Defaults to all fact types if not specified.
+- `types` opt : array<string>|null  List of fact types to recall: 'world', 'experience', 'observation'. Defaults to all fact types if not specified.
 - `prefer_observations` opt : boolean default=False  When recalling raw facts ('world'/'experience') together with 'observation', drop any raw fact that an observation in the results 
 - `budget` opt : Budget default='mid'  
 - `max_tokens` opt : integer default=4096  
 - `trace` opt : boolean default=False  
 - `query_timestamp` opt : string|null  ISO format date string (e.g., '2023-05-30T23:40:00'). Used as the query-time anchor for relative temporal expressions and recency 
 - `include` opt : IncludeOptions default={}  Options for including additional data (entities are included by default)
-- `tags` opt : array|null  Filter memories by tags. If not specified, all memories are returned. Omitting tags (or passing []) together with tags_match='exac
+- `tags` opt : array<string>|null  Filter memories by tags. If not specified, all memories are returned. Omitting tags (or passing []) together with tags_match='exac
 - `tags_match` opt : enum(string) default='any'  How to match tags: 'any' (OR, includes untagged), 'all' (AND, includes untagged), 'any_strict' (OR, excludes untagged), 'all_stric
-- `tag_groups` opt : array|null  Compound tag filter using boolean groups. Groups in the list are AND-ed. Each group is a leaf {tags, match} or compound {and: [...
+- `tag_groups` opt : array<TagGroupLeaf|TagGroupAnd-Input|TagGroupOr-Input|TagGroupNot-Input>|null  Compound tag filter using boolean groups. Groups in the list are AND-ed. Each group is a leaf {tags, match} or compound {and: [...
 - `min_scores` opt : MinScores|null  Optional per-stage score floors, each inclusive (`>=`). `semantic` and `keyword` are retrieval-level cutoffs pushed into the SQL a
 - `temporal_window` opt : TemporalWindow|null  Window for the temporal retrieval arm, supplied instead of extracting dates from `query`. Set this when you already know the range
 
 ### RecallResponse
 _Response model for recall endpoints._
 - `results` **REQ** : array<RecallResult>  
-- `trace` opt : object|null  
-- `entities` opt : object|null  Entity states for entities mentioned in results
-- `chunks` opt : object|null  Chunks for facts, keyed by chunk_id
-- `source_facts` opt : object|null  Source facts for observation-type results, keyed by fact ID
+- `trace` opt : map<string, any>|null  
+- `entities` opt : map<string, EntityStateResponse>|null  Entity states for entities mentioned in results
+- `chunks` opt : map<string, ChunkData>|null  Chunks for facts, keyed by chunk_id
+- `source_facts` opt : map<string, RecallResult>|null  Source facts for observation-type results, keyed by fact ID
 - `source_facts_truncated` opt : boolean|null  Whether the source_facts map was cut short by the token budget. When true, some IDs in results[].source_fact_ids have no entry in 
 
 ### RecallResult
@@ -1269,24 +1174,21 @@ _Single recall result item._
 - `id` **REQ** : string  
 - `text` **REQ** : string  
 - `type` opt : string|null  
-- `entities` opt : array|null  
+- `entities` opt : array<string>|null  
 - `context` opt : string|null  
 - `occurred_start` opt : string|null  
 - `occurred_end` opt : string|null  
 - `mentioned_at` opt : string|null  
 - `document_id` opt : string|null  
-- `metadata` opt : object|null  
+- `metadata` opt : map<string, string>|null  
 - `chunk_id` opt : string|null  
-- `tags` opt : array|null  
-- `source_fact_ids` opt : array|null  
+- `tags` opt : array<string>|null  
+- `source_fact_ids` opt : array<string>|null  
 - `scores` opt : RecallScores|null  
-- `attachments` opt : array|null  Attachments this fact was drawn from, as recorded per fact at extraction time — the same edge the memory read endpoints return, no
+- `attachments` opt : array<ChunkAttachment>|null  Attachments this fact was drawn from, as recorded per fact at extraction time — the same edge the memory read endpoints return, no
 
 ### RecallScores
-_Per-result recall scores from different stages of the pipeline.
-
-``final`` is the value results are ranked by. The others are diagnostic and
-can be filtered on via the recall ``min_scores`` request pa_
+_Per-result recall scores from different stages of the pipeline.  ``final`` is the value results are ranked by. The others are diagnostic and can be filtered on via the recall ``min_scores`` request pa_
 - `final` **REQ** : number  Final ranking score (combined reranker + recency/temporal/proof boosts)
 - `reranker` opt : number|null  Cross-encoder relevance, normalized 0-1. None when the reranker is a passthrough (rrf/interleave modes).
 - `semantic` opt : number|null  Vector cosine similarity (0-1). None if this result was not surfaced semantically.
@@ -1342,20 +1244,20 @@ _Request model for reflect endpoint._
 - `context` opt : string|null  DEPRECATED: Additional context is now concatenated with the query. Pass context directly in the query field instead. If provided, 
 - `max_tokens` opt : integer default=4096  Maximum tokens for the response
 - `include` opt : ReflectIncludeOptions  Options for including additional data (disabled by default)
-- `response_schema` opt : object|null  Optional JSON Schema for structured output. When provided, the response will include a 'structured_output' field with the LLM resp
-- `tags` opt : array|null  Scope raw facts, observations, mental models, and tagged directives during reflection. With no tags, memory retrieval is unfiltere
+- `response_schema` opt : map<string, any>|null  Optional JSON Schema for structured output. When provided, the response will include a 'structured_output' field with the LLM resp
+- `tags` opt : array<string>|null  Scope raw facts, observations, mental models, and tagged directives during reflection. With no tags, memory retrieval is unfiltere
 - `tags_match` opt : enum(string) default='any'  How to match tags: 'any' (OR, includes untagged), 'all' (AND, includes untagged), 'any_strict' (OR, excludes untagged), 'all_stric
-- `tag_groups` opt : array|null  Compound tag filter using boolean groups. Groups in the list are AND-ed. Each group is a leaf {tags, match} or compound {and: [...
+- `tag_groups` opt : array<TagGroupLeaf|TagGroupAnd-Input|TagGroupOr-Input|TagGroupNot-Input>|null  Compound tag filter using boolean groups. Groups in the list are AND-ed. Each group is a leaf {tags, match} or compound {and: [...
 - `apply_all_directives` opt : boolean default=False  Apply every active directive regardless of tags. By default directives are scoped like memories: untagged directives always apply,
-- `fact_types` opt : array|null  Filter which fact types are retrieved during reflect. None means all types (world, experience, observation).
+- `fact_types` opt : array<enum(string)>|null  Filter which fact types are retrieved during reflect. None means all types (world, experience, observation).
 - `exclude_mental_models` opt : boolean default=False  If true, exclude all mental models from the reflect loop (skip search_mental_models tool).
-- `exclude_mental_model_ids` opt : array|null  Exclude specific mental models by ID from the reflect loop.
+- `exclude_mental_model_ids` opt : array<string>|null  Exclude specific mental models by ID from the reflect loop.
 
 ### ReflectResponse
 _Response model for think endpoint._
 - `text` **REQ** : string  The reflect response as well-formatted markdown (headers, lists, bold/italic, code blocks, etc.)
 - `based_on` opt : ReflectBasedOn|null  Evidence used to generate the response. Only present when include.facts is set.
-- `structured_output` opt : object|null  Structured output parsed according to the request's response_schema. Only present when response_schema was provided in the request
+- `structured_output` opt : map<string, any>|null  Structured output parsed according to the request's response_schema. Only present when response_schema was provided in the request
 - `structured_output_error` opt : string|null  Why structured output could not be produced. Present only when a response_schema was given and the extraction call failed (provide
 - `usage` opt : TokenUsage|null  Token usage metrics for LLM calls during reflection.
 - `trace` opt : ReflectTrace|null  Execution trace of tool and LLM calls. Only present when include.tool_calls is set.
@@ -1363,8 +1265,8 @@ _Response model for think endpoint._
 ### ReflectToolCall
 _A tool call made during reflect agent execution._
 - `tool` **REQ** : string  Tool name: lookup, recall, learn, expand
-- `input` **REQ** : map<string,?>  Tool input parameters
-- `output` opt : object|null  Tool output (only included when include.tool_calls.output is true)
+- `input` **REQ** : map<string, any>  Tool input parameters
+- `output` opt : map<string, any>|null  Tool output (only included when include.tool_calls.output is true)
 - `duration_ms` **REQ** : integer  Execution time in milliseconds
 - `iteration` opt : integer default=0  Iteration number (1-based) when this tool was called
 
@@ -1374,13 +1276,10 @@ _Execution trace of LLM and tool calls during reflection._
 - `llm_calls` opt : array<ReflectLLMCall> default=[]  LLM calls made during reflection
 
 ### RefreshMentalModelOperationDetails
-_What a refresh_mental_model operation did, on the operation record itself.
-
-Reported under an async operation's ``details``, which is keyed by
-``operation_type``: each type that has a typed outcome to_
+_What a refresh_mental_model operation did, on the operation record itself.  Reported under an async operation's ``details``, which is keyed by ``operation_type``: each type that has a typed outcome to_
 - `operation_type` opt : string default='refresh_mental_model'  Discriminator: which operation type this detail describes.
 - `outcome` **REQ** : enum(string)  What the refresh did with the document: rewrote it (`content_written`), produced a document identical to the stored one (`content_
-- `failure_reason` opt : string|null  Why the refresh refused to write, finer-grained than the outcome — it distinguishes an op call that failed from one whose operatio
+- `failure_reason` opt : enum(string)|null  Why the refresh refused to write, finer-grained than the outcome — it distinguishes an op call that failed from one whose operatio
 
 ### ReprocessDocumentResponse
 _Response model for reprocess document endpoint._
@@ -1392,7 +1291,7 @@ _Response model for reprocess document endpoint._
 _Request model for retain endpoint._
 - `items` **REQ** : array<MemoryItem>  
 - `async` opt : boolean default=False  If true, process asynchronously in background. If false, wait for completion (default: false)
-- `document_tags` opt : array|null  Deprecated. Use item-level tags instead.
+- `document_tags` opt : array<string>|null  Deprecated. Use item-level tags instead.
 - `operation_id` opt : string|null  Optional client-supplied UUID used as the identity of an async retain operation. Re-submitting with the same operation_id returns 
 
 ### RetainResponse
@@ -1402,7 +1301,7 @@ _Response model for retain endpoint._
 - `items_count` **REQ** : integer  
 - `async` **REQ** : boolean  Whether the operation was processed asynchronously
 - `operation_id` opt : string|null  Operation ID for tracking async operations. Use GET /v1/default/banks/{bank_id}/operations to list operations. Only present when a
-- `operation_ids` opt : array|null  Operation IDs when items were submitted as multiple strategy groups (async=true with mixed per-item strategies). operation_id is s
+- `operation_ids` opt : array<string>|null  Operation IDs when items were submitted as multiple strategy groups (async=true with mixed per-item strategies). operation_id is s
 - `usage` opt : TokenUsage|null  Token usage metrics for LLM calls during fact extraction (only present for synchronous operations)
 
 ### RetryOperationResponse
@@ -1412,10 +1311,7 @@ _Response model for retry operation endpoint._
 - `operation_id` **REQ** : string  
 
 ### RunSettingModel
-_A setting that shapes the operation without appearing in its prompt.
-
-Chunk sizes decide how the input is cut before extraction runs, so they change
-what comes back while contributing no prompt text —_
+_A setting that shapes the operation without appearing in its prompt.  Chunk sizes decide how the input is cut before extraction runs, so they change what comes back while contributing no prompt text —_
 - `field` **REQ** : string  
 - `value` opt : string|null  Effective value; null when unset.
 - `kind` **REQ** : enum(string)  Shape of the value, so a client can offer the right control.
@@ -1428,11 +1324,11 @@ _Options for including source facts for observation-type results._
 
 ### TagGroupAnd-Input
 _Compound AND group: all child filters must match._
-- `and` **REQ** : array<?>  
+- `and` **REQ** : array<TagGroupLeaf|TagGroupAnd-Input|TagGroupOr-Input|TagGroupNot-Input>  
 
 ### TagGroupAnd-Output
 _Compound AND group: all child filters must match._
-- `and` **REQ** : array<?>  
+- `and` **REQ** : array<TagGroupLeaf|TagGroupAnd-Output|TagGroupOr-Output|TagGroupNot-Output>  
 
 ### TagGroupLeaf
 _A leaf tag filter: matches memories by tag list and match mode._
@@ -1450,11 +1346,11 @@ _Compound NOT group: child filter must NOT match._
 
 ### TagGroupOr-Input
 _Compound OR group: at least one child filter must match._
-- `or` **REQ** : array<?>  
+- `or` **REQ** : array<TagGroupLeaf|TagGroupAnd-Input|TagGroupOr-Input|TagGroupNot-Input>  
 
 ### TagGroupOr-Output
 _Compound OR group: at least one child filter must match._
-- `or` **REQ** : array<?>  
+- `or` **REQ** : array<TagGroupLeaf|TagGroupAnd-Output|TagGroupOr-Output|TagGroupNot-Output>  
 
 ### TagItem
 _Single tag with usage count._
@@ -1462,10 +1358,7 @@ _Single tag with usage count._
 - `count` **REQ** : integer  Number of memories with this tag
 
 ### TemporalWindow
-_A caller-supplied window for recall's temporal arm.
-
-Supplying this **replaces the date extraction** recall would otherwise run
-over the query text, so a caller that already knows the range it means d_
+_A caller-supplied window for recall's temporal arm.  Supplying this **replaces the date extraction** recall would otherwise run over the query text, so a caller that already knows the range it means d_
 - `start` **REQ** : string  Start of the window (inclusive).
 - `end` **REQ** : string  End of the window (inclusive).
 
@@ -1475,10 +1368,7 @@ _A run of text within a multimodal item, in the position the caller wrote it._
 - `text` **REQ** : string  
 
 ### TokenUsage
-_Token usage metrics for LLM calls.
-
-Tracks input/output tokens for a single request to enable
-per-request cost tracking and monitoring._
+_Token usage metrics for LLM calls.  Tracks input/output tokens for a single request to enable per-request cost tracking and monitoring._
 - `input_tokens` opt : integer default=0  Number of input/prompt tokens consumed
 - `output_tokens` opt : integer default=0  Number of visible output/completion tokens generated (excludes reasoning/thoughts)
 - `total_tokens` opt : integer default=0  Total tokens (input + output, excludes thoughts)
@@ -1495,7 +1385,7 @@ _Request model for updating a directive._
 - `content` opt : string|null  New content
 - `priority` opt : integer|null  New priority
 - `is_active` opt : boolean|null  New active status
-- `tags` opt : array|null  New tags
+- `tags` opt : array<string>|null  New tags
 
 ### UpdateDispositionRequest
 _Request model for updating disposition traits._
@@ -1503,23 +1393,20 @@ _Request model for updating disposition traits._
 
 ### UpdateDocumentRequest
 _Request model for updating a document's mutable fields._
-- `tags` opt : array|null  The complete new set of tags for the document and its memory units — this REPLACES the existing tags rather than adding to them, s
+- `tags` opt : array<string>|null  The complete new set of tags for the document and its memory units — this REPLACES the existing tags rather than adding to them, s
 
 ### UpdateDocumentResponse
 _Response model for update document endpoint._
 - `success` opt : boolean default=True  
 
 ### UpdateMemoryRequest
-_Request model for curating a single memory unit (edit / invalidate / revert).
-
-Provide ``text`` to correct the fact, and/or ``state`` to invalidate
-('invalidated') or revert ('valid') it. ``reason`` i_
+_Request model for curating a single memory unit (edit / invalidate / revert).  Provide ``text`` to correct the fact, and/or ``state`` to invalidate ('invalidated') or revert ('valid') it. ``reason`` i_
 - `text` opt : string|null  New fact text. Re-embeds the memory, drops its derived observations and links, and triggers re-consolidation.
 - `context` opt : string|null  New context for the fact. '' clears it; omit to leave unchanged.
 - `occurred_start` opt : string|null  New occurred-range start (ISO 8601). '' clears it; omit to leave unchanged.
 - `occurred_end` opt : string|null  New occurred-range end (ISO 8601). '' clears it; omit to leave unchanged.
 - `fact_type` opt : string|null  Reclassify the fact: 'world' or 'experience'. Omit to leave unchanged.
-- `entities` opt : array|null  Replace the fact's entities. How each name is matched to an entity is governed by 'resolve_entities'. '[]' detaches all entities. 
+- `entities` opt : array<string>|null  Replace the fact's entities. How each name is matched to an entity is governed by 'resolve_entities'. '[]' detaches all entities. 
 - `resolve_entities` opt : boolean default=True  Whether the names in 'entities' are resolved against the entities already in the bank. True (default) is what retain does: a simil
 - `state` opt : string|null  Curation state: 'invalidated' to soft-retire the memory (excluded from recall/consolidation, links and derived observations pruned
 - `reason` opt : string|null  Optional free-text reason recorded when invalidating.
@@ -1529,16 +1416,15 @@ _Request model for updating a mental model._
 - `name` opt : string|null  New name for the mental model
 - `source_query` opt : string|null  New source query for the mental model
 - `max_tokens` opt : integer|null  Maximum tokens for generated content
-- `tags` opt : array|null  Tags for scoped visibility
+- `tags` opt : array<string>|null  Tags for scoped visibility
 - `trigger` opt : MentalModelTrigger-Input|null  Trigger settings
 
 ### UpdateNodeRequest
-_Rename/move a node and/or update a page's options. Each field applies only
-when present in the request body._
+_Rename/move a node and/or update a page's options. Each field applies only when present in the request body._
 - `name` opt : string|null  
 - `parent_id` opt : string|null  
 - `source_query` opt : string|null  
-- `tags` opt : array|null  Replaces the page's tags, which SCOPE which memories it is built from. Pass `[]` to clear them and rebuild the page from the whole
+- `tags` opt : array<string>|null  Replaces the page's tags, which SCOPE which memories it is built from. Pass `[]` to clear them and rebuild the page from the whole
 - `max_tokens` opt : integer|null  
 - `trigger` opt : MentalModelTrigger-Input|null  Refresh settings to change. Applied as a patch: only the fields present in this object are updated, and the rest keep the page's c
 
@@ -1546,12 +1432,12 @@ when present in the request body._
 _Request model for updating a webhook. Only provided fields are updated._
 - `url` opt : string|null  HTTP(S) endpoint URL
 - `secret` opt : string|null  HMAC-SHA256 signing secret. Omit to keep existing; send null to clear.
-- `event_types` opt : array|null  List of event types
+- `event_types` opt : array<string>|null  List of event types
 - `enabled` opt : boolean|null  Whether this webhook is active
 - `http_config` opt : WebhookHttpConfig|null  HTTP delivery configuration
 
 ### ValidationError
-- `loc` **REQ** : array<?>  
+- `loc` **REQ** : array<string|integer>  
 - `msg` **REQ** : string  
 - `type` **REQ** : string  
 - `input` opt : ?  
@@ -1587,8 +1473,8 @@ _Response model for a webhook delivery record._
 _HTTP delivery configuration for a webhook._
 - `method` opt : string default='POST'  HTTP method: GET or POST
 - `timeout_seconds` opt : integer default=30  HTTP request timeout in seconds
-- `headers` opt : map<string,string>  Custom HTTP headers
-- `params` opt : map<string,string>  Custom HTTP query parameters
+- `headers` opt : map<string, string>  Custom HTTP headers
+- `params` opt : map<string, string>  Custom HTTP query parameters
 
 ### WebhookListResponse
 _Response model for listing webhooks._

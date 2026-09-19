@@ -1,7 +1,6 @@
 using Vectorize.Hindsight.Sdk.Authentication;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Vectorize.Hindsight.Sdk.Configuration;
 using Vectorize.Hindsight.Sdk.Errors;

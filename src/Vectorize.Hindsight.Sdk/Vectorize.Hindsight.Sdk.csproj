@@ -14,10 +14,16 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <!-- The library is trimmable and Native AOT friendly: every serializer
-         path is source-generated and no reflection is used over caller types. -->
+         path is source-generated and no reflection is used over caller types.
+         The analyzers below are what enforce that claim rather than merely
+         asserting it, so they are active in every build, not only in CI. -->
     <IsTrimmable>true</IsTrimmable>
     <EnableAotAnalyzer>true</EnableAotAnalyzer>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+
+    <!-- Verified by a consumer smoke test, described in the README: the same
+         public surface works when trimmed and when ahead-of-time compiled. -->
+    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,7 +31,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The repository README ships inside the package, so a consumer sees what
+         the package is without leaving the client. -->
     <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>

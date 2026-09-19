@@ -1,95 +1,95 @@
-method,path,operation_id,tag,deprecated,summary,path_params,query_params,request_content_type,request_schema,request_required_fields,response_codes,success_schema
-GET,/v1/default/banks/{bank_id}/audit-logs,list_audit_logs,Audit,False,List audit logs,bank_id,action;transport;start_date;end_date;limit;offset,,,,200;422,200:AuditLogListResponse
-GET,/v1/default/banks/{bank_id}/audit-logs/stats,audit_log_stats,Audit,False,Audit log statistics,bank_id,action;period,,,,200;422,200:AuditLogStatsResponse
-GET,/v1/bank-template-schema,get_bank_template_schema,Bank Templates,False,Get bank template JSON Schema,,,,,,200,200:application/json
-GET,/v1/default/banks/{bank_id}/export,export_bank_template,Bank Templates,False,Export bank template,bank_id,,,,,200;422,200:BankTemplateManifest
-POST,/v1/default/banks/{bank_id}/import,import_bank_template,Bank Templates,False,Import bank template,bank_id,dry_run,application/json,BankTemplateManifest,version,200;422,200:BankTemplateImportResponse
-POST,/v1/default/banks/{bank_id}/clone,clone_bank,Bank Transfer,False,Clone a bank (async),bank_id,target_bank_id;include_data;include_bank_config;include_history,,,,202;422,202:BankTransferSubmitResponse
-POST,/v1/default/banks/{bank_id}/transfer/export,export_bank_transfer,Bank Transfer,False,Export a bank (async),bank_id,include_data;include_bank_config;include_history;document_id,,,,202;422,202:BankTransferSubmitResponse
-POST,/v1/default/banks/{bank_id}/transfer/import,import_bank_transfer,Bank Transfer,False,Import a bank (async),bank_id,mode;target_bank_id;document_conflict;include_data;include_bank_config;include_history,multipart/form-data,Body_import_bank_transfer,file,202;422,202:BankTransferSubmitResponse
-GET,/v1/default/banks,list_banks,Banks,False,List memory banks,,q;limit;offset,,,,200;422,200:BankListResponse
-DELETE,/v1/default/banks/{bank_id},delete_bank,Banks,False,Delete memory bank,bank_id,,,,,200;422,200:DeleteResponse
-PATCH,/v1/default/banks/{bank_id},update_bank,Banks,False,Partial update memory bank,bank_id,,application/json,CreateBankRequest,,200;422,200:BankProfileResponse
-PUT,/v1/default/banks/{bank_id},create_or_update_bank,Banks,False,Create or update memory bank,bank_id,,application/json,CreateBankRequest,,200;422,200:BankProfileResponse
-POST,/v1/default/banks/{bank_id}/background,add_bank_background,Banks,True,Add/merge memory bank background (removed — use PATCH .../config),bank_id,,application/json,AddBackgroundRequest,content,200;422,200:BackgroundResponse
-DELETE,/v1/default/banks/{bank_id}/config,reset_bank_config,Banks,False,Reset bank configuration,bank_id,,,,,200;422,200:BankConfigResponse
-GET,/v1/default/banks/{bank_id}/config,get_bank_config,Banks,False,Get bank configuration,bank_id,,,,,200;422,200:BankConfigResponse
-PATCH,/v1/default/banks/{bank_id}/config,update_bank_config,Banks,False,Update bank configuration,bank_id,,application/json,BankConfigUpdate,updates,200;422,200:BankConfigResponse
-POST,/v1/default/banks/{bank_id}/consolidate,trigger_consolidation,Banks,False,Trigger consolidation,bank_id,,application/json,"['ConsolidationRequest', 'null']",,200;422,200:ConsolidationResponse
-POST,/v1/default/banks/{bank_id}/consolidation/recover,recover_consolidation,Banks,False,Recover failed consolidation,bank_id,,,,,200;422,200:RecoverConsolidationResponse
-POST,/v1/default/banks/{bank_id}/health/llm,test_bank_llm,Banks,False,Test the bank's LLM connectivity,bank_id,,,,,200;422,200:BankLlmHealthResponse
-DELETE,/v1/default/banks/{bank_id}/observations,clear_observations,Banks,False,Clear all observations,bank_id,,,,,200;422,200:DeleteResponse
-GET,/v1/default/banks/{bank_id}/profile,get_bank_profile,Banks,True,Get memory bank profile (removed — use GET .../config),bank_id,,,,,200;422,200:BankProfileResponse
-PUT,/v1/default/banks/{bank_id}/profile,update_bank_disposition,Banks,True,Update memory bank disposition (removed — use PATCH .../config),bank_id,,application/json,UpdateDispositionRequest,disposition,200;422,200:BankProfileResponse
-POST,/v1/default/banks/{bank_id}/prompts/preview,preview_prompt,Banks,False,Preview an operation's prompts (no LLM call),bank_id,,application/json,PromptPreviewRequest,,200;422,200:PromptPreviewResponse
-GET,/v1/default/banks/{bank_id}/stats,get_agent_stats,Banks,False,Get statistics for memory bank,bank_id,refresh,,,,200;422,200:BankStatsResponse
-GET,/v1/default/banks/{bank_id}/stats/memories-timeseries,get_memories_timeseries,Banks,False,Memory ingestion time-series,bank_id,period;time_field,,,,200;422,200:MemoriesTimeseriesResponse
-GET,/v1/default/banks/{bank_id}/directives,list_directives,Directives,False,List directives,bank_id,tags;tags_match;active_only;limit;offset,,,,200;422,200:DirectiveListResponse
-POST,/v1/default/banks/{bank_id}/directives,create_directive,Directives,False,Create directive,bank_id,,application/json,CreateDirectiveRequest,name;content,200;422,200:DirectiveResponse
-DELETE,/v1/default/banks/{bank_id}/directives/{directive_id},delete_directive,Directives,False,Delete directive,bank_id;directive_id,,,,,200;422,200:application/json
-GET,/v1/default/banks/{bank_id}/directives/{directive_id},get_directive,Directives,False,Get directive,bank_id;directive_id,,,,,200;422,200:DirectiveResponse
-PATCH,/v1/default/banks/{bank_id}/directives/{directive_id},update_directive,Directives,False,Update directive,bank_id;directive_id,,application/json,UpdateDirectiveRequest,,200;422,200:DirectiveResponse
-GET,/v1/default/banks/{bank_id}/document-transfer,export_documents_sync_removed,Document Transfer,True,Export documents (removed — use POST .../document-transfer/export),bank_id,,,,,200;422,200:application/json
-POST,/v1/default/banks/{bank_id}/document-transfer,import_documents,Document Transfer,True,Import documents (async),bank_id,on_conflict,multipart/form-data,Body_import_documents,file,202;422,202:DocumentImportSubmitResponse
-POST,/v1/default/banks/{bank_id}/document-transfer/export,export_documents,Document Transfer,True,Export documents (async),bank_id,document_id;include_observations;include_knowledge_base,,,,202;422,202:DocumentExportSubmitResponse
-GET,/v1/default/files/download/{key},download_file,Document Transfer,False,Download a stored file (async export archive),key,,,,,200;422,200:string
-GET,/v1/default/banks/{bank_id}/documents,list_documents,Documents,False,List documents,bank_id,q;tags;tags_match;time_field;start_date;end_date;limit;offset,,,,200;422,200:ListDocumentsResponse
-DELETE,/v1/default/banks/{bank_id}/documents/{document_id},delete_document,Documents,False,Delete a document,bank_id;document_id,,,,,200;422,200:DeleteDocumentResponse
-GET,/v1/default/banks/{bank_id}/documents/{document_id},get_document,Documents,False,Get document details,bank_id;document_id,,,,,200;422,200:DocumentResponse
-PATCH,/v1/default/banks/{bank_id}/documents/{document_id},update_document,Documents,False,Update document,bank_id;document_id,,application/json,UpdateDocumentRequest,,200;422,200:UpdateDocumentResponse
-GET,/v1/default/banks/{bank_id}/documents/{document_id}/chunks,list_document_chunks,Documents,False,List document chunks,bank_id;document_id,limit;offset,,,,200;422,200:ListChunksResponse
-POST,/v1/default/banks/{bank_id}/documents/{document_id}/reprocess,reprocess_document,Documents,False,Reprocess document,bank_id;document_id,,,,,200;422,200:ReprocessDocumentResponse
-GET,/v1/default/chunks/{chunk_id},get_chunk,Documents,False,Get chunk details,chunk_id,,,,,200;422,200:ChunkResponse
-GET,/v1/default/banks/{bank_id}/entities,list_entities,Entities,False,List entities,bank_id,limit;offset,,,,200;422,200:EntityListResponse
-GET,/v1/default/banks/{bank_id}/entities/graph,get_entity_graph,Entities,False,Get entity co-occurrence graph,bank_id,limit;min_count,,,,200;422,200:EntityGraphResponse
-GET,/v1/default/banks/{bank_id}/entities/{entity_id},get_entity,Entities,False,Get entity details,bank_id;entity_id,,,,,200;422,200:EntityDetailResponse
-POST,/v1/default/banks/{bank_id}/entities/{entity_id}/regenerate,regenerate_entity_observations,Entities,True,Regenerate entity observations (deprecated),bank_id;entity_id,,,,,200;422,200:EntityDetailResponse
-POST,/v1/default/banks/{bank_id}/files/retain,file_retain,Files,False,Convert files to memories,bank_id,,multipart/form-data,Body_file_retain,files;request,200;422,200:FileRetainResponse
-GET,/v1/default/banks/{bank_id}/knowledge-base/export,export_knowledge_base,Knowledge Base,False,Export the knowledge base as a markdown bundle,bank_id,,,,,200;422,200:KnowledgePageBundleResponse
-POST,/v1/default/banks/{bank_id}/knowledge-base/folders,create_knowledge_folder,Knowledge Base,False,Create a knowledge-base folder,bank_id,,application/json,CreateFolderRequest,name,201;422,201:KnowledgeNode
-DELETE,/v1/default/banks/{bank_id}/knowledge-base/nodes/{node_id},delete_knowledge_node,Knowledge Base,False,Delete a knowledge-base node,bank_id;node_id,,,,,200;422,200:application/json
-PATCH,/v1/default/banks/{bank_id}/knowledge-base/nodes/{node_id},update_knowledge_node,Knowledge Base,False,Rename/move a knowledge-base node or update a page's options,bank_id;node_id,,application/json,UpdateNodeRequest,,200;422,200:KnowledgeNode
-POST,/v1/default/banks/{bank_id}/knowledge-base/pages,create_knowledge_page,Knowledge Base,False,Create a knowledge-base page,bank_id,,application/json,CreatePageRequest,name;source_query,201;422,201:CreateKnowledgePageResponse
-GET,/v1/default/banks/{bank_id}/knowledge-base/pages/{page_id},get_knowledge_page,Knowledge Base,False,Get a knowledge-base page,bank_id;page_id,,,,,200;422,200:KnowledgePageResponse
-GET,/v1/default/banks/{bank_id}/knowledge-base/search,search_knowledge_base,Knowledge Base,False,Hybrid search over knowledge pages (BM25 + vector),bank_id,q;limit,,,,200;422,200:KnowledgePageSearchResponse
-GET,/v1/default/banks/{bank_id}/knowledge-base/tree,get_knowledge_base_tree,Knowledge Base,False,Get the knowledge-base tree,bank_id,,,,,200;422,200:KnowledgeTreeResponse
-GET,/v1/default/banks/{bank_id}/llm-requests,list_llm_requests,LLM Traces,False,List LLM request traces,bank_id,status;operation;scope;provider;trace_id;document_id;memory_id;group;start_date;end_date;limit;offset,,,,200;422,200:LLMRequestListResponse
-GET,/v1/default/banks/{bank_id}/llm-requests/stats,llm_request_stats,LLM Traces,False,LLM request statistics,bank_id,operation;period,,,,200;422,200:LLMRequestStatsResponse
-GET,/v1/default/banks/{bank_id}/attachments/{attachment_id},get_bank_attachment,Memory,False,Fetch an attachment retained inline with a document,bank_id;attachment_id,,,,,200;422,200:string
-GET,/v1/default/banks/{bank_id}/graph,get_graph,Memory,False,Get memory graph data,bank_id,type;limit;q;tags;tags_match;document_id;chunk_id,,,,200;422,200:GraphDataResponse
-DELETE,/v1/default/banks/{bank_id}/memories,clear_bank_memories,Memory,False,Clear memory bank memories,bank_id,type,,,,200;422,200:DeleteResponse
-POST,/v1/default/banks/{bank_id}/memories,retain_memories,Memory,False,Retain memories,bank_id,,application/json,RetainRequest,items,200;422,200:RetainResponse
-POST,/v1/default/banks/{bank_id}/memories/dry-run-extract,dry_run_extract_memories,Memory,False,"Dry-run fact extraction (preview, no persistence)",bank_id,,application/json,DryRunExtractRequest,content,200;422,200:DryRunExtractionResult
-GET,/v1/default/banks/{bank_id}/memories/list,list_memories,Memory,False,List memory units,bank_id,type;q;consolidation_state;state;document_id;entity_id;tags;tags_match;time_field;start_date;end_date;limit;offset,,,,200;422,200:ListMemoryUnitsResponse
-POST,/v1/default/banks/{bank_id}/memories/recall,recall_memories,Memory,False,Recall memory,bank_id,,application/json,RecallRequest,query,200;422,200:RecallResponse
-GET,/v1/default/banks/{bank_id}/memories/{memory_id},get_memory,Memory,False,Get memory unit,bank_id;memory_id,,,,,200;422,200:application/json
-PATCH,/v1/default/banks/{bank_id}/memories/{memory_id},update_memory,Memory,False,Curate memory unit,bank_id;memory_id,,application/json,UpdateMemoryRequest,,200;422,200:application/json
-GET,/v1/default/banks/{bank_id}/memories/{memory_id}/history,get_observation_history,Memory,False,Get observation history,bank_id;memory_id,,,,,200;422,200:application/json
-DELETE,/v1/default/banks/{bank_id}/memories/{memory_id}/observations,clear_memory_observations,Memory,False,Clear observations for a memory,bank_id;memory_id,,,,,200;422,200:ClearMemoryObservationsResponse
-GET,/v1/default/banks/{bank_id}/observations/scopes,list_observation_scopes,Memory,False,List observation scopes,bank_id,limit;offset,,,,200;422,200:ObservationScopesResponse
-POST,/v1/default/banks/{bank_id}/reflect,reflect,Memory,False,Reflect and generate answer,bank_id,,application/json,ReflectRequest,query,200;422,200:ReflectResponse
-GET,/v1/default/banks/{bank_id}/tags,list_tags,Memory,False,List tags,bank_id,q;source;limit;offset,,,,200;422,200:ListTagsResponse
-GET,/v1/default/banks/{bank_id}/mental-models,list_mental_models,Mental Models,False,List mental models,bank_id,tags;tags_match;detail;limit;offset,,,,200;422,200:MentalModelListResponse
-POST,/v1/default/banks/{bank_id}/mental-models,create_mental_model,Mental Models,False,Create mental model,bank_id,,application/json,CreateMentalModelRequest,name;source_query,200;422,200:CreateMentalModelResponse
-DELETE,/v1/default/banks/{bank_id}/mental-models/{mental_model_id},delete_mental_model,Mental Models,False,Delete mental model,bank_id;mental_model_id,,,,,200;422,200:application/json
-GET,/v1/default/banks/{bank_id}/mental-models/{mental_model_id},get_mental_model,Mental Models,False,Get mental model,bank_id;mental_model_id,detail,,,,200;422,200:MentalModelResponse
-PATCH,/v1/default/banks/{bank_id}/mental-models/{mental_model_id},update_mental_model,Mental Models,False,Update mental model,bank_id;mental_model_id,,application/json,UpdateMentalModelRequest,,200;422,200:MentalModelResponse
-POST,/v1/default/banks/{bank_id}/mental-models/{mental_model_id}/clear,clear_mental_model,Mental Models,False,Clear mental model content,bank_id;mental_model_id,,,,,200;422,200:MentalModelResponse
-POST,/v1/default/banks/{bank_id}/mental-models/{mental_model_id}/dry-run-refresh,dry_run_refresh_mental_model,Mental Models,False,"Dry-run mental model refresh (preview, no persistence)",bank_id;mental_model_id,,,,,200;422,200:MentalModelDryRunRefreshResult
-GET,/v1/default/banks/{bank_id}/mental-models/{mental_model_id}/history,get_mental_model_history,Mental Models,False,Get mental model history,bank_id;mental_model_id,,,,,200;422,200:application/json
-POST,/v1/default/banks/{bank_id}/mental-models/{mental_model_id}/refresh,refresh_mental_model,Mental Models,False,Refresh mental model,bank_id;mental_model_id,,,,,200;422,200:AsyncOperationSubmitResponse
-GET,/health,health_endpoint_health_get,Monitoring,False,Health check endpoint,,,,,,200,200:application/json
-GET,/health/live,get_liveness,Monitoring,False,Liveness probe,,,,,,200,200:LivenessResponse
-GET,/health/ready,get_readiness,Monitoring,False,Readiness probe,,,,,,200,200:application/json
-GET,/metrics,metrics_endpoint_metrics_get,Monitoring,False,Prometheus metrics endpoint,,,,,,200,200:application/json
-GET,/version,get_version,Monitoring,False,Get API version and feature flags,,,,,,200,200:VersionResponse
-GET,/v1/default/banks/{bank_id}/operations,list_operations,Operations,False,List async operations,bank_id,status;type;limit;offset;exclude_parents,,,,200;422,200:OperationsListResponse
-DELETE,/v1/default/banks/{bank_id}/operations/{operation_id},cancel_operation,Operations,False,Cancel a pending or in-flight async operation,bank_id;operation_id,,,,,200;422,200:CancelOperationResponse
-GET,/v1/default/banks/{bank_id}/operations/{operation_id},get_operation_status,Operations,False,Get operation status,bank_id;operation_id,include_payload,,,,200;422,200:OperationStatusResponse
-DELETE,/v1/default/banks/{bank_id}/operations/{operation_id}/delete,delete_operation,Operations,False,Delete a terminal async operation,bank_id;operation_id,,,,,200;422,200:DeleteOperationResponse
-POST,/v1/default/banks/{bank_id}/operations/{operation_id}/retry,retry_operation,Operations,False,Retry a failed async operation,bank_id;operation_id,,,,,200;422,200:RetryOperationResponse
-GET,/v1/default/banks/{bank_id}/webhooks,list_webhooks,Webhooks,False,List webhooks,bank_id,limit;offset,,,,200;422,200:WebhookListResponse
-POST,/v1/default/banks/{bank_id}/webhooks,create_webhook,Webhooks,False,Register webhook,bank_id,,application/json,CreateWebhookRequest,url,201;422,201:WebhookResponse
-DELETE,/v1/default/banks/{bank_id}/webhooks/{webhook_id},delete_webhook,Webhooks,False,Delete webhook,bank_id;webhook_id,,,,,200;422,200:DeleteResponse
-PATCH,/v1/default/banks/{bank_id}/webhooks/{webhook_id},update_webhook,Webhooks,False,Update webhook,bank_id;webhook_id,,application/json,UpdateWebhookRequest,,200;422,200:WebhookResponse
-GET,/v1/default/banks/{bank_id}/webhooks/{webhook_id}/deliveries,list_webhook_deliveries,Webhooks,False,List webhook deliveries,bank_id;webhook_id,limit;cursor,,,,200;422,200:WebhookDeliveryListResponse
+method,path,operation_id,tag,deprecated,summary,path_params,query_params,request_content_type,request_schema,response_codes
+GET,/v1/default/banks/{bank_id}/audit-logs,list_audit_logs,Audit,False,List audit logs,bank_id,action;transport;start_date;end_date;limit;offset,,,200;404;422
+GET,/v1/default/banks/{bank_id}/audit-logs/stats,audit_log_stats,Audit,False,Audit log statistics,bank_id,action;period,,,200;404;422
+GET,/v1/bank-template-schema,get_bank_template_schema,Bank Templates,False,Get bank template JSON Schema,,,,,200
+GET,/v1/default/banks/{bank_id}/export,export_bank_template,Bank Templates,False,Export bank template,bank_id,,,,200;404;422
+POST,/v1/default/banks/{bank_id}/import,import_bank_template,Bank Templates,False,Import bank template,bank_id,dry_run,application/json,BankTemplateManifest,200;422
+POST,/v1/default/banks/{bank_id}/clone,clone_bank,Bank Transfer,False,Clone a bank (async),bank_id,target_bank_id;include_data;include_bank_config;include_history,,,202;404;422
+POST,/v1/default/banks/{bank_id}/transfer/export,export_bank_transfer,Bank Transfer,False,Export a bank (async),bank_id,include_data;include_bank_config;include_history;document_id,,,202;404;422
+POST,/v1/default/banks/{bank_id}/transfer/import,import_bank_transfer,Bank Transfer,False,Import a bank (async),bank_id,mode;target_bank_id;document_conflict;include_data;include_bank_config;include_history,multipart/form-data,Body_import_bank_transfer,202;422
+GET,/v1/default/banks,list_banks,Banks,False,List memory banks,,q;limit;offset,,,200;422
+DELETE,/v1/default/banks/{bank_id},delete_bank,Banks,False,Delete memory bank,bank_id,,,,200;422
+PATCH,/v1/default/banks/{bank_id},update_bank,Banks,False,Partial update memory bank,bank_id,,application/json,CreateBankRequest,200;422
+PUT,/v1/default/banks/{bank_id},create_or_update_bank,Banks,False,Create or update memory bank,bank_id,,application/json,CreateBankRequest,200;422
+POST,/v1/default/banks/{bank_id}/background,add_bank_background,Banks,True,Add/merge memory bank background (removed — use PATCH .../config),bank_id,,application/json,AddBackgroundRequest,200;422
+DELETE,/v1/default/banks/{bank_id}/config,reset_bank_config,Banks,False,Reset bank configuration,bank_id,,,,200;422
+GET,/v1/default/banks/{bank_id}/config,get_bank_config,Banks,False,Get bank configuration,bank_id,,,,200;404;422
+PATCH,/v1/default/banks/{bank_id}/config,update_bank_config,Banks,False,Update bank configuration,bank_id,,application/json,BankConfigUpdate,200;422
+POST,/v1/default/banks/{bank_id}/consolidate,trigger_consolidation,Banks,False,Trigger consolidation,bank_id,,application/json,ConsolidationRequest|null,200;422
+POST,/v1/default/banks/{bank_id}/consolidation/recover,recover_consolidation,Banks,False,Recover failed consolidation,bank_id,,,,200;422
+POST,/v1/default/banks/{bank_id}/health/llm,test_bank_llm,Banks,False,Test the bank's LLM connectivity,bank_id,,,,200;422
+DELETE,/v1/default/banks/{bank_id}/observations,clear_observations,Banks,False,Clear all observations,bank_id,,,,200;422
+GET,/v1/default/banks/{bank_id}/profile,get_bank_profile,Banks,True,Get memory bank profile (removed — use GET .../config),bank_id,,,,200;422
+PUT,/v1/default/banks/{bank_id}/profile,update_bank_disposition,Banks,True,Update memory bank disposition (removed — use PATCH .../config),bank_id,,application/json,UpdateDispositionRequest,200;422
+POST,/v1/default/banks/{bank_id}/prompts/preview,preview_prompt,Banks,False,Preview an operation's prompts (no LLM call),bank_id,,application/json,PromptPreviewRequest,200;422
+GET,/v1/default/banks/{bank_id}/stats,get_agent_stats,Banks,False,Get statistics for memory bank,bank_id,refresh,,,200;404;422
+GET,/v1/default/banks/{bank_id}/stats/memories-timeseries,get_memories_timeseries,Banks,False,Memory ingestion time-series,bank_id,period;time_field,,,200;404;422
+GET,/v1/default/banks/{bank_id}/directives,list_directives,Directives,False,List directives,bank_id,tags;tags_match;active_only;limit;offset,,,200;404;422
+POST,/v1/default/banks/{bank_id}/directives,create_directive,Directives,False,Create directive,bank_id,,application/json,CreateDirectiveRequest,200;422
+DELETE,/v1/default/banks/{bank_id}/directives/{directive_id},delete_directive,Directives,False,Delete directive,bank_id;directive_id,,,,200;422
+GET,/v1/default/banks/{bank_id}/directives/{directive_id},get_directive,Directives,False,Get directive,bank_id;directive_id,,,,200;422
+PATCH,/v1/default/banks/{bank_id}/directives/{directive_id},update_directive,Directives,False,Update directive,bank_id;directive_id,,application/json,UpdateDirectiveRequest,200;422
+GET,/v1/default/banks/{bank_id}/document-transfer,export_documents_sync_removed,Document Transfer,True,Export documents (removed — use POST .../document-transfer/export),bank_id,,,,200;422
+POST,/v1/default/banks/{bank_id}/document-transfer,import_documents,Document Transfer,True,Import documents (async),bank_id,on_conflict,multipart/form-data,Body_import_documents,202;422
+POST,/v1/default/banks/{bank_id}/document-transfer/export,export_documents,Document Transfer,True,Export documents (async),bank_id,document_id;include_observations;include_knowledge_base,,,202;422
+GET,/v1/default/files/download/{key},download_file,Document Transfer,False,Download a stored file (async export archive),key,,,,200;422
+GET,/v1/default/banks/{bank_id}/documents,list_documents,Documents,False,List documents,bank_id,q;tags;tags_match;time_field;start_date;end_date;limit;offset,,,200;404;422
+DELETE,/v1/default/banks/{bank_id}/documents/{document_id},delete_document,Documents,False,Delete a document,bank_id;document_id,,,,200;422
+GET,/v1/default/banks/{bank_id}/documents/{document_id},get_document,Documents,False,Get document details,bank_id;document_id,,,,200;422
+PATCH,/v1/default/banks/{bank_id}/documents/{document_id},update_document,Documents,False,Update document,bank_id;document_id,,application/json,UpdateDocumentRequest,200;422
+GET,/v1/default/banks/{bank_id}/documents/{document_id}/chunks,list_document_chunks,Documents,False,List document chunks,bank_id;document_id,limit;offset,,,200;422
+POST,/v1/default/banks/{bank_id}/documents/{document_id}/reprocess,reprocess_document,Documents,False,Reprocess document,bank_id;document_id,,,,200;422
+GET,/v1/default/chunks/{chunk_id},get_chunk,Documents,False,Get chunk details,chunk_id,,,,200;422
+GET,/v1/default/banks/{bank_id}/entities,list_entities,Entities,False,List entities,bank_id,limit;offset,,,200;404;422
+GET,/v1/default/banks/{bank_id}/entities/graph,get_entity_graph,Entities,False,Get entity co-occurrence graph,bank_id,limit;min_count,,,200;404;422
+GET,/v1/default/banks/{bank_id}/entities/{entity_id},get_entity,Entities,False,Get entity details,bank_id;entity_id,,,,200;422
+POST,/v1/default/banks/{bank_id}/entities/{entity_id}/regenerate,regenerate_entity_observations,Entities,True,Regenerate entity observations (deprecated),bank_id;entity_id,,,,200;422
+POST,/v1/default/banks/{bank_id}/files/retain,file_retain,Files,False,Convert files to memories,bank_id,,multipart/form-data,Body_file_retain,200;422
+GET,/v1/default/banks/{bank_id}/knowledge-base/export,export_knowledge_base,Knowledge Base,False,Export the knowledge base as a markdown bundle,bank_id,,,,200;404;422
+POST,/v1/default/banks/{bank_id}/knowledge-base/folders,create_knowledge_folder,Knowledge Base,False,Create a knowledge-base folder,bank_id,,application/json,CreateFolderRequest,201;422
+DELETE,/v1/default/banks/{bank_id}/knowledge-base/nodes/{node_id},delete_knowledge_node,Knowledge Base,False,Delete a knowledge-base node,bank_id;node_id,,,,200;422
+PATCH,/v1/default/banks/{bank_id}/knowledge-base/nodes/{node_id},update_knowledge_node,Knowledge Base,False,Rename/move a knowledge-base node or update a page's options,bank_id;node_id,,application/json,UpdateNodeRequest,200;422
+POST,/v1/default/banks/{bank_id}/knowledge-base/pages,create_knowledge_page,Knowledge Base,False,Create a knowledge-base page,bank_id,,application/json,CreatePageRequest,201;422
+GET,/v1/default/banks/{bank_id}/knowledge-base/pages/{page_id},get_knowledge_page,Knowledge Base,False,Get a knowledge-base page,bank_id;page_id,,,,200;422
+GET,/v1/default/banks/{bank_id}/knowledge-base/search,search_knowledge_base,Knowledge Base,False,Hybrid search over knowledge pages (BM25 + vector),bank_id,q;limit,,,200;404;422
+GET,/v1/default/banks/{bank_id}/knowledge-base/tree,get_knowledge_base_tree,Knowledge Base,False,Get the knowledge-base tree,bank_id,,,,200;404;422
+GET,/v1/default/banks/{bank_id}/llm-requests,list_llm_requests,LLM Traces,False,List LLM request traces,bank_id,status;operation;scope;provider;trace_id;document_id;memory_id;group;start_date;end_date;limit;offset,,,200;404;422
+GET,/v1/default/banks/{bank_id}/llm-requests/stats,llm_request_stats,LLM Traces,False,LLM request statistics,bank_id,operation;period,,,200;404;422
+GET,/v1/default/banks/{bank_id}/attachments/{attachment_id},get_bank_attachment,Memory,False,Fetch an attachment retained inline with a document,bank_id;attachment_id,,,,200;422
+GET,/v1/default/banks/{bank_id}/graph,get_graph,Memory,False,Get memory graph data,bank_id,type;limit;q;tags;tags_match;document_id;chunk_id,,,200;404;422
+DELETE,/v1/default/banks/{bank_id}/memories,clear_bank_memories,Memory,False,Clear memory bank memories,bank_id,type,,,200;422
+POST,/v1/default/banks/{bank_id}/memories,retain_memories,Memory,False,Retain memories,bank_id,,application/json,RetainRequest,200;422
+POST,/v1/default/banks/{bank_id}/memories/dry-run-extract,dry_run_extract_memories,Memory,False,"Dry-run fact extraction (preview, no persistence)",bank_id,,application/json,DryRunExtractRequest,200;422
+GET,/v1/default/banks/{bank_id}/memories/list,list_memories,Memory,False,List memory units,bank_id,type;q;consolidation_state;state;document_id;entity_id;tags;tags_match;time_field;start_date;end_date;limit;offset,,,200;404;422
+POST,/v1/default/banks/{bank_id}/memories/recall,recall_memories,Memory,False,Recall memory,bank_id,,application/json,RecallRequest,200;422
+GET,/v1/default/banks/{bank_id}/memories/{memory_id},get_memory,Memory,False,Get memory unit,bank_id;memory_id,,,,200;422
+PATCH,/v1/default/banks/{bank_id}/memories/{memory_id},update_memory,Memory,False,Curate memory unit,bank_id;memory_id,,application/json,UpdateMemoryRequest,200;422
+GET,/v1/default/banks/{bank_id}/memories/{memory_id}/history,get_observation_history,Memory,False,Get observation history,bank_id;memory_id,,,,200;422
+DELETE,/v1/default/banks/{bank_id}/memories/{memory_id}/observations,clear_memory_observations,Memory,False,Clear observations for a memory,bank_id;memory_id,,,,200;422
+GET,/v1/default/banks/{bank_id}/observations/scopes,list_observation_scopes,Memory,False,List observation scopes,bank_id,limit;offset,,,200;404;422
+POST,/v1/default/banks/{bank_id}/reflect,reflect,Memory,False,Reflect and generate answer,bank_id,,application/json,ReflectRequest,200;422
+GET,/v1/default/banks/{bank_id}/tags,list_tags,Memory,False,List tags,bank_id,q;source;limit;offset,,,200;404;422
+GET,/v1/default/banks/{bank_id}/mental-models,list_mental_models,Mental Models,False,List mental models,bank_id,tags;tags_match;detail;limit;offset,,,200;404;422
+POST,/v1/default/banks/{bank_id}/mental-models,create_mental_model,Mental Models,False,Create mental model,bank_id,,application/json,CreateMentalModelRequest,200;422
+DELETE,/v1/default/banks/{bank_id}/mental-models/{mental_model_id},delete_mental_model,Mental Models,False,Delete mental model,bank_id;mental_model_id,,,,200;422
+GET,/v1/default/banks/{bank_id}/mental-models/{mental_model_id},get_mental_model,Mental Models,False,Get mental model,bank_id;mental_model_id,detail,,,200;422
+PATCH,/v1/default/banks/{bank_id}/mental-models/{mental_model_id},update_mental_model,Mental Models,False,Update mental model,bank_id;mental_model_id,,application/json,UpdateMentalModelRequest,200;422
+POST,/v1/default/banks/{bank_id}/mental-models/{mental_model_id}/clear,clear_mental_model,Mental Models,False,Clear mental model content,bank_id;mental_model_id,,,,200;422
+POST,/v1/default/banks/{bank_id}/mental-models/{mental_model_id}/dry-run-refresh,dry_run_refresh_mental_model,Mental Models,False,"Dry-run mental model refresh (preview, no persistence)",bank_id;mental_model_id,,,,200;422
+GET,/v1/default/banks/{bank_id}/mental-models/{mental_model_id}/history,get_mental_model_history,Mental Models,False,Get mental model history,bank_id;mental_model_id,,,,200;422
+POST,/v1/default/banks/{bank_id}/mental-models/{mental_model_id}/refresh,refresh_mental_model,Mental Models,False,Refresh mental model,bank_id;mental_model_id,,,,200;422
+GET,/health,health_endpoint_health_get,Monitoring,False,Health check endpoint,,,,,200
+GET,/health/live,get_liveness,Monitoring,False,Liveness probe,,,,,200
+GET,/health/ready,get_readiness,Monitoring,False,Readiness probe,,,,,200
+GET,/metrics,metrics_endpoint_metrics_get,Monitoring,False,Prometheus metrics endpoint,,,,,200
+GET,/version,get_version,Monitoring,False,Get API version and feature flags,,,,,200
+GET,/v1/default/banks/{bank_id}/operations,list_operations,Operations,False,List async operations,bank_id,status;type;limit;offset;exclude_parents,,,200;404;422
+DELETE,/v1/default/banks/{bank_id}/operations/{operation_id},cancel_operation,Operations,False,Cancel a pending or in-flight async operation,bank_id;operation_id,,,,200;422
+GET,/v1/default/banks/{bank_id}/operations/{operation_id},get_operation_status,Operations,False,Get operation status,bank_id;operation_id,include_payload,,,200;422
+DELETE,/v1/default/banks/{bank_id}/operations/{operation_id}/delete,delete_operation,Operations,False,Delete a terminal async operation,bank_id;operation_id,,,,200;422
+POST,/v1/default/banks/{bank_id}/operations/{operation_id}/retry,retry_operation,Operations,False,Retry a failed async operation,bank_id;operation_id,,,,200;422
+GET,/v1/default/banks/{bank_id}/webhooks,list_webhooks,Webhooks,False,List webhooks,bank_id,limit;offset,,,200;404;422
+POST,/v1/default/banks/{bank_id}/webhooks,create_webhook,Webhooks,False,Register webhook,bank_id,,application/json,CreateWebhookRequest,201;422
+DELETE,/v1/default/banks/{bank_id}/webhooks/{webhook_id},delete_webhook,Webhooks,False,Delete webhook,bank_id;webhook_id,,,,200;422
+PATCH,/v1/default/banks/{bank_id}/webhooks/{webhook_id},update_webhook,Webhooks,False,Update webhook,bank_id;webhook_id,,application/json,UpdateWebhookRequest,200;422
+GET,/v1/default/banks/{bank_id}/webhooks/{webhook_id}/deliveries,list_webhook_deliveries,Webhooks,False,List webhook deliveries,bank_id;webhook_id,limit;cursor,,,200;422

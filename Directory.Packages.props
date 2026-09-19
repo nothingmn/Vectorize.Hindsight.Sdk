@@ -19,6 +19,12 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.7" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.9" />
+
+    <!-- Build only. Referenced exclusively when GITHUB_ACTIONS is set: see the note in
+         Directory.Build.props for why 8.0.0 is not used (it pulls a package with an
+         advisory, and warnings are errors here) and why it is not referenced locally
+         (it warns in a checkout with no remote). -->
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
   </ItemGroup>
 
 </Project>

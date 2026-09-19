@@ -10,7 +10,6 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <InvariantGlobalization>true</InvariantGlobalization>
     <Deterministic>true</Deterministic>
-    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- CS1591: missing XML comment on a publicly visible type or member.
@@ -19,15 +18,63 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
+  <!-- Source control and continuous-integration build settings.
+       ContinuousIntegrationBuild normalises paths so a package built on one
+       machine reproduces on another; it is off locally because a debugger
+       needs the real paths.
+       SourceLink is referenced ONLY in CI. Verified: the widely-cited
+       Microsoft.SourceLink.GitHub 8.0.0 pulls Microsoft.Build.Tasks.Git
+       8.0.0, which carries a known moderate-severity vulnerability
+       (GHSA-23fw-v26w-5fgq) — and because warnings are errors here, restoring
+       it fails the build outright with NU1902. 10.0.401 is the version that
+       matches this SDK line and carries no advisory. It is also referenced
+       conditionally because it warns ("repository has no remote") in a
+       local-only checkout, which would be noise in every local build for a
+       link that can only be populated in CI anyway.
+
+       VERIFIED, and worth knowing before this is trusted: SourceLink produces an
+       EMPTY link, with no warning, when `origin` is not a recognised host URL.
+       A clone from a local path - `git clone /some/path` - sets a filesystem
+       origin, and the build then succeeds with an empty source link in the PDB.
+       A GitHub remote yields:
+         {"documents":{"/_/*":"https://raw.githubusercontent.com/<owner>/<repo>/<commit>/*"}}
+       So a CI clone must be of the GitHub URL, which actions/checkout provides. -->
   <PropertyGroup>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Package metadata shared by every packable project.
+
+       Authorship is attributed honestly: this code was written by an AI agent
+       working under review, and the package metadata says so rather than
+       implying otherwise. -->
+  <PropertyGroup>
+    <VersionPrefix>0.1.0</VersionPrefix>
     <Authors>deepseek-v4.1-flash (via Hermes Agent), under deep human review</Authors>
     <Company>Rob Chartier</Company>
-    <Product>Vectorize.Hindsight.Sdk</Product>
     <Copyright>Copyright (c) 2026 Rob Chartier</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/robchartier/Vectorize.Hindsight.Sdk</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/robchartier</PackageProjectUrl>
     <RepositoryType>git</RepositoryType>
     <NeutralLanguage>en</NeutralLanguage>
+
+    <!-- A package is not published by this build; it is produced and attached
+         as a CI artifact. Publishing is a deliberate, separate act. -->
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <RepositoryUrl Condition="'$(RepositoryUrl)' == ''">https://github.com/robchartier</RepositoryUrl>
+
+    <!-- Package validation compares the public API against a baseline so an
+         accidental breaking change fails the build rather than reaching a
+         consumer. There is no baseline yet because nothing has shipped, so
+         only the self-consistency checks run; a baseline is added when the
+         first version is published. -->
+    <EnablePackageValidation Condition="'$(IsPackable)' == 'true'">true</EnablePackageValidation>
   </PropertyGroup>
 
 </Project>
