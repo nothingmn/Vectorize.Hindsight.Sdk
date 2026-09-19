@@ -379,8 +379,26 @@ because appending a provider the runtime lacks can succeed and quietly produce a
 
 #### Measured: GPU / FP32 is much faster; GPU / INT8 is not
 
+**These numbers are specific to one laptop. Measure your own hardware before designing around them.**
+
+The machine was a **notebook** (DMI chassis type 10), and every figure below is shaped by that:
+
+| | This machine | Why it matters |
+| --- | --- | --- |
+| CPU | Intel i9-11950H, 8C/16T, 5.0 GHz max | a modern server CPU is materially faster per core |
+| CPU governor | **`powersave`** | the CPU numbers are plausibly *pessimistic* — a `performance` governor would likely beat them |
+| GPU | **RTX A5000 *Laptop***, 58 SMs, compute 8.6 | the full desktop RTX A5000 is GA102 with **128 SMs** — roughly 2× the compute |
+| GPU clocks | 1350 MHz observed vs 1635 max, 80 W cap | mobile parts are power- and thermally-limited under sustained load |
+| PCIe | Gen 4 ×16 | the same generation as most desktops, so the *transfer* side is representative |
+
+So the CPU rows and the GPU rows carry **different** uncertainties: the CPU side is likely
+understated (powersave governor), while the GPU side reflects a laptop part that is roughly half a
+desktop equivalent. A desktop GPU would widen the gap further; a weaker or older GPU, or one on
+PCIe 3.0, could narrow it or lose it entirely.
+
 All four configurations measured in **one harness**, on the same passage pool with the same iteration
-counts, so these are directly comparable. Warm calls, medians of 7 samples (3 at 50 candidates):
+counts, so these are directly comparable with each other. Warm calls, medians of 7 samples (3 at 50
+candidates):
 
 | Candidates | CPU / INT8 | CPU / FP32 | GPU / INT8 | **GPU / FP32** |
 | --- | --- | --- | --- | --- |
@@ -397,22 +415,62 @@ counts, so these are directly comparable. Warm calls, medians of 7 samples (3 at
 | GPU / INT8 | 4.7 s | 1,258 MB |
 | GPU / FP32 | 2.3 s | 1,597 MB |
 
-**GPU / FP32 is ~8x faster than the best CPU configuration** at 10–50 candidates, and the win is
-reproducible across runs. **GPU / INT8 is not** — it is consistently *slower* than CPU / INT8, which is
-the opposite of what quantization intuition suggests.
+**On this machine, GPU / FP32 is ~8x faster than the best CPU configuration** at 10–50 candidates, and
+the win is reproducible across runs. **GPU / INT8 is not** — it is consistently *slower* than CPU /
+INT8, which is the opposite of what quantization intuition suggests.
 
-Why the two GPU rows differ so much is not established here. The likely shape of the answer: the INT8
+Peak RSS should transfer across platforms more reliably than latency, since it reflects the model
+weights rather than the execution units — but it was only measured here.
+
+Why the two GPU rows differ so much is not established. The likely shape of the answer: the INT8
 model's quantize/dequantize nodes run partly on the CPU, and the CUDA provider warns that this graph
 adds 342 `Memcpy` nodes, so the INT8 path pays host↔device transfer without saving enough compute to
 cover it. The FP32 graph on the GPU avoids that. **This is a hypothesis, not a measurement** — settling
-it needs node-assignment dumps and more repetitions than were run here.
+it needs node-assignment dumps and more repetitions than were run here. It is also the row most likely
+to change on different hardware, since it depends on where that crossover falls.
 
 **Recommendation:**
 - **GPU / FP32** if you have a CUDA GPU and want the lowest rerank latency — ~8x faster, at the cost of
-  ~1.6 GB host RSS and the most involved setup.
+  ~1.6 GB host RSS and the most involved setup. **On your hardware the multiplier will differ.**
 - **CPU / INT8** otherwise — the best CPU option, ~986 MB, and the least setup. This remains the right
   default for a modest deployment and the only one that works without a GPU.
 - **Avoid GPU / INT8 and CPU / FP32** for latency: neither earns its cost.
+
+#### Measure your own hardware
+
+The comparison above is a full harness rather than a snippet, but the shape of it is small. Warm up,
+then time N candidates:
+
+```csharp
+using System.Diagnostics;
+
+var sw = Stopwatch.StartNew();
+_ = await reranker.RerankAsync(query, docs, CancellationToken.None);   // warm, untimed
+sw.Restart();
+for (var i = 0; i < 7; i++)
+{
+    _ = await reranker.RerankAsync(query, docs, CancellationToken.None);
+}
+sw.Stop();
+Console.WriteLine($"{sw.Elapsed.TotalMilliseconds / 7:F1} ms/call");
+```
+
+Three things that decide whether the result means anything:
+
+1. **Confirm which provider actually ran.** `reranker.ProviderInUse` joins the *available* provider
+   list and reads identically for a CPU and a CUDA session — it cannot answer this. Check
+   `reranker.ProviderWarning is null` **and** that ONNX Runtime logged its
+   `... Memcpy nodes are added ... for CUDAExecutionProvider` line. A silent fallback will otherwise
+   make your GPU measurement a CPU measurement. (That mistake produced a wrong conclusion in this very
+   document — see the correction below.)
+2. **Warm up first.** The first call after construction includes graph settling.
+3. **Report the median of several samples**, not one run. The rows above are medians of 7 (3 at 50
+   candidates), and single-run figures on a shared machine are noisy enough to invent a crossover that
+   does not exist.
+
+Also worth recording alongside the numbers: your CPU governor
+(`cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor`), GPU clocks under load, and PCIe
+generation — all three move these results, and all three differ between a laptop and a server.
 
 **Correction.** An earlier revision of this document claimed the GPU was slower at every size. That
 was wrong, and the reason is worth recording: the CPU and GPU tables came from *different harnesses*,

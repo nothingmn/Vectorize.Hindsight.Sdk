@@ -485,8 +485,8 @@ The model assets are fetched with `test-infra/fetch-reranker-model.sh`. Design p
 - **Each provider answers a different question.** ONNX is local and free per call, so it scales with
   traffic; TypeSafe is a model call per recall, so it costs money and a round trip but needs no assets
   and no deployment. Pick on that axis, not on benchmark folklore. Measured for a 10-candidate rerank:
-  **ONNX INT8 ~117 ms and ~1.0 GB resident, $0 per call; TypeSafe ~284 ms and ~634 input tokens per
-  call, no local RAM.** Identity costs nothing and ranks nothing. **GPU / FP32 is ~8x faster than any
+  **ONNX INT8 ~145 ms and ~1.0 GB resident, $0 per call; TypeSafe ~284 ms and ~634 input tokens per
+  call, no local RAM.** Latency is hardware-specific (measured on a laptop); memory transfers better. Identity costs nothing and ranks nothing. **GPU / FP32 is ~8x faster than any
   CPU config** (18 ms vs 145 ms at 10 candidates) at ~1.6 GB RSS; GPU / INT8 is slower than CPU / INT8.
 - **Configuration is your code.** There is no appsettings key that selects a reranker and no switch
   statement over provider names — you pass one to the constructor, set it per call on
@@ -618,7 +618,11 @@ attachment confirmed from the runtime's own log output:
 
 GPU / FP32 is ~8x faster than the best CPU config. GPU / INT8 is *slower* than CPU / INT8 — the
 hypothesis is that its quantize nodes partly run on CPU while the CUDA provider adds 342 Memcpy nodes,
-but that is unverified. The fallback is verified too: a requested GPU with no CUDA libraries falls back
+but that is unverified.
+
+**Those figures come from one laptop** (RTX A5000 *Laptop*, 58 SMs, `powersave` CPU governor), so treat
+them as indicative rather than transferable — the guide includes a recipe for measuring your own
+hardware, and the traps that make such a measurement meaningless if you skip them. The fallback is verified too: a requested GPU with no CUDA libraries falls back
 to CPU with a warning rather than failing.
 
 An earlier revision of this README claimed the GPU was slower at every size. That was wrong — the
