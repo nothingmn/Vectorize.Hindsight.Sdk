@@ -33,20 +33,6 @@ public sealed partial class HindsightClient
     }
 
     /// <summary>
-    /// Serializes a body whose static type is not statically known.
-    /// </summary>
-    /// <param name="body">The body.</param>
-    /// <param name="type">The declared body type.</param>
-    internal ReadOnlyMemory<byte> SerializeBody(object body, Type type)
-    {
-        ArgumentNullException.ThrowIfNull(body);
-        ArgumentNullException.ThrowIfNull(type);
-
-        var info = _json.Options.GetTypeInfo(type);
-        return JsonSerializer.SerializeToUtf8Bytes(body, info);
-    }
-
-    /// <summary>
     /// Reads a response body that was declared as JSON but has no modelled shape.
     /// </summary>
     /// <param name="body">The raw body bytes.</param>
