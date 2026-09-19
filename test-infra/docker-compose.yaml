@@ -1,0 +1,60 @@
+# Repeatable local Hindsight instance for SDK development and integration tests.
+#
+# Deliberately isolated from every production instance:
+#   - its own container name, its own volume, its own bind-mounted data directory
+#   - ports bound to 127.0.0.1 only, so nothing on the LAN can reach it
+#   - never shares a database with the remote reference server (10.0.0.157:8888)
+#
+# Start:  ./up.sh        Stop: ./down.sh        Wipe: ./down.sh --purge
+#
+# The LLM key is supplied at run time from the environment; it is never written
+# into this file. See up.sh and .gitignore.
+
+name: hindsight-sdk-test
+
+services:
+  hindsight:
+    image: ghcr.io/vectorize-io/hindsight:${HINDSIGHT_TEST_IMAGE_TAG:-latest}
+    container_name: hindsight-sdk-test
+    restart: "no"
+
+    ports:
+      # Loopback only. The SDK's own tests talk to 127.0.0.1:8888.
+      - "127.0.0.1:${HINDSIGHT_TEST_API_PORT:-8888}:8888"
+
+    environment:
+      # --- LLM: external provider, supplied by the caller -------------------
+      HINDSIGHT_API_LLM_PROVIDER: ${HINDSIGHT_API_LLM_PROVIDER:?set HINDSIGHT_API_LLM_PROVIDER}
+      HINDSIGHT_API_LLM_API_KEY: ${HINDSIGHT_API_LLM_API_KEY:?set HINDSIGHT_API_LLM_API_KEY}
+      HINDSIGHT_API_LLM_MODEL: ${HINDSIGHT_API_LLM_MODEL:?set HINDSIGHT_API_LLM_MODEL}
+      HINDSIGHT_API_LLM_BASE_URL: ${HINDSIGHT_API_LLM_BASE_URL:-}
+      HINDSIGHT_API_LOG_LEVEL: ${HINDSIGHT_API_LOG_LEVEL:-info}
+
+      # --- Embeddings and reranker: local, bundled in the full image --------
+      # Keeps the test rig self-contained: no embedding spend, no extra vendor.
+      HINDSIGHT_API_EMBEDDINGS_PROVIDER: local
+      HINDSIGHT_API_RERANKER_PROVIDER: local
+
+      # --- Worker identity: stable, so restarts do not orphan claimed work --
+      HINDSIGHT_API_WORKER_ID: hindsight-sdk-test
+
+      # --- Feature flags the test suite asserts against ---------------------
+      # Pinned explicitly rather than inherited, so a suite that skips itself
+      # when a feature is off does so deterministically.
+      HINDSIGHT_API_ENABLE_OBSERVATIONS: "true"
+
+    volumes:
+      # Named volume: Docker creates it owned by the container's UID 1000, which
+      # is what the embedded database requires. A host bind mount would need a
+      # matching chown and is easy to get wrong.
+      - hindsight_test_pg0:/home/hindsight/.pg0
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8888/health/ready || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+volumes:
+  hindsight_test_pg0:

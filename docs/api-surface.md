@@ -372,7 +372,9 @@ parity-minded .NET client should match:
 
 ## 9. What 100% surface coverage actually requires
 
-Stated as a checklist, because "100% of the API surface" is otherwise ambiguous:
+Stated as a checklist, because "100% of the API surface" is otherwise ambiguous.
+**Superseded by section 12**, which folds in the decisions taken; kept here so the reasoning is
+visible rather than overwritten.
 
 - **94 operations**, each with a typed request and a typed response.
 - **181 component schemas**, all reachable, all modelled.
@@ -389,21 +391,90 @@ Stated as a checklist, because "100% of the API surface" is otherwise ambiguous:
 
 ---
 
-## 10. Open questions before implementation
+## 10. Live-server reconciliation (version 0.9.2 vs 0.10.0)
 
-1. **Package/naming.** TypeSafe used `Jev.Sdk` + `Jev.Sdk.DependencyInjection` and `Jev*`
-   exception types. For this target the parallel would be `Hindsight.Sdk` + `Hindsight.Sdk.DependencyInjection`
-   with `Hindsight*` exceptions — but `Hindsight` collides with this Hermes instance's own
-   Hindsight memory integration, so a distinct root namespace (e.g. `Vectorize.Hindsight`) may be
-   safer. Needs a decision.
-2. **Target framework.** TypeSafe locked `net10.0` only. Same choice here unless told otherwise.
-3. **Deprecated operations.** Implement all seven for literal 100% coverage, or implement the
-   live replacements and document the seven as deliberately excluded? This is the single
-   biggest ambiguity in "100% of their API surface area".
-4. **High-level facade scope.** Mirror the vendor's curated method set, or expose only the
-   generated 94? The two-layer pattern (generated low-level + hand-written facade) is what both
-   vendor clients do and is probably right, but it doubles the test surface.
-5. **Live verification.** A local server is installable (`pip install hindsight-api`,
-   `hindsight-api`, port 8888) but needs an LLM provider key. Running one would let the 401/409/
-   429 behaviour be *verified* rather than inferred, and would turn the unit suite into
-   something backed by real traffic. Worth doing before or during implementation.
+The published specification is **0.10.0**, but the Hindsight instance this host actually talks to
+serves **0.9.2**. That difference is small and, importantly, one-directional:
+
+| | 0.9.2 (served by the reference server) | 0.10.0 (published spec) |
+| --- | --- | --- |
+| Paths | 69 | 74 |
+| Operations | 89 | 94 |
+| Component schemas | 157 | 181 |
+
+`0.9.2` is a **strict subset** of `0.10.0`. Nothing was removed between the two — no operation and no
+schema exists in 0.9.2 that is absent from 0.10.0. The five operations added in 0.10.0 are:
+
+```
+GET  /v1/default/banks/{bank_id}/attachments/{attachment_id}
+POST /v1/default/banks/{bank_id}/clone
+POST /v1/default/banks/{bank_id}/prompts/preview
+POST /v1/default/banks/{bank_id}/transfer/export
+POST /v1/default/banks/{bank_id}/transfer/import
+```
+
+plus 24 schemas (`BankTransferSubmitResponse`, the multimodal content blocks, the graph node/edge
+types, the prompt-preview types, and others).
+
+**Consequence for the client:** a client generated against 0.10.0 is a superset of 0.9.2's surface,
+so it can talk to either — but the five new operations will `404` against a 0.9.2 server. The client
+should therefore not treat those five as universally available. The clean way to handle this is the
+server's own `/version` endpoint, which reports `features` flags the client can read before deciding
+what is safe to call:
+
+```json
+{"api_version":"0.9.2",
+ "features":{"observations":true,"mcp":true,"worker":true,"bank_config_api":true,
+             "bank_llm_health":false,"file_upload_api":true,"document_export_api":true,
+             "document_import_api":true,"audit_log":false,"llm_trace":true,
+             "store_document_text":true}}
+```
+
+Two things worth noting from that real response, because they contradict the documented "everything
+on" assumption: the reference server runs with the **worker enabled** (`worker: true` — so async
+retain and background consolidation do execute) but with **`bank_llm_health` and `audit_log`
+disabled**, so those endpoints are present in the spec and unavailable in practice. Feature-flag
+awareness is not optional for an honest integration suite.
+
+---
+
+## 11. Decisions taken
+
+| # | Decision |
+| --- | --- |
+| D1 | Root namespace and package id: **`Vectorize.Hindsight.Sdk`**. Chosen over `Hindsight.Sdk` because `Hindsight` collides with the Hermes host's own memory integration. |
+| D2 | **Deprecated operations are out of scope.** Seven operations are excluded deliberately and by name, not skipped. Live surface for coverage purposes: **87 operations**. |
+| D3 | **Fully generated surface.** All 87 live operations are exposed with typed requests and responses. No curated subset, no facade-only layer. |
+| D4 | **Repeatable test infrastructure**, including deep integration tests against a live server. See [`../test-infra/README.md`](../test-infra/README.md). |
+
+### The seven excluded operations
+
+Recorded explicitly so the coverage claim is auditable rather than approximate:
+
+| Method | Path | Replacement, per its own summary |
+| --- | --- | --- |
+| `GET` | `/v1/default/banks/{bank_id}/profile` | `GET .../config` |
+| `PUT` | `/v1/default/banks/{bank_id}/profile` | `PATCH .../config` |
+| `POST` | `/v1/default/banks/{bank_id}/background` | `PATCH .../config` |
+| `GET` | `/v1/default/banks/{bank_id}/document-transfer` | `POST .../document-transfer/export` |
+| `POST` | `/v1/default/banks/{bank_id}/document-transfer` | (import path superseded by `transfer/import`) |
+| `POST` | `/v1/default/banks/{bank_id}/document-transfer/export` | `POST .../transfer/export` |
+| `POST` | `/v1/default/banks/{bank_id}/entities/{entity_id}/regenerate` | none declared; marked deprecated |
+
+The replacements for all but the last are themselves live operations in the 87, so no capability is
+lost by excluding these.
+
+---
+
+## 12. Coverage definition, final
+
+"100% of the API surface" now means, concretely:
+
+- **87 live operations** — 94 minus the 7 deprecated.
+- **181 component schemas** — all modelled, including the 24 that 0.9.2 does not serve.
+- Both **binary** responses and all three **multipart** requests.
+- **42 query parameters** and **13 path parameters**.
+- The discriminated **multimodal content union** and the **tag-group expression tree**.
+- The **422 `HTTPValidationError`** shape with its mixed-type `loc`.
+- **Feature-flag gating** via `/version` for the five 0.10.0-only operations.
+- **Live verification** of the statuses the spec does not declare (401/403/409/429/5xx).
