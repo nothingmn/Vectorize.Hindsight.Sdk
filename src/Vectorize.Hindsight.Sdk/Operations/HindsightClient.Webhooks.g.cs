@@ -30,7 +30,7 @@ public sealed partial class HindsightClient
         ListWebhooksQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/webhooks";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/webhooks";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Limit is { } LimitValue)
         { queryParameters.Add(new("limit", LimitValue.ToString(System.Globalization.CultureInfo.InvariantCulture))); }
@@ -55,7 +55,7 @@ public sealed partial class HindsightClient
         CreateWebhookRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/webhooks";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/webhooks";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -78,7 +78,7 @@ public sealed partial class HindsightClient
         string webhookId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/webhooks/" + Uri.EscapeDataString(webhookId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/webhooks/" + Uri.EscapeDataString(webhookId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -100,7 +100,7 @@ public sealed partial class HindsightClient
         UpdateWebhookRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/webhooks/" + Uri.EscapeDataString(webhookId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/webhooks/" + Uri.EscapeDataString(webhookId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -124,7 +124,7 @@ public sealed partial class HindsightClient
         ListWebhookDeliveriesQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/webhooks/" + Uri.EscapeDataString(webhookId) + "/deliveries";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/webhooks/" + Uri.EscapeDataString(webhookId) + "/deliveries";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Limit is { } LimitValue)
         { queryParameters.Add(new("limit", LimitValue.ToString(System.Globalization.CultureInfo.InvariantCulture))); }

@@ -29,7 +29,7 @@ public sealed partial class HindsightClient
         string bankId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/export";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/export";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -50,7 +50,7 @@ public sealed partial class HindsightClient
         CreateFolderRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/folders";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/folders";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -73,7 +73,7 @@ public sealed partial class HindsightClient
         string nodeId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/nodes/" + Uri.EscapeDataString(nodeId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/nodes/" + Uri.EscapeDataString(nodeId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -95,7 +95,7 @@ public sealed partial class HindsightClient
         UpdateNodeRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/nodes/" + Uri.EscapeDataString(nodeId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/nodes/" + Uri.EscapeDataString(nodeId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -118,7 +118,7 @@ public sealed partial class HindsightClient
         CreatePageRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/pages";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/pages";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -141,7 +141,7 @@ public sealed partial class HindsightClient
         string pageId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/pages/" + Uri.EscapeDataString(pageId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/pages/" + Uri.EscapeDataString(pageId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -162,7 +162,7 @@ public sealed partial class HindsightClient
         SearchKnowledgeBaseQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/search";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/search";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Q is { } QValue)
         { queryParameters.Add(new("q", QValue)); }
@@ -186,7 +186,7 @@ public sealed partial class HindsightClient
         string bankId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/tree";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/knowledge-base/tree";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {

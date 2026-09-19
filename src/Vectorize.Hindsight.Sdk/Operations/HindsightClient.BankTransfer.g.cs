@@ -36,7 +36,7 @@ public sealed partial class HindsightClient
         CloneBankQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/clone";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/clone";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.TargetBankId is { } TargetBankIdValue)
         { queryParameters.Add(new("target_bank_id", TargetBankIdValue)); }
@@ -65,7 +65,7 @@ public sealed partial class HindsightClient
         ExportBankTransferQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/transfer/export";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/transfer/export";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query is not null && query.IncludeData is { } IncludeDataValue)
         { queryParameters.Add(new("include_data", IncludeDataValue ? "true" : "false")); }

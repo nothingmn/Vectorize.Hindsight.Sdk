@@ -29,7 +29,7 @@ public sealed partial class HindsightClient
         string key,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/files/download/" + Uri.EscapeDataString(key) + "";
+        var path = $"{TenantPrefix}/files/download/" + Uri.EscapeDataString(key) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {

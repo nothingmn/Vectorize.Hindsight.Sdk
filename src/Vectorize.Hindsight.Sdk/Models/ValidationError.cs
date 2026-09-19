@@ -23,8 +23,8 @@ public sealed partial class ValidationError
     public required string Type { get; set; }
 
     [JsonPropertyName("input")]
-    public JsonElement Input { get; set; }
+    public JsonElement? Input { get; set; }
 
     [JsonPropertyName("ctx")]
-    public JsonElement Ctx { get; set; }
+    public JsonElement? Ctx { get; set; }
 }

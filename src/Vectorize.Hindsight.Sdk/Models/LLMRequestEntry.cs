@@ -68,10 +68,10 @@ public sealed partial class LLMRequestEntry
     public int? TotalTokens { get; set; }
 
     [JsonPropertyName("input")]
-    public JsonElement Input { get; set; }
+    public JsonElement? Input { get; set; }
 
     [JsonPropertyName("output")]
-    public JsonElement Output { get; set; }
+    public JsonElement? Output { get; set; }
 
     [JsonPropertyName("error")]
     public string? Error { get; set; }

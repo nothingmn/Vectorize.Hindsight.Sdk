@@ -30,7 +30,7 @@ public sealed partial class HindsightClient
         ListAuditLogsQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/audit-logs";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/audit-logs";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Action is { } ActionValue)
         { queryParameters.Add(new("action", ActionValue)); }
@@ -63,7 +63,7 @@ public sealed partial class HindsightClient
         AuditLogStatsQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/audit-logs/stats";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/audit-logs/stats";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Action is { } ActionValue)
         { queryParameters.Add(new("action", ActionValue)); }

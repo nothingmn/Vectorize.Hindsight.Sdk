@@ -268,7 +268,14 @@ def generate_schema(name: str, schema: dict[str, Any], report: list[str]) -> str
             decl_type = ctype + "?" if needs_nullable else ctype
         elif ctype == "string":
             decl_type = "string?" if needs_nullable else "string"
-        elif ctype == "JsonElement" or ctype == "Dictionary<string, JsonElement>":
+        elif ctype == "JsonElement":
+            # Nullable, always. A default-constructed JsonElement has
+            # ValueKind.Undefined, and the framework's JsonElementConverter throws
+            # on Undefined when writing - so an unset member of this type made the
+            # entire request unserializable. Nullable means an unset member is
+            # skipped by DefaultIgnoreCondition.WhenWritingNull instead.
+            decl_type = "JsonElement?"
+        elif ctype == "Dictionary<string, JsonElement>":
             decl_type = ctype
         else:
             decl_type = ctype + "?" if needs_nullable and not ctype.startswith("List<") else ctype

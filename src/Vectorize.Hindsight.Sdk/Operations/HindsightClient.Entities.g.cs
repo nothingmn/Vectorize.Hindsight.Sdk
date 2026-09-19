@@ -30,7 +30,7 @@ public sealed partial class HindsightClient
         ListEntitiesQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/entities";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/entities";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Limit is { } LimitValue)
         { queryParameters.Add(new("limit", LimitValue.ToString(System.Globalization.CultureInfo.InvariantCulture))); }
@@ -55,7 +55,7 @@ public sealed partial class HindsightClient
         GetEntityGraphQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/entities/graph";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/entities/graph";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Limit is { } LimitValue)
         { queryParameters.Add(new("limit", LimitValue.ToString(System.Globalization.CultureInfo.InvariantCulture))); }
@@ -80,7 +80,7 @@ public sealed partial class HindsightClient
         string entityId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/entities/" + Uri.EscapeDataString(entityId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/entities/" + Uri.EscapeDataString(entityId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {

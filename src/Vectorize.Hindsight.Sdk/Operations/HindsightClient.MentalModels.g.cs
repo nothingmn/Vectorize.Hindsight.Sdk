@@ -30,7 +30,7 @@ public sealed partial class HindsightClient
         ListMentalModelsQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/mental-models";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/mental-models";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query is not null)
         {
@@ -66,7 +66,7 @@ public sealed partial class HindsightClient
         CreateMentalModelRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/mental-models";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/mental-models";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -89,7 +89,7 @@ public sealed partial class HindsightClient
         string mentalModelId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -111,7 +111,7 @@ public sealed partial class HindsightClient
         GetMentalModelQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Detail is { } DetailValue)
         { queryParameters.Add(new("detail", DetailValue)); }
@@ -135,7 +135,7 @@ public sealed partial class HindsightClient
         UpdateMentalModelRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -158,7 +158,7 @@ public sealed partial class HindsightClient
         string mentalModelId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "/clear";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "/clear";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -183,7 +183,7 @@ public sealed partial class HindsightClient
         string mentalModelId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "/dry-run-refresh";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "/dry-run-refresh";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -204,7 +204,7 @@ public sealed partial class HindsightClient
         string mentalModelId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "/history";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "/history";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -225,7 +225,7 @@ public sealed partial class HindsightClient
         string mentalModelId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "/refresh";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/mental-models/" + Uri.EscapeDataString(mentalModelId) + "/refresh";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {

@@ -29,7 +29,7 @@ public sealed partial class HindsightClient
         ListBanksQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks";
+        var path = $"{TenantPrefix}/banks";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Q is { } QValue)
         { queryParameters.Add(new("q", QValue)); }
@@ -55,7 +55,7 @@ public sealed partial class HindsightClient
         string bankId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -76,7 +76,7 @@ public sealed partial class HindsightClient
         CreateBankRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -99,7 +99,7 @@ public sealed partial class HindsightClient
         CreateBankRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -121,7 +121,7 @@ public sealed partial class HindsightClient
         string bankId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/config";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/config";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -141,7 +141,7 @@ public sealed partial class HindsightClient
         string bankId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/config";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/config";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -162,7 +162,7 @@ public sealed partial class HindsightClient
         BankConfigUpdate body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/config";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/config";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -184,7 +184,7 @@ public sealed partial class HindsightClient
         string bankId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/consolidate";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/consolidate";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -204,7 +204,7 @@ public sealed partial class HindsightClient
         string bankId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/consolidation/recover";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/consolidation/recover";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -224,7 +224,7 @@ public sealed partial class HindsightClient
         string bankId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/health/llm";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/health/llm";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -244,7 +244,7 @@ public sealed partial class HindsightClient
         string bankId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/observations";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/observations";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -265,7 +265,7 @@ public sealed partial class HindsightClient
         PromptPreviewRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/prompts/preview";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/prompts/preview";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -288,7 +288,7 @@ public sealed partial class HindsightClient
         GetAgentStatsQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/stats";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/stats";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query is not null && query.Refresh is { } RefreshValue)
         { queryParameters.Add(new("refresh", RefreshValue ? "true" : "false")); }
@@ -311,7 +311,7 @@ public sealed partial class HindsightClient
         GetMemoriesTimeseriesQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/stats/memories-timeseries";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/stats/memories-timeseries";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Period is { } PeriodValue)
         { queryParameters.Add(new("period", PeriodValue)); }

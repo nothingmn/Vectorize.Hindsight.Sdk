@@ -48,7 +48,7 @@ public sealed partial class HindsightClient
         string bankId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/export";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/export";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -70,7 +70,7 @@ public sealed partial class HindsightClient
         ImportBankTemplateQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/import";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/import";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query is not null && query.DryRun is { } DryRunValue)
         { queryParameters.Add(new("dry_run", DryRunValue ? "true" : "false")); }

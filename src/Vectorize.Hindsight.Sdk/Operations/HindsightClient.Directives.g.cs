@@ -30,7 +30,7 @@ public sealed partial class HindsightClient
         ListDirectivesQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/directives";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/directives";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query is not null)
         {
@@ -66,7 +66,7 @@ public sealed partial class HindsightClient
         CreateDirectiveRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/directives";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/directives";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -89,7 +89,7 @@ public sealed partial class HindsightClient
         string directiveId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/directives/" + Uri.EscapeDataString(directiveId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/directives/" + Uri.EscapeDataString(directiveId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -110,7 +110,7 @@ public sealed partial class HindsightClient
         string directiveId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/directives/" + Uri.EscapeDataString(directiveId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/directives/" + Uri.EscapeDataString(directiveId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -132,7 +132,7 @@ public sealed partial class HindsightClient
         UpdateDirectiveRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/directives/" + Uri.EscapeDataString(directiveId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/directives/" + Uri.EscapeDataString(directiveId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {

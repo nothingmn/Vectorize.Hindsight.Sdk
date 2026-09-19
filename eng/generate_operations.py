@@ -307,13 +307,24 @@ def render_operation(op: Operation, used_names: set[str]) -> str:
     lines.append("    {")
 
     # Build the path with substituted parameters.
+    #
+    # The specification hardcodes the literal `default` tenant into every bank
+    # path. Emitting it literally would make HindsightClientOptions.Tenant dead
+    # configuration - it would compile, be settable, and do nothing. The prefix is
+    # therefore taken from the client instead, which is the whole reason the option
+    # exists.
     path_expr = op.path
+    if path_expr.startswith("/v1/default/"):
+        path_expr = "{TenantPrefix}/" + path_expr[len("/v1/default/"):]
     for param_name, _, _ in op.path_params:
         path_expr = path_expr.replace(
             "{" + param_name + "}", '" + Uri.EscapeDataString(' + cs_param(param_name) + ') + "'
         )
 
-    lines.append(f'        var path = $"{path_expr}";')
+    if "{TenantPrefix}" in path_expr:
+        lines.append(f'        var path = $"{path_expr}";')
+    else:
+        lines.append(f'        var path = $"{path_expr}";')
 
     # Query parameters.
     lines.append("        var queryParameters = new List<KeyValuePair<string, string>>();")

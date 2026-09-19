@@ -30,7 +30,7 @@ public sealed partial class HindsightClient
         ListLlmRequestsQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/llm-requests";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/llm-requests";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Status is { } StatusValue)
         { queryParameters.Add(new("status", StatusValue)); }
@@ -75,7 +75,7 @@ public sealed partial class HindsightClient
         LlmRequestStatsQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/llm-requests/stats";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/llm-requests/stats";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Operation is { } OperationValue)
         { queryParameters.Add(new("operation", OperationValue)); }

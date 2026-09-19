@@ -17,5 +17,5 @@ public sealed partial class TagGroupNotInput
 {
 
     [JsonPropertyName("not")]
-    public JsonElement Not { get; set; }
+    public JsonElement? Not { get; set; }
 }

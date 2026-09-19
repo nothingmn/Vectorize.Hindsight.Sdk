@@ -32,7 +32,7 @@ public sealed partial class HindsightClient
         string attachmentId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/attachments/" + Uri.EscapeDataString(attachmentId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/attachments/" + Uri.EscapeDataString(attachmentId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -53,7 +53,7 @@ public sealed partial class HindsightClient
         GetGraphQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/graph";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/graph";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Type is { } TypeValue)
         { queryParameters.Add(new("type", TypeValue)); }
@@ -93,7 +93,7 @@ public sealed partial class HindsightClient
         ClearBankMemoriesQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/memories";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/memories";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Type is { } TypeValue)
         { queryParameters.Add(new("type", TypeValue)); }
@@ -139,7 +139,7 @@ public sealed partial class HindsightClient
         RetainRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/memories";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/memories";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -162,7 +162,7 @@ public sealed partial class HindsightClient
         DryRunExtractRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/memories/dry-run-extract";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/memories/dry-run-extract";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -185,7 +185,7 @@ public sealed partial class HindsightClient
         ListMemoriesQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/memories/list";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/memories/list";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Type is { } TypeValue)
         { queryParameters.Add(new("type", TypeValue)); }
@@ -244,7 +244,7 @@ public sealed partial class HindsightClient
         RecallRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/memories/recall";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/memories/recall";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -267,7 +267,7 @@ public sealed partial class HindsightClient
         string memoryId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/memories/" + Uri.EscapeDataString(memoryId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/memories/" + Uri.EscapeDataString(memoryId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -289,7 +289,7 @@ public sealed partial class HindsightClient
         UpdateMemoryRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/memories/" + Uri.EscapeDataString(memoryId) + "";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/memories/" + Uri.EscapeDataString(memoryId) + "";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -312,7 +312,7 @@ public sealed partial class HindsightClient
         string memoryId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/memories/" + Uri.EscapeDataString(memoryId) + "/history";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/memories/" + Uri.EscapeDataString(memoryId) + "/history";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -333,7 +333,7 @@ public sealed partial class HindsightClient
         string memoryId,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/memories/" + Uri.EscapeDataString(memoryId) + "/observations";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/memories/" + Uri.EscapeDataString(memoryId) + "/observations";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -354,7 +354,7 @@ public sealed partial class HindsightClient
         ListObservationScopesQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/observations/scopes";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/observations/scopes";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Limit is { } LimitValue)
         { queryParameters.Add(new("limit", LimitValue.ToString(System.Globalization.CultureInfo.InvariantCulture))); }
@@ -386,7 +386,7 @@ public sealed partial class HindsightClient
         ReflectRequest body,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/reflect";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/reflect";
         var queryParameters = new List<KeyValuePair<string, string>>();
         var request = new HindsightRequest
         {
@@ -409,7 +409,7 @@ public sealed partial class HindsightClient
         ListTagsQuery? query,
         CancellationToken cancellationToken)
     {
-        var path = $"/v1/default/banks/" + Uri.EscapeDataString(bankId) + "/tags";
+        var path = $"{TenantPrefix}/banks/" + Uri.EscapeDataString(bankId) + "/tags";
         var queryParameters = new List<KeyValuePair<string, string>>();
         if (query?.Q is { } QValue)
         { queryParameters.Add(new("q", QValue)); }
