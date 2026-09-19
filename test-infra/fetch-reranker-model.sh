@@ -57,8 +57,19 @@ fetch() {
   fi
 
   echo "[reranker] fetching $name ($(( expected / 1000000 )) MB)..."
-  # Partial downloads resume, which matters for the multi-gigabyte fp32 weights.
-  curl -sSL -C - -o "$DEST/$name" "$url"
+
+  # Resume first, since the fp32 weights are multiple gigabytes and a dropped connection should not
+  # cost the whole download.
+  #
+  # A resume is not always possible: if the server does not honour the range request, curl exits 33
+  # ("HTTP server does not seem to support byte ranges") and writes nothing. That is a normal outcome
+  # rather than a failure, so it is retried once from scratch rather than aborting the script under
+  # `set -e` with an error that reads like a real problem.
+  if ! curl -sSL -C - -o "$DEST/$name" "$url"; then
+    echo "[reranker] resume unavailable for $name; fetching from the start"
+    rm -f "$DEST/$name"
+    curl -sSL -o "$DEST/$name" "$url"
+  fi
 }
 
 fetch "$MODEL_URL" "$MODEL_NAME" "$MODEL_BYTES"
@@ -74,8 +85,18 @@ fi
 
 # Verify, rather than trusting that curl succeeded. A truncated file is the failure that would
 # otherwise appear much later as an unexplained reranking difference.
+#
+# The verification list is built from what was actually fetched, so the fp32 external-weights file is
+# checked too. It was originally left out of a hardcoded list, which meant the script's own "verify
+# rather than trust curl" step did not cover the 2.2 GB file carrying the weights — the single file
+# whose truncation would produce a wrong-but-plausible ranking.
+verify=("$MODEL_NAME:$MODEL_BYTES" "$TOKENIZER_NAME:$TOKENIZER_BYTES" "$SP_NAME:$SP_BYTES")
+if [[ "$PRECISION" == "fp32" ]]; then
+  verify+=("$DATA_NAME:$DATA_BYTES")
+fi
+
 failed=0
-for pair in "$MODEL_NAME:$MODEL_BYTES" "$TOKENIZER_NAME:$TOKENIZER_BYTES" "$SP_NAME:$SP_BYTES"; do
+for pair in "${verify[@]}"; do
   name="${pair%%:*}"
   expected="${pair##*:}"
   actual="$(stat -c%s "$DEST/$name" 2>/dev/null || echo 0)"
