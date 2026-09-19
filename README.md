@@ -486,7 +486,8 @@ The model assets are fetched with `test-infra/fetch-reranker-model.sh`. Design p
   traffic; TypeSafe is a model call per recall, so it costs money and a round trip but needs no assets
   and no deployment. Pick on that axis, not on benchmark folklore. Measured for a 10-candidate rerank:
   **ONNX INT8 ~117 ms and ~1.0 GB resident, $0 per call; TypeSafe ~284 ms and ~634 input tokens per
-  call, no local RAM.** Identity costs nothing and ranks nothing.
+  call, no local RAM.** Identity costs nothing and ranks nothing. The GPU is verified but **slower
+  than CPU here** — see the guide before spending time on it.
 - **Configuration is your code.** There is no appsettings key that selects a reranker and no switch
   statement over provider names — you pass one to the constructor, set it per call on
   `CrossBankRecallOptions`, or register it in your container. Precedence is
@@ -605,12 +606,17 @@ outright with `NU1902`. Verified, not assumed.
 
 ## Not verified
 
-The ONNX reranker has been exercised on **CPU only**. It was built and tested on a machine with an
-RTX A5000 present but no CUDA libraries (cuDNN/cuBLAS) installed, so the GPU path is the one code
-path in this repository that has never actually run: `AppendExecutionProvider_CUDA` is reached only
-when the runtime reports a CUDA provider, and that report was always negative here. The fallback
-behaviour **is** verified — a requested GPU with no CUDA libraries falls back to CPU with a warning
-rather than failing — but GPU inference itself is not.
+The ONNX reranker's **GPU path has now been run and verified** — it works, and on this machine it is
+**slower than the CPU** (it lost 12 of 13 configurations, holding ~721 MiB of VRAM per session). The
+fallback behaviour is verified too: a requested GPU with no CUDA libraries falls back to CPU with a
+warning rather than failing. Setup traps and the full measurements are in
+[`docs/choosing-a-reranker.md`](docs/choosing-a-reranker.md) — the most expensive one is that the
+ONNX Runtime version pins the *CUDA major version*, and the library's 1.30 pin needs CUDA 13, which is
+not installable from PyPI.
+
+Still unverified, and stated plainly: **ranking quality** for either reranker — the live runs have one
+obviously correct and one obviously irrelevant passage, so they prove the mechanism rather than the
+judgement. GPU timings are single-run on a shared machine, not benchmarks.
 
 
 Stated plainly rather than left implicit:

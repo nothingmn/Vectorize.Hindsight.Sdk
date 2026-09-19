@@ -315,22 +315,96 @@ not hand it straight back to the OS.
 First call after construction was 111 ms versus a 117 ms warm median, so there is no significant lazy
 warmup penalty once loaded.
 
-### GPU
+### GPU — verified, and slower than the CPU here
 
-Requires three things: reference `Microsoft.ML.OnnxRuntime.Gpu` **in your application** (the package
-brings the CPU build, and both expose the same API so no code changes), install the CUDA libraries
-(cuDNN and cuBLAS — not part of the NuGet package), and set `ExecutionProvider = Cuda`.
+This path has now actually been run. It works, and **on this machine it is slower than the CPU**, which
+is worth knowing before you spend a day configuring it.
 
-**A missing GPU falls back to CPU with a warning rather than failing:**
+Setting it up requires four things, and the middle two are where people get stuck:
 
-```csharp
-Console.WriteLine(reranker.ProviderInUse);     // "CPUExecutionProvider" or the CUDA provider
-reranker.ProviderWarning                       // why, when a fallback happened
+**1. Reference the GPU package in your application.**
+
+```xml
+<PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.23.2" />
 ```
 
-Provider availability is read from the runtime (`OrtEnv.GetAvailableProviders()`) rather than inferred
-from whether appending threw, because appending a provider the runtime lacks can succeed and quietly
-produce a CPU session.
+**2. Pin the CPU package to the same version.** The reranker package pins
+`Microsoft.ML.OnnxRuntime` (CPU), and NuGet resolves the shared `Microsoft.ML.OnnxRuntime.Managed`
+assembly to the higher version. That managed assembly then loads the CPU native library even though
+GPU natives sit right beside it — so CUDA never registers and the fallback is silent. Both sides must
+be the same version, which for a consuming application means a direct reference:
+
+```xml
+<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.23.2" ExcludeAssets="native" />
+```
+
+`ExcludeAssets="native"` is the other half: both packages ship a `libonnxruntime.so` and both would be
+copied, with the CPU one winning. Excluding its native assets leaves the GPU build's.
+
+**3. Match the CUDA major version to the ONNX Runtime version.** This is the trap that costs the most
+time:
+
+| ONNX Runtime | Needs | Available via pip? |
+| --- | --- | --- |
+| 1.30.x (what this library pins) | **CUDA 13** (`libcublas.so.13`) | **no** — `-cu13` wheels on PyPI are deprecated stubs |
+| 1.23.x | **CUDA 12** (`libcublas.so.12`) | yes — `nvidia-cublas-cu12`, `nvidia-cudnn-cu12` |
+
+So GPU work needs **1.23.x or older** unless you install a CUDA 13 toolkit some other way.
+
+**4. Install the CUDA libraries** (cuDNN and cuBLAS — not part of the NuGet package):
+
+```bash
+uv pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cudnn-cu12 \
+               nvidia-cufft-cu12 nvidia-curand-cu12
+# then point the loader at them
+export LD_LIBRARY_PATH="$(find ~/.venv -name '*.so*' -printf '%h\n' | sort -u | tr '\n' ':')$LD_LIBRARY_PATH"
+```
+
+Verify with `ldd libonnxruntime_providers_cuda.so | grep 'not found'` — an empty result means it is
+ready. Then confirm the provider actually attached:
+
+```csharp
+OrtEnv.Instance().GetAvailableProviders().Contains("CUDAExecutionProvider")
+reranker.ProviderInUse       // must name the CUDA provider, not CPU
+reranker.ProviderWarning     // null when the request was honoured
+```
+
+**A missing GPU falls back to CPU with a warning rather than failing.** Provider availability is read
+from the runtime (`OrtEnv.GetAvailableProviders()`) rather than inferred from whether appending threw,
+because appending a provider the runtime lacks can succeed and quietly produce a CPU session.
+
+#### Measured: GPU is slower at every size tested
+
+Intel RTX A5000 Laptop (16 GB), ONNX Runtime 1.23.2, INT8 model, CUDA 12 libraries, warm calls:
+
+| Candidates | Batch | CPU | GPU (CUDA active) | GPU / CPU |
+| --- | --- | --- | --- | --- |
+| 10 | 1 | 227 ms | 272 ms | 0.83 |
+| 10 | 32 | 138 ms | 240 ms | 0.57 |
+| 50 | 1 | 1,442 ms | 1,579 ms | 0.91 |
+| 100 | 1 | 3,362 ms | 2,732 ms | **1.23** |
+| 200 | 1 | 4,767 ms | 5,605 ms | 0.85 |
+| 400 | 1 | 8,985 ms | 12,698 ms | 0.71 |
+
+**The GPU lost in 12 of 13 configurations**, and the one win (100 candidates, batch 1) is within the
+run-to-run spread — these are single-run timings on a shared machine, so treat that row as noise rather
+than a crossover.
+
+The likely reason is the workload, not the setup. ONNX Runtime's own CUDA provider warns on this graph:
+
+> `342 Memcpy nodes are added to the graph main_graph for CUDAExecutionProvider. It might have negative
+> impact on performance (including unable to run CUDA graph).`
+
+A cross-encoder scores query-passage pairs, and at these sizes the host→device→host transfer per call
+can exceed the compute it saves. A GPU is the right answer for large batched throughput, not for
+reranking 20–50 candidates per recall.
+
+**Cost of the GPU session itself:** ~**721 MiB** of VRAM per CUDA session, peaking at ~1,438 MiB with
+two sessions alive in one process. So it consumes VRAM *and* is slower here.
+
+**Recommendation:** for cross-bank reranking at typical sizes, use the CPU. Revisit the GPU only if you
+measure your own workload at a much larger batch and see a real win — and check
+`ProviderInUse` when you do, because a silent fallback will make any comparison meaningless.
 
 ### Scores are ordinal, not calibrated
 
@@ -478,9 +552,12 @@ Stated plainly, because these gaps matter more than the numbers above.
   obviously correct passage and one obviously irrelevant one, so they prove the mechanism and the
   direction of the order — not the judgement. Whether either provider orders **near-miss** candidates
   well needs labelled data, and neither has been scored against ground truth.
-- **`Noul` mode has only been exercised through a stub**, and the ONNX reranker has never run on a
-  GPU: this machine has an RTX A5000 but no CUDA libraries, so the GPU path has never executed. The
-  *fallback* is verified; GPU inference is not.
+- **`Noul` mode has only been exercised through a stub.**
+- **GPU timing is single-run, not benchmarked.** The GPU path now *works* and was measured, but the
+  timings above are one run each on a shared machine with no repetition, so the numbers show a clear
+  direction (the GPU loses) without being a rigorous benchmark. The one configuration where the GPU
+  won sits inside the spread and should not be read as a crossover.
+- **Ranking quality is still unmeasured on GPU**, as on CPU — same caveat as below.
 - **Latency figures are single-run, quiet-machine measurements**, not benchmarks under load. The test
   suite deliberately does not assert on elapsed time, because that flakes under parallel execution.
 - **`score` may suit reranking better than `choice`.** A Score returns a position along ordered levels
