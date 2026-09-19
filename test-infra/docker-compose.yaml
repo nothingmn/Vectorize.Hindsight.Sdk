@@ -60,7 +60,12 @@ services:
       - hindsight_test_pg0:/home/hindsight/.pg0
 
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8888/health/ready || exit 1"]
+      # The image ships no curl and no wget, so a curl-based check fails forever and reports the
+      # container unhealthy while it is serving perfectly. Verified: `curl` and `wget` are both
+      # absent, and python3 is present. A urllib one-liner is the check that actually works.
+      test:
+        - "CMD-SHELL"
+        - "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8888/health/ready', timeout=4).status == 200 else 1)\" || exit 1"
       interval: 5s
       timeout: 5s
       retries: 60
