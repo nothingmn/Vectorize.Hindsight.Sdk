@@ -283,6 +283,94 @@ through.
 
 ---
 
+## Bank configuration, typed
+
+The API models a per-bank configuration change as an open map of wire keys to JSON values.
+That is the right *transport* — it is what lets a newer server accept a field this client has
+never heard of — and the wrong *interface*, because it makes a caller learn the server's
+property names, spell them by hand, and build a `JsonElement` for a boolean.
+
+`BankConfigurationPatch` is the typed alternative. Nothing here is a magic string:
+
+```csharp
+await client.UpdateBankConfigAsync(
+    "my-bank",
+    new BankConfigurationPatch
+    {
+        EnableAutoConsolidation = false,
+        RecallMaxTokens = 4096,
+        ConsolidationLlmParallelism = 2,
+        MemoryDefense = new MemoryDefensePolicy
+        {
+            Enabled = true,
+            Rules = [new MemoryDefenseRule { Detector = "sensitive_data", Action = MemoryDefenseAction.Redact }],
+        },
+        ObservationScopeLimits =
+        [
+            new BankObservationScopeLimit { Scope = ["project:*", "shared"], Limit = 10 },
+        ],
+    },
+    cancellationToken);
+```
+
+Reads are typed too. `GetBankConfigAsync` still returns the raw maps, and
+`response.Configuration` / `response.OverrideConfiguration` are the same payload as named,
+typed properties:
+
+```csharp
+var config = await client.GetBankConfigAsync("my-bank", cancellationToken);
+
+bool? autoConsolidation = config.Configuration.EnableAutoConsolidation;      // resolved: bank → tenant → global
+bool? chosenByTheBank   = config.OverrideConfiguration.EnableAutoConsolidation;  // this bank's own override only
+```
+
+The two halves are **not** the same question. `config` is the fully resolved value after every
+hierarchical override, `overrides` is what this bank itself set. Conflating them reports an
+inherited value as if the bank had chosen it, so they are separate properties rather than one
+merged view.
+
+### Three states, not two
+
+A nullable property cannot express "leave this alone" *and* "clear this override". Every patch
+member is therefore tri-state:
+
+| You write | What is sent | What the server does |
+| --- | --- | --- |
+| *(unset)* | the key is omitted | leaves the current override in place |
+| `EnableAutoConsolidation = false` | `"enable_auto_consolidation": false` | sets the override |
+| `EnableAutoConsolidation = BankConfigValue<bool>.Clear()` | `"enable_auto_consolidation": null` | removes the override, inheriting again |
+
+The distinction matters: without the third state, a caller who has switched a feature on has no
+way to switch it back to "whatever the tenant or server says".
+
+### The map stays reachable
+
+The typed patch cannot express a field added to the server after this package shipped, which
+would make the typed surface a ceiling. Both escape hatches remain:
+
+- the generated `UpdateBankConfigAsync(bankId, BankConfigUpdate, ct)` overload, for a field the
+  patch does not model;
+- `BankConfigResponse.Config` / `.Overrides`, the raw maps, alongside the typed views.
+
+The typed members are derived from the specification's own `BankTemplateConfig` — 50 fields, the
+whole declared surface — so the list is not hand-maintained and a spec revision regenerates it.
+Nested values that the server validates against a model of its own — `memory_defense`,
+`reflect_default_options`, `knowledge_page_default_trigger`, `observation_scope_limits`,
+`llm_gemini_safety_settings` — are typed too, rather than left as loose dictionaries. A retain
+strategy is a patch of its own, so a strategy carries only its own overrides.
+
+A *served* build may be smaller than the specification it was generated from. The rig's 0.10.0
+rejects `knowledge_page_default_trigger` and `reflect_default_options` as unknown, while declaring
+all 50 in its own spec and source; that is a build behind its spec, not a client defect. The typed
+patch models what the specification declares, so it is right the moment the server is upgraded, and
+against an older build the server's own `400` names the offending field. See
+[§11 of the live-verification notes](docs/live-verification.md).
+
+Writes may be gated server-side by `HINDSIGHT_API_ENABLE_BANK_CONFIG_API`; reads never are. The
+client sends the write and the server decides, rather than guessing from a feature flag.
+
+---
+
 ## Surface coverage
 
 Coverage is **measured, not asserted**. The integration suite enumerates the non-deprecated

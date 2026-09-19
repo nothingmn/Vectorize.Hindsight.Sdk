@@ -24,3 +24,6 @@ vendor/
 .idea/
 *.user
 *.suo
+
+# Python bytecode from the generators in eng/
+__pycache__/

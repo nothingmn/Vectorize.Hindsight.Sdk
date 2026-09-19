@@ -302,7 +302,9 @@ public sealed class AllOperationsTests
 
         // 85 generated plus 2 hand-written multipart.
         Assert.Equal(87, operations.Count);
-        Assert.Equal(2, compositions.Count);
+        // Two RecallAcrossBanksAsync overloads, plus the typed bank-config overload that
+        // composes the map-based operation rather than corresponding to a spec operation.
+        Assert.Equal(3, compositions.Count);
 
         await Task.CompletedTask;
     }

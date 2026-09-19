@@ -158,7 +158,8 @@ public sealed class ModelMappingTests
             foreach (var property in type.GetProperties())
             {
                 if (property.GetCustomAttribute<JsonPropertyNameAttribute>() is null &&
-                    property.GetCustomAttribute<JsonExtensionDataAttribute>() is null)
+                    property.GetCustomAttribute<JsonExtensionDataAttribute>() is null &&
+                    property.GetCustomAttribute<JsonIgnoreAttribute>() is null)
                 {
                     offenders.Add($"{type.Name}.{property.Name}");
                 }

@@ -303,3 +303,49 @@ Consequences for the integration suite:
 
 The suite must therefore be split so the free tests run always and the LLM-backed tests are
 explicitly tagged and skipped when quota is unavailable — not silently failing.
+
+---
+
+## 11. The bank-config write surface is smaller than the published spec's
+
+Found while verifying the typed bank-configuration surface against the rig, and the same class of
+discrepancy as §1 — a field the published specification declares that the deployed build will not
+accept.
+
+Two fields are present on `BankTemplateConfig` in the published 0.10.0 spec and are **rejected by
+the running server as unknown**:
+
+```
+knowledge_page_default_trigger
+reflect_default_options
+```
+
+The rejection is a `400` whose body lists the fields the server does accept, so it is self-describing
+rather than a silent drop:
+
+> `Unknown configuration fields: ['knowledge_page_default_trigger', 'reflect_default_options'].`
+> `Valid configurable fields: ['consolidation_llm_batch_size', ... ]...`
+
+The server's authoritative list — `HindsightConfig.get_configurable_fields()` — holds **50** fields,
+and the published spec's `BankTemplateConfig` holds the same **50**, with **no difference in either
+direction**. So the spec and the current source agree; it is the *served build* that is behind both,
+by exactly those two fields. This is not a spec error and not a client error.
+
+**Consequence for the typed surface:** the typed patch models the whole declared surface, including
+the two fields this build has not yet grown. That is the correct direction — a client that modelled
+only what one particular build accepts would be wrong the moment the server is upgraded, and the
+field list is regenerated from the spec rather than hand-maintained. A caller who sets one of the two
+against this build gets the server's own `400`, naming the field, rather than a silent no-op or a
+client-side guess.
+
+The remaining 48 fields were verified end to end against the rig: written through the typed patch,
+read back through the typed read model, with nested values (`observation_scope_limits`,
+`llm_gemini_safety_settings`, `memory_defense`, `retain_strategies`) round-tripping intact, a single
+override cleared without disturbing its siblings, and the map overload still reaching a raw key.
+
+**A read/write asymmetry this surfaced.** The first version of the read model typed
+`retain_strategies` from the *write* model, so reading a strategy handed back
+`BankConfigValue<int>` where a caller expects `int?` — the ordinary read
+`strategies["documents"].RetainChunkSize == 800` did not compile. The two positions are now
+generated from separate type maps, and a regression test asserts that no read member exposes the
+write-side tri-state.

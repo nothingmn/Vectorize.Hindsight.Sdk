@@ -218,6 +218,16 @@ namespace Vectorize.Hindsight.Sdk.Http;
 [JsonSerializable(typeof(HindsightFileContentBlock))]
 [JsonSerializable(typeof(HindsightAttachmentSource))]
 [JsonSerializable(typeof(HindsightObservationScopes))]
+[JsonSerializable(typeof(BankConfiguration))]
+[JsonSerializable(typeof(BankConfigurationPatch))]
+[JsonSerializable(typeof(BankObservationScopeLimit))]
+[JsonSerializable(typeof(GeminiSafetySetting))]
+[JsonSerializable(typeof(MemoryDefensePolicy))]
+[JsonSerializable(typeof(MemoryDefenseRule))]
+[JsonSerializable(typeof(BankReflectDefaultOptions))]
+[JsonSerializable(typeof(Dictionary<string, BankConfigurationPatch>))]
+[JsonSerializable(typeof(Dictionary<string, BankConfiguration>))]
+[JsonSerializable(typeof(Dictionary<string, Dictionary<string, JsonElement>>))]
 [JsonSerializable(typeof(JsonElement))]
 [JsonSerializable(typeof(JsonDocument))]
 [JsonSerializable(typeof(JsonNode))]
@@ -431,6 +441,16 @@ internal static class HindsightWireModels
         typeof(HindsightFileContentBlock),
         typeof(HindsightAttachmentSource),
         typeof(HindsightObservationScopes),
+        typeof(BankConfiguration),
+        typeof(BankConfigurationPatch),
+        typeof(BankObservationScopeLimit),
+        typeof(GeminiSafetySetting),
+        typeof(MemoryDefensePolicy),
+        typeof(MemoryDefenseRule),
+        typeof(BankReflectDefaultOptions),
+        typeof(Dictionary<string, BankConfigurationPatch>),
+        typeof(Dictionary<string, BankConfiguration>),
+        typeof(Dictionary<string, Dictionary<string, JsonElement>>),
         typeof(JsonElement),
         typeof(JsonDocument),
         typeof(JsonNode),
