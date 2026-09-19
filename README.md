@@ -21,7 +21,8 @@ specification disagree, the specification wins and the disagreement is recorded 
 
 ```
 dotnet add package Vectorize.Hindsight.Sdk
-dotnet add package Vectorize.Hindsight.Sdk.DependencyInjection   # optional
+dotnet add package Vectorize.Hindsight.Sdk.DependencyInjection   # optional: DI integration
+dotnet add package Vectorize.Hindsight.Sdk.Admin                 # optional: admin CLI bridge
 ```
 
 Target framework: `net10.0`. The library is trimmable and Native AOT friendly — every
@@ -327,7 +328,8 @@ python3 eng/coverage_gate.py
 
 | Assembly | Line | Branch | Floor |
 | --- | --- | --- | --- |
-| `Vectorize.Hindsight.Sdk` | 91.7% | 81.2% | 90% / 60% |
+| `Vectorize.Hindsight.Sdk` | 91.7% | 80.3% | 90% / 60% |
+| `Vectorize.Hindsight.Sdk.Admin` | 91.0% | 82.5% | 90% / 60% |
 | `Vectorize.Hindsight.Sdk.DependencyInjection` | 100% | 97.7% | 95% / 80% |
 
 250 tests, zero exemptions — nothing is excluded from the measurement, so every counted line is
@@ -357,13 +359,18 @@ Stated plainly rather than left implicit:
 - **Operations only a non-default deployment serves** — `clone`, `transfer/export`,
   `transfer/import` — are modelled and generated but cannot be called against the reference
   server, whose feature is off. The suite skips them with that reason.
+- **The admin bridge's live tests ran against a containerised `hindsight-admin`** and are off by
+  default. They were verified once with the docker prefix, covering the read-only commands and the
+  declined-confirmation path. The destructive commands (`backup`, `restore`, migration,
+  export/import, decommissions) were **not** driven end to end against a real database; their
+  argument shapes are asserted against stubs, and only `repair-bank --dry-run` was run for real.
 
 ---
 
 ## Repository layout
 
 ```
-src/Vectorize.Hindsight.Sdk/                     the client
+src/Vectorize.Hindsight.Sdk/                     the HTTP client
   Models/                                        generated DTOs (181) + HindsightValues
   Operations/                                    generated operations (15 files, tagged)
   Unions/                                        the four hand-written unions + converters
@@ -372,8 +379,10 @@ src/Vectorize.Hindsight.Sdk/                     the client
   Telemetry/                                     logging, activity, meter
   Authentication/                                key providers
   Configuration/                                 options
+src/Vectorize.Hindsight.Sdk.Admin/               the admin-CLI bridge (process, not HTTP)
 src/Vectorize.Hindsight.Sdk.DependencyInjection/ DI integration
 tests/Vectorize.Hindsight.Sdk.Tests/             unit suite (no network, no credentials)
+tests/Vectorize.Hindsight.Sdk.Admin.Tests/       admin bridge (stub, real-process, and live levels)
 tests/Vectorize.Hindsight.Sdk.IntegrationTests/  live suite + the coverage assertions
 samples/Vectorize.Hindsight.Sdk.Sample/          runnable example
 eng/                                             generators + coverage gate
@@ -392,6 +401,8 @@ inventory/                                       derived operation and schema in
 - [`docs/live-verification.md`](docs/live-verification.md) — what the specification does not
   tell you, observed on a running server.
 - [`inventory/`](inventory/) — every operation and schema, derived from the spec in code.
+- [`docs/admin-cli-surface.md`](docs/admin-cli-surface.md) — the admin CLI surface, verified against
+  the deployed binary, including observed exit codes and output formats.
 - [`test-infra/README.md`](test-infra/README.md) — the local rig and its isolation guarantees.
 
 ---

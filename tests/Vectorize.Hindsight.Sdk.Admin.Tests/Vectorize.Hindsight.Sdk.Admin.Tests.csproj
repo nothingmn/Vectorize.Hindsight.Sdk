@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Vectorize.Hindsight.Sdk.Admin.Tests</RootNamespace>
+    <AssemblyName>Vectorize.Hindsight.Sdk.Admin.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Vectorize.Hindsight.Sdk.Admin/Vectorize.Hindsight.Sdk.Admin.csproj" />
+  </ItemGroup>
+
+</Project>

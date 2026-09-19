@@ -13,6 +13,10 @@ FLOORS  (LINE_FLOORS / BRANCH_FLOORS, directly below)
   Vectorize.Hindsight.Sdk                       >= 90%        >= 60%
   Vectorize.Hindsight.Sdk.DependencyInjection   >= 95%        >= 80%
 
+The Admin package sits at the core floor. Its uncovered lines are the platform branches a unit
+test cannot reach without a specific OS state — killing an already-exited process, and the
+kill-the-tree fallback on a platform that does not support it.
+
 The DI package gets the higher floor because every one of its members is
 reachable from a host, so there is no defensive guard left over. The core
 library carries a small number of guards that cannot be reached through
@@ -81,11 +85,13 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 LINE_FLOORS = {
     "Vectorize.Hindsight.Sdk": 90.0,
+    "Vectorize.Hindsight.Sdk.Admin": 90.0,
     "Vectorize.Hindsight.Sdk.DependencyInjection": 95.0,
 }
 
 BRANCH_FLOORS = {
     "Vectorize.Hindsight.Sdk": 60.0,
+    "Vectorize.Hindsight.Sdk.Admin": 60.0,
     "Vectorize.Hindsight.Sdk.DependencyInjection": 80.0,
 }
 
