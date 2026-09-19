@@ -486,8 +486,8 @@ The model assets are fetched with `test-infra/fetch-reranker-model.sh`. Design p
   traffic; TypeSafe is a model call per recall, so it costs money and a round trip but needs no assets
   and no deployment. Pick on that axis, not on benchmark folklore. Measured for a 10-candidate rerank:
   **ONNX INT8 ~117 ms and ~1.0 GB resident, $0 per call; TypeSafe ~284 ms and ~634 input tokens per
-  call, no local RAM.** Identity costs nothing and ranks nothing. The GPU is verified but **slower
-  than CPU here** — see the guide before spending time on it.
+  call, no local RAM.** Identity costs nothing and ranks nothing. **GPU / FP32 is ~8x faster than any
+  CPU config** (18 ms vs 145 ms at 10 candidates) at ~1.6 GB RSS; GPU / INT8 is slower than CPU / INT8.
 - **Configuration is your code.** There is no appsettings key that selects a reranker and no switch
   statement over provider names — you pass one to the constructor, set it per call on
   `CrossBankRecallOptions`, or register it in your container. Precedence is
@@ -606,13 +606,25 @@ outright with `NU1902`. Verified, not assumed.
 
 ## Not verified
 
-The ONNX reranker's **GPU path has now been run and verified** — it works, and on this machine it is
-**slower than the CPU** (it lost 12 of 13 configurations, holding ~721 MiB of VRAM per session). The
-fallback behaviour is verified too: a requested GPU with no CUDA libraries falls back to CPU with a
-warning rather than failing. Setup traps and the full measurements are in
-[`docs/choosing-a-reranker.md`](docs/choosing-a-reranker.md) — the most expensive one is that the
-ONNX Runtime version pins the *CUDA major version*, and the library's 1.30 pin needs CUDA 13, which is
-not installable from PyPI.
+The ONNX reranker's **GPU path has now been run and verified.** Measured in one harness with CUDA
+attachment confirmed from the runtime's own log output:
+
+| | 10 candidates | 50 candidates | Peak RSS |
+| --- | --- | --- | --- |
+| CPU / INT8 | 145 ms | 697 ms | **986 MB** |
+| **GPU / FP32** | **18 ms** | **84 ms** | 1,597 MB |
+| GPU / INT8 | 154 ms | 728 ms | 1,258 MB |
+| CPU / FP32 | 608 ms | 1,843 ms | 1,419 MB |
+
+GPU / FP32 is ~8x faster than the best CPU config. GPU / INT8 is *slower* than CPU / INT8 — the
+hypothesis is that its quantize nodes partly run on CPU while the CUDA provider adds 342 Memcpy nodes,
+but that is unverified. The fallback is verified too: a requested GPU with no CUDA libraries falls back
+to CPU with a warning rather than failing.
+
+An earlier revision of this README claimed the GPU was slower at every size. That was wrong — the
+comparison was made against a silent CPU fallback. Setup traps (the ONNX Runtime version pins the *CUDA
+major version*, and the library's 1.30 pin needs CUDA 13, which is not installable from PyPI) and the
+full measurements are in [`docs/choosing-a-reranker.md`](docs/choosing-a-reranker.md).
 
 Still unverified, and stated plainly: **ranking quality** for either reranker — the live runs have one
 obviously correct and one obviously irrelevant passage, so they prove the mechanism rather than the

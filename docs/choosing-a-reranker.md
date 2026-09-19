@@ -373,38 +373,49 @@ reranker.ProviderWarning     // null when the request was honoured
 from the runtime (`OrtEnv.GetAvailableProviders()`) rather than inferred from whether appending threw,
 because appending a provider the runtime lacks can succeed and quietly produce a CPU session.
 
-#### Measured: GPU is slower at every size tested
+#### Measured: GPU / FP32 is much faster; GPU / INT8 is not
 
-Intel RTX A5000 Laptop (16 GB), ONNX Runtime 1.23.2, INT8 model, CUDA 12 libraries, warm calls:
+All four configurations measured in **one harness**, on the same passage pool with the same iteration
+counts, so these are directly comparable. Warm calls, medians of 7 samples (3 at 50 candidates):
 
-| Candidates | Batch | CPU | GPU (CUDA active) | GPU / CPU |
+| Candidates | CPU / INT8 | CPU / FP32 | GPU / INT8 | **GPU / FP32** |
 | --- | --- | --- | --- | --- |
-| 10 | 1 | 227 ms | 272 ms | 0.83 |
-| 10 | 32 | 138 ms | 240 ms | 0.57 |
-| 50 | 1 | 1,442 ms | 1,579 ms | 0.91 |
-| 100 | 1 | 3,362 ms | 2,732 ms | **1.23** |
-| 200 | 1 | 4,767 ms | 5,605 ms | 0.85 |
-| 400 | 1 | 8,985 ms | 12,698 ms | 0.71 |
+| 1 | 23.8 ms | 74.0 ms | 30.8 ms | **7.9 ms** |
+| 5 | 71.6 ms | 306.2 ms | 80.9 ms | **11.0 ms** |
+| 10 | 144.6 ms | 607.6 ms | 153.5 ms | **18.0 ms** |
+| 20 | 296.8 ms | 771.4 ms | 327.9 ms | **39.4 ms** |
+| 50 | 697.3 ms | 1843.2 ms | 728.3 ms | **84.4 ms** |
 
-**The GPU lost in 12 of 13 configurations**, and the one win (100 candidates, batch 1) is within the
-run-to-run spread — these are single-run timings on a shared machine, so treat that row as noise rather
-than a crossover.
+| | Load | Peak RSS |
+| --- | --- | --- |
+| CPU / INT8 | 2.2 s | **986 MB** |
+| CPU / FP32 | 2.6 s | 1,419 MB |
+| GPU / INT8 | 4.7 s | 1,258 MB |
+| GPU / FP32 | 2.3 s | 1,597 MB |
 
-The likely reason is the workload, not the setup. ONNX Runtime's own CUDA provider warns on this graph:
+**GPU / FP32 is ~8x faster than the best CPU configuration** at 10–50 candidates, and the win is
+reproducible across runs. **GPU / INT8 is not** — it is consistently *slower* than CPU / INT8, which is
+the opposite of what quantization intuition suggests.
 
-> `342 Memcpy nodes are added to the graph main_graph for CUDAExecutionProvider. It might have negative
-> impact on performance (including unable to run CUDA graph).`
+Why the two GPU rows differ so much is not established here. The likely shape of the answer: the INT8
+model's quantize/dequantize nodes run partly on the CPU, and the CUDA provider warns that this graph
+adds 342 `Memcpy` nodes, so the INT8 path pays host↔device transfer without saving enough compute to
+cover it. The FP32 graph on the GPU avoids that. **This is a hypothesis, not a measurement** — settling
+it needs node-assignment dumps and more repetitions than were run here.
 
-A cross-encoder scores query-passage pairs, and at these sizes the host→device→host transfer per call
-can exceed the compute it saves. A GPU is the right answer for large batched throughput, not for
-reranking 20–50 candidates per recall.
+**Recommendation:**
+- **GPU / FP32** if you have a CUDA GPU and want the lowest rerank latency — ~8x faster, at the cost of
+  ~1.6 GB host RSS and the most involved setup.
+- **CPU / INT8** otherwise — the best CPU option, ~986 MB, and the least setup. This remains the right
+  default for a modest deployment and the only one that works without a GPU.
+- **Avoid GPU / INT8 and CPU / FP32** for latency: neither earns its cost.
 
-**Cost of the GPU session itself:** ~**721 MiB** of VRAM per CUDA session, peaking at ~1,438 MiB with
-two sessions alive in one process. So it consumes VRAM *and* is slower here.
-
-**Recommendation:** for cross-bank reranking at typical sizes, use the CPU. Revisit the GPU only if you
-measure your own workload at a much larger batch and see a real win — and check
-`ProviderInUse` when you do, because a silent fallback will make any comparison meaningless.
+**Correction.** An earlier revision of this document claimed the GPU was slower at every size. That
+was wrong, and the reason is worth recording: the CPU and GPU tables came from *different harnesses*,
+and the GPU comparison was made against a silent CPU fallback rather than a real CUDA session. The
+numbers above come from one harness with CUDA attachment confirmed from the runtime's own log output.
+Treat any reranker benchmark that does not verify which provider actually ran as unreliable — including
+an earlier one in this document.
 
 ### Scores are ordinal, not calibrated
 
@@ -531,16 +542,16 @@ ranking correct" — no measure on a probability distribution can establish the 
 
 ## Side-by-side, for a 10-candidate rerank
 
-| | Identity | ONNX INT8 | TypeSafe Choice |
-| --- | --- | --- | --- |
-| Cost per recall | **$0** | **$0** | ~634 input tokens |
-| Latency | ~0 ms (skipped) | **~117 ms** warm | ~284 ms |
-| Resident RAM | none | ~1.0 GB | none |
+| | Identity | ONNX CPU/INT8 | ONNX GPU/FP32 | TypeSafe Choice |
+| --- | --- | --- | --- | --- |
+| Cost per recall | **$0** | **$0** | **$0** | ~634 input tokens |
+| Latency, 10 candidates | ~0 ms (skipped) | ~145 ms | **~18 ms** | ~284 ms |
+| Resident RAM | none | **~1.0 GB** | ~1.6 GB | none |
 | One-time setup | none | 570 MB download | API key |
 | Network dependency | no | **no** | yes |
-| Works air-gapped | yes | **yes** | no |
-| Ranks anything | **no** | yes | yes |
-| Score meaning | n/a | ordinal, not calibrated | probability, comparable within one call |
+| Works air-gapped | yes | **yes** | **yes** | no |
+| Ranks anything | **no** | yes | yes | yes |
+| Score meaning | n/a | ordinal, not calibrated | ordinal, not calibrated | probability, comparable within one call |
 
 ---
 
