@@ -131,7 +131,7 @@ internal sealed class HindsightMemoryContentConverter : JsonConverter<HindsightM
             return;
         }
 
-        if (value.Raw is { } raw)
+        if (value.Raw is { } raw && raw.ValueKind != JsonValueKind.Undefined)
         {
             raw.WriteTo(writer);
             return;
@@ -166,16 +166,15 @@ internal sealed class HindsightContentBlockConverter : JsonConverter<HindsightCo
             return null;
         }
 
+        // A recognised discriminator yields its typed arm even when the payload is
+        // incomplete. Falling back to raw for a source-less image would hand the caller
+        // an unreadable blob for a shape the library does claim to model, and a missing
+        // source is recoverable - the arm is still the useful answer.
         return UnionJson.ReadDiscriminator(element) switch
         {
             HindsightContentBlockKind.Text => ReadText(element),
-            HindsightContentBlockKind.Image when TryReadSource(element, out var imageSource) =>
-                HindsightContentBlock.FromImage(imageSource.MediaType ?? string.Empty, imageSource.Data ?? string.Empty),
-            HindsightContentBlockKind.File when TryReadSource(element, out var fileSource) =>
-                HindsightContentBlock.FromFile(
-                    fileSource.MediaType ?? string.Empty,
-                    fileSource.Data ?? string.Empty,
-                    UnionJson.TryGetString(element, "filename", out var name) ? name : null),
+            HindsightContentBlockKind.Image => ReadImage(element),
+            HindsightContentBlockKind.File => ReadFile(element),
             _ => HindsightContentBlock.FromRaw(element.Clone()),
         };
     }
@@ -184,6 +183,50 @@ internal sealed class HindsightContentBlockConverter : JsonConverter<HindsightCo
     {
         UnionJson.TryGetString(element, "text", out var text);
         return HindsightContentBlock.FromText(text ?? string.Empty);
+    }
+
+    private static HindsightContentBlock ReadImage(JsonElement element)
+    {
+        var source = ReadSource(element);
+        return HindsightContentBlock.FromImage(
+            source?.MediaType ?? string.Empty,
+            source?.Data ?? string.Empty);
+    }
+
+    private static HindsightContentBlock ReadFile(JsonElement element)
+    {
+        var source = ReadSource(element);
+        return HindsightContentBlock.FromFile(
+            source?.MediaType ?? string.Empty,
+            source?.Data ?? string.Empty,
+            UnionJson.TryGetString(element, "filename", out var name) ? name : null);
+    }
+
+    private static HindsightAttachmentSource? ReadSource(JsonElement element)
+    {
+        if (!UnionJson.TryGetElement(element, "source", out var sourceElement) ||
+            sourceElement.ValueKind != JsonValueKind.Object)
+        {
+            return new HindsightAttachmentSource();
+        }
+
+        var source = new HindsightAttachmentSource();
+        if (UnionJson.TryGetString(sourceElement, UnionJson.Discriminator, out var kind) && kind is not null)
+        {
+            source.Type = kind;
+        }
+
+        if (UnionJson.TryGetString(sourceElement, "media_type", out var mediaType))
+        {
+            source.MediaType = mediaType;
+        }
+
+        if (UnionJson.TryGetString(sourceElement, "data", out var data))
+        {
+            source.Data = data;
+        }
+
+        return source;
     }
 
     private static bool TryReadSource(JsonElement element, out HindsightAttachmentSource source)
@@ -265,7 +308,10 @@ internal sealed class HindsightContentBlockConverter : JsonConverter<HindsightCo
 
     private static void WriteRawOrNull(Utf8JsonWriter writer, JsonElement? raw)
     {
-        if (raw is { } value)
+        // Undefined is the default struct value and WriteTo throws on it, so it is
+        // treated as "no raw arm" rather than allowed to produce an opaque
+        // InvalidOperationException from inside a serializer.
+        if (raw is { } value && value.ValueKind != JsonValueKind.Undefined)
         {
             value.WriteTo(writer);
             return;
@@ -414,7 +460,7 @@ internal sealed class HindsightTagGroupConverter : JsonConverter<HindsightTagGro
                 return;
 
             default:
-                if (value.Raw is { } raw)
+                if (value.Raw is { } raw && raw.ValueKind != JsonValueKind.Undefined)
                 {
                     raw.WriteTo(writer);
                     return;
