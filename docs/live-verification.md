@@ -148,12 +148,14 @@ it must have a computed fallback that is exercised in practice, not just in a br
 
 ---
 
-## 6. The documented `409` for a reused `operation_id` did not reproduce
+## 6. The `409` is real, but it is not the one the documentation describes
 
-The documentation states: *"Reusing an `operation_id` that already belongs to a different operation
-returns HTTP `409`."*
+This section is a correction. An earlier pass concluded that `409` "did not reproduce" for a reused
+`operation_id`. That conclusion was wrong, and the way it was wrong is worth recording: the probe
+tested one path, found no `409`, and generalised to "the collision case was not observed". A later,
+wider probe found the `409` on a different route.
 
-Observed:
+**What was tested first (and still returns `200`):**
 
 ```
 POST .../memories  {"items":[{"content":"probe alpha"}],"async":true,
@@ -162,15 +164,38 @@ POST .../memories  {"items":[{"content":"probe beta totally different"}],"async"
                     "operation_id":"1111...5555"}          -> 200, same operation_id echoed
 ```
 
-The second call, with different content and the same `operation_id`, returned **`200`**, not `409`.
-The response echoed the same `operation_id` and reported `items_count: 1`.
+Resubmitting the same `operation_id` with different content did **not** produce a `409`. The
+documented collision rule is therefore not enforced at submit time — or at least not by that state
+transition.
 
-**So one of the two documented outcomes holds** — resubmission does not create new work under a new
-id — **but the `409` collision case was not observed.** Either the check requires a different state
-transition, or the documentation overstates it. This is recorded rather than concluded because a
-single probe cannot distinguish "not implemented" from "not provoked". It belongs in the integration
-suite as an explicitly-marked open question, and it is a good example of why this file exists: the
-spec does not mention `409` at all, and the prose that does appears to be wrong.
+**What does produce a `409`, deterministically:**
+
+```
+POST .../operations/{operation_id}/retry      (on a batch_retain parent whose
+                                               children have all completed)
+-> 409
+   {"detail":"Operation <id> is a batch_retain parent with no incomplete sub-batches
+              to retry (its children have all completed, or it has none). Resubmit the
+              source documents to re-ingest them, then delete this record via
+              DELETE /operations/<id>/delete."}
+```
+
+Repeating the call returns `409` again, so it is a state-based rejection rather than a race.
+
+Consequences, and they are not small:
+
+- **`409` is a real status on this API and the specification declares it nowhere.** The published
+  spec lists only `404` and `422`. A client that mapped only the declared statuses would report a
+  retry rejection as a generic 400 — which is exactly the defect this library had and fixed (see
+  `HindsightUnexpectedStatusException` in the notes below).
+- The body is a useful, actionable message: it names the alternative (`DELETE .../delete`) rather
+  than only refusing. That is worth surfacing to the caller, and it is preserved in
+  `ResponseBody`.
+- **A single negative probe is not evidence of absence.** The first conclusion generalised from one
+  path to a whole status. Recording "not observed on this path" is honest; recording "does not
+  happen" was not, and the difference cost a correction later.
+
+This is now covered by the integration suite, and `HindsightConflictException` maps it.
 
 ---
 

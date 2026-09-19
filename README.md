@@ -347,9 +347,11 @@ Stated plainly rather than left implicit:
 
 - **`401` and `403`** cannot be provoked against the default deployment, which does not enforce
   authentication. They are unit-tested against synthetic responses and unverified live.
-- **The documented `409`** for a reused `operation_id` did not reproduce: a second submission
-  with different content and the same id returned `200`. One probe cannot distinguish "not
-  implemented" from "not provoked", so it is recorded as open.
+- **The `409` the documentation describes** for a reused `operation_id` did not reproduce: a second
+  submission with different content and the same id returned `200`. A *different* `409` is real and
+  deterministic — retrying a completed `batch_retain` operation — and is covered by the suite. The
+  correction is recorded in [`docs/live-verification.md`](docs/live-verification.md) §6, including
+  why the first conclusion generalised wrongly from a single negative probe.
 - **The GitHub Actions workflow** has not executed on GitHub. The steps it runs were each run
   locally, but the pipeline itself is unverified.
 - **Operations only a non-default deployment serves** — `clone`, `transfer/export`,

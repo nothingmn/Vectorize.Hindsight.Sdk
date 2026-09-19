@@ -161,6 +161,57 @@ public sealed class LiveServerTests
         Assert.NotNull(error.Input);
     }
 
+    [LlmFact]
+    public async Task Retrying_a_completed_operation_answers_a_409_that_the_spec_never_declares()
+    {
+        // 409 is REAL on this API and the published specification declares only 404 and 422. A
+        // client that mapped only the declared statuses would report this as a generic 400, which
+        // is the defect this library had and now maps properly.
+        //
+        // It is not the 409 the prose describes (a reused operation_id, which does not collide at
+        // submit time). It is a state-based rejection: retrying a batch_retain parent whose
+        // children have all completed. Repeating the call reproduces it every time.
+        using var client = LiveServer.CreateClient();
+        await using var cleanup = new BankCleanup();
+        var bankId = cleanup.Track(LiveServer.NewBankId("conflict"));
+
+        await client.CreateOrUpdateBankAsync(bankId, new CreateBankRequest(), CancellationToken.None);
+
+        var submitted = await client.RetainMemoriesAsync(
+            bankId,
+            new RetainRequest
+            {
+                Items = [new MemoryItem { Content = HindsightMemoryContent.FromText("a fact to retain") }],
+                Async = true,
+            },
+            CancellationToken.None);
+
+        Assert.NotNull(submitted.OperationId);
+
+        // Wait for it to complete, because the rejection is state-based.
+        var deadline = DateTimeOffset.UtcNow.AddMinutes(2);
+        var status = "pending";
+        while (DateTimeOffset.UtcNow < deadline && status is "pending" or "running" or "processing")
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3), CancellationToken.None);
+            var operation = await client.GetOperationStatusAsync(bankId, submitted.OperationId!, null, CancellationToken.None);
+            status = operation.Status ?? "pending";
+        }
+
+        var exception = await Assert.ThrowsAsync<HindsightConflictException>(
+            () => client.RetryOperationAsync(bankId, submitted.OperationId!, CancellationToken.None));
+
+        Assert.Equal(409, exception.StatusCode);
+
+        // The body is actionable: it names the alternative rather than only refusing.
+        Assert.Contains("no incomplete sub-batches", exception.ResponseBody, StringComparison.OrdinalIgnoreCase);
+
+        // And it reproduces, so this is a state rejection rather than a race.
+        var again = await Assert.ThrowsAsync<HindsightConflictException>(
+            () => client.RetryOperationAsync(bankId, submitted.OperationId!, CancellationToken.None));
+        Assert.Equal(409, again.StatusCode);
+    }
+
     [LiveServerFact]
     public async Task A_deliberately_invalid_credential_is_ACCEPTED_by_the_default_deployment()
     {
