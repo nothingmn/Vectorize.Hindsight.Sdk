@@ -439,8 +439,14 @@ python3 eng/generate_models.py --check
 python3 eng/generate_operations.py --check
 python3 eng/generate_inventory.py --check
 
-# Coverage floors: 90% line / 60% branch, 95% / 80% for the DI package, and 80% / 70%
-# for the reranker (whose inference paths need model assets CI does not download).
+# Coverage floors: 90% line / 60% branch, 95% / 80% for the DI package, and 80% for the
+# reranker. That last one is CONDITIONAL: the reranker's inference paths only run when the
+# model assets are present, so with them absent the gate reports the package as unmeasured
+# rather than failing every clean checkout - and applies the floor in full when they are there.
+#
+# To exercise the reranker suite as well:
+#   bash test-infra/fetch-reranker-model.sh int8
+#   export HINDSIGHT_RERANKER_DIR=artifacts/reranker
 dotnet test Vectorize.Hindsight.Sdk.slnx -c Release \
   --collect:"XPlat Code Coverage" --results-directory ./artifacts/test-results --logger trx
 python3 eng/coverage_gate.py

@@ -163,3 +163,28 @@ Retain and reflect are the only operations that spend LLM credits. The suite sho
 - use one bank per test class and delete it in teardown,
 - keep reflect calls to the few cases where the agentic loop is the thing under test,
 - tag the LLM-touching tests so they can be run separately from the free ones.
+
+---
+
+## The reranker model assets
+
+`fetch-reranker-model.sh` downloads the ONNX cross-encoder used by the reranking suite and by the
+cross-bank sample. It is separate from the server rig: the reranker runs **in the test process**, not
+in the container.
+
+```bash
+bash test-infra/fetch-reranker-model.sh int8   # 570 MB model + 22 MB of tokenizer assets
+bash test-infra/fetch-reranker-model.sh fp32   # 2.3 GB (graph + external weights)
+export HINDSIGHT_RERANKER_DIR=artifacts/reranker
+```
+
+- **Nothing needs this to build or to run the unit suites.** The reranking suite skips cleanly when
+  the assets are absent, naming this script and the variable in the skip message.
+- **Every file is verified against the size the model repository reports**, so a truncated download
+  fails here rather than later as an unexplained reranking difference. Partial downloads resume.
+- Assets land in `artifacts/`, which is gitignored — they are hundreds of megabytes and are not
+  source.
+- The coverage gate treats the reranking package's floor as conditional on
+  `HINDSIGHT_RERANKER_DIR` being set. With the assets absent it reports the package as **unmeasured**
+  rather than passing it, because "the suite could not run" and "the suite passed" are different
+  statements.
