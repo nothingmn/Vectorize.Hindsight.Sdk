@@ -74,6 +74,14 @@ run "Build (Release)" \
 
 if [[ "$QUICK" -eq 0 ]]; then
   run "Test with coverage" \
+    # Purge first: dotnet test appends a new run directory on every invocation, and a
+    # stale one would have the coverage gate merge a history of runs rather than the
+    # current one - inflating the test count and keeping a no-longer-covered package
+    # in the report. CI gets this for free from a fresh checkout; locally it must be
+    # explicit, or the numbers stop describing the code.
+    rm -rf ./artifacts/test-results
+    mkdir -p ./artifacts/test-results
+
     dotnet test Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build \
       --collect:"XPlat Code Coverage" \
       --results-directory ./artifacts/test-results \

@@ -186,7 +186,18 @@ def exempt_lines_for(normalized_filename: str) -> dict[int, str]:
 
 
 def find_reports(pattern: str) -> list[Path]:
-    """Returns every coverage report matching the pattern, oldest first."""
+    """Returns every coverage report matching the pattern, oldest first.
+
+    Callers are expected to have cleared the results directory first, which is
+    what CI does by running in a fresh checkout and what `ci_local.sh` does
+    before invoking `dotnet test`. That matters: `dotnet test` writes each run
+    into its own directory, and each test project inside a run into another, so
+    an accumulated `artifacts/` holds a history rather than one observation.
+    Merging a history would count one suite's tests repeatedly — a count that
+    grows with every invocation and stops being a statement about the code.
+    Purging makes "merge everything here" correct by construction, which is
+    more trustworthy than guessing which directories belong to one run.
+    """
     matches = sorted(glob.glob(pattern, recursive=True))
 
     if not matches:

@@ -6,4 +6,5 @@
   <Project Path="tests/Vectorize.Hindsight.Sdk.Tests/Vectorize.Hindsight.Sdk.Tests.csproj" />
   <Project Path="tests/Vectorize.Hindsight.Sdk.IntegrationTests/Vectorize.Hindsight.Sdk.IntegrationTests.csproj" />
   <Project Path="samples/Vectorize.Hindsight.Sdk.Sample/Vectorize.Hindsight.Sdk.Sample.csproj" />
+  <Project Path="samples/Vectorize.Hindsight.Sdk.CrossBankSample/Vectorize.Hindsight.Sdk.CrossBankSample.csproj" />
 </Solution>

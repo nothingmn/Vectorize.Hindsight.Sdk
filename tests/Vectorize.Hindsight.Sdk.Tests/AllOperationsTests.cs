@@ -285,12 +285,24 @@ public sealed class AllOperationsTests
         // suite is not extended, the new method is compiled but never executed, and its
         // correctness rests on compilation alone. Comparing the method count against
         // the number invoked here is what makes that visible.
-        var publicAsync = typeof(HindsightClient)
+        var methods = typeof(HindsightClient)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-            .Count(m => m.Name.EndsWith("Async", StringComparison.Ordinal));
+            .Where(m => m.Name.EndsWith("Async", StringComparison.Ordinal))
+            .ToList();
+
+        // Compositions - methods built on top of other operations rather than corresponding to
+        // one operation in the spec - declare themselves and are counted separately. Recall
+        // across banks is a fan-out over recall, not an operation the spec defines. Excluding
+        // them by name instead would let a genuinely new operation slip past this guard.
+        var operations = methods
+            .Where(m => !m.IsDefined(typeof(HindsightCompositionAttribute), inherit: false))
+            .ToList();
+
+        var compositions = methods.Except(operations).ToList();
 
         // 85 generated plus 2 hand-written multipart.
-        Assert.Equal(87, publicAsync);
+        Assert.Equal(87, operations.Count);
+        Assert.Equal(2, compositions.Count);
 
         await Task.CompletedTask;
     }

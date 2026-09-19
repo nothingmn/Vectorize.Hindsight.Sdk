@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Vectorize.Hindsight.Sdk.CrossBankSample</RootNamespace>
+    <AssemblyName>Vectorize.Hindsight.Sdk.CrossBankSample</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Vectorize.Hindsight.Sdk/Vectorize.Hindsight.Sdk.csproj" />
+  </ItemGroup>
+
+</Project>

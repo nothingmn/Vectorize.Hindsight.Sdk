@@ -291,6 +291,7 @@ passing vacuously. A companion test verifies the 7 deprecated operations are gen
 | Non-deprecated operations covered | 87 of 87 |
 | Generated | 85 (grouped by the spec's own tags) |
 | Hand-written | 2 multipart uploads |
+| Compositions | 2 (`RecallAcrossBanksAsync` overloads), excluded from the count |
 | Deliberately excluded | 7 deprecated, named individually in `docs/api-surface.md` |
 | Component schemas modelled | 181 of 181 |
 
@@ -305,6 +306,68 @@ Out of scope by decision, and named so the claim is auditable: `get_bank_profile
 `update_bank_disposition`, `add_bank_background`, `export_documents_sync_removed`,
 `import_documents`, `export_documents`, `regenerate_entity_observations`. Each has a live
 replacement among the 87 (except the last, which has none declared), so no capability is lost.
+
+### Recall across banks
+
+`RecallAcrossBanksAsync` is a **composition**, not an operation: it fans out to every bank you
+name, concurrently, and merges the results with their provenance intact. It is marked with
+`HindsightCompositionAttribute` so the operation count above still means what it says.
+
+```
+User query ──┬─ Bank A ─ recall ─┐
+             ├─ Bank B ─ recall ─┼─→ candidates → merge → ordered context
+             └─ Bank C ─ recall ─┘
+```
+
+The banks stay isolated for storage and permissions; relevance across them is decided per query.
+There is **no reranker** — merging is a policy this library can defend, and relevance over the
+combined set is left to the model the candidates are handed to.
+
+```csharp
+var result = await client.RecallAcrossBanksAsync(
+    "what do we know about the billing migration?",
+    ["bank-personal", "bank-team", "bank-archive"],
+    new CrossBankRecallOptions { PerBankLimit = 10, MaxCandidates = 20 },
+    cancellationToken);
+
+Console.WriteLine(result.ToContext());            // [SOURCE bank-team | result …] …
+foreach (var bank in result.Failures)             // a bank that failed, not silently dropped
+{
+    Console.WriteLine($"{bank.BankId}: {bank.Failure?.Message}");
+}
+```
+
+What it deliberately does **not** do:
+
+- **No score comparison across banks.** Each bank's native score ranks candidates within its own
+  pipeline and content distribution. The default order takes one candidate from each bank in
+  turn, following each bank's own ranking — the only order that assumes nothing. Every candidate
+  keeps `RetrievalScore`, `Rank` and `PolicyWeight` as *separate* fields, so a surprising order
+  can be traced to the field that caused it.
+- **No reordering by policy weight.** A per-bank weight is carried on the candidate, never
+  applied, because weighting that "represents an intentional policy" and weighting that
+  "compensates blindly for retrieval-score differences" look identical to a library. The caller
+  decides; the library records.
+- **No semantic deduplication.** Only identity is collapsed. Two differently-worded facts are
+  never merged — deciding they are the same fact is the model's judgement, not the library's.
+
+Two traps, both found by running against a real server and both now covered by tests:
+
+- **Recall against a bank that does not exist returns HTTP 200 with an empty result set**, not an
+  error. A nonexistent bank is therefore indistinguishable from an empty one, and a typo in a bank
+  id looks exactly like a bank with nothing relevant in it. Set `ValidateBanksExist` to turn that
+  into a reported failure.
+- **Neither `id` nor `chunk_id` is usable as a cross-bank content identity.** `chunk_id` is
+  literally `{bank_id}_{document_id}_{n}`, so the same document in two banks yields two different
+  chunk ids; `id` is a per-bank UUID. A deduplication key built on either could never match, which
+  would leave deduplication silently dead rather than visibly broken. The library matches on
+  document plus normalized text instead.
+
+Run it against the rig with:
+
+```bash
+dotnet run --project samples/Vectorize.Hindsight.Sdk.CrossBankSample
+```
 
 ---
 
@@ -410,6 +473,7 @@ Stated plainly rather than left implicit:
 src/Vectorize.Hindsight.Sdk/                     the HTTP client
   Models/                                        generated DTOs (181) + HindsightValues
   Operations/                                    generated operations (15 files, tagged)
+  CrossBank/                                     recall across banks: fan-out, merge, provenance
   Unions/                                        the four hand-written unions + converters
   Http/                                          transport, JSON, retry policy
   Errors/                                        the exception surface
@@ -422,6 +486,7 @@ tests/Vectorize.Hindsight.Sdk.Tests/             unit suite (no network, no cred
 tests/Vectorize.Hindsight.Sdk.Admin.Tests/       admin bridge (stub, real-process, and live levels)
 tests/Vectorize.Hindsight.Sdk.IntegrationTests/  live suite + the coverage assertions
 samples/Vectorize.Hindsight.Sdk.Sample/          runnable example
+samples/Vectorize.Hindsight.Sdk.CrossBankSample/ multi-bank recall against the rig
 eng/                                             generators, gates, and CI helpers
 .github/workflows/                               build and release pipelines
 spec/                                            the pinned OpenAPI specification
