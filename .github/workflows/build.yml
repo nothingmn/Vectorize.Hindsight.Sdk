@@ -27,22 +27,23 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Restore
-        run: dotnet restore Vectorize.Hindsight.Sdk.slnx
-
-      # The generated model layer and the generated operations are committed, and
-      # `--check` fails if either has drifted from spec/openapi.json. This runs
-      # BEFORE the build so a stale generated file is caught here rather than
-      # producing a confusing compile error against the wrong shape.
-      - name: Check generated models are up to date
+      # Generated code must match the specification. This runs BEFORE the build so a
+      # stale generated file is caught as a drift rather than as whatever compile error
+      # it happens to produce.
+      - name: Check generated models are in sync with the spec
         run: python3 eng/generate_models.py --check
 
-      - name: Check generated operations are up to date
+      - name: Check generated operations are in sync with the spec
         run: python3 eng/generate_operations.py --check
+
+      - name: Restore
+        run: dotnet restore Vectorize.Hindsight.Sdk.slnx
 
       - name: Build
         run: dotnet build Vectorize.Hindsight.Sdk.slnx --configuration Release --no-restore
 
+      # The integration suite skips itself when no server is present, reporting the reason
+      # rather than failing. The unit suite needs neither network nor credentials.
       - name: Test
         run: dotnet test Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build
              --collect:"XPlat Code Coverage"
