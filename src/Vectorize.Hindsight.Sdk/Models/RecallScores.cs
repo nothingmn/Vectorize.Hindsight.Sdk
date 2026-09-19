@@ -26,7 +26,7 @@ public sealed partial class RecallScores
     /// Final ranking score (combined reranker + recency/temporal/proof boosts)
     /// </summary>
     [JsonPropertyName("final")]
-    public required double Final { get; set; }
+    public double? Final { get; set; }
 
     /// <summary>
     /// Cross-encoder relevance, normalized 0-1. None when the reranker is a passthrough (rrf/interleave modes).

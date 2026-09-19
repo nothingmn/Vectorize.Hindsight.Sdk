@@ -17,5 +17,5 @@ public sealed partial class KnowledgeTreeResponse
 {
 
     [JsonPropertyName("roots")]
-    public required List<KnowledgeNode> Roots { get; set; }
+    public List<KnowledgeNode> Roots { get; set; } = [];
 }

@@ -17,17 +17,17 @@ public sealed partial class BankListResponse
 {
 
     [JsonPropertyName("banks")]
-    public required List<BankListItem> Banks { get; set; }
+    public List<BankListItem> Banks { get; set; } = [];
 
     /// <summary>
     /// Total number of banks visible to the caller, ignoring `limit`/`offset`.
     /// </summary>
     [JsonPropertyName("total")]
-    public required int Total { get; set; }
+    public int? Total { get; set; }
 
     [JsonPropertyName("limit")]
-    public required int Limit { get; set; }
+    public int? Limit { get; set; }
 
     [JsonPropertyName("offset")]
-    public required int Offset { get; set; }
+    public int? Offset { get; set; }
 }

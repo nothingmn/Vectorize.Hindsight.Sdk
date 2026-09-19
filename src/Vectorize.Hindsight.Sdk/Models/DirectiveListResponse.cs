@@ -17,23 +17,23 @@ public sealed partial class DirectiveListResponse
 {
 
     [JsonPropertyName("items")]
-    public required List<DirectiveResponse> Items { get; set; }
+    public List<DirectiveResponse> Items { get; set; } = [];
 
     /// <summary>
     /// Total number of directives matching the filter (not just this page)
     /// </summary>
     [JsonPropertyName("total")]
-    public required int Total { get; set; }
+    public int? Total { get; set; }
 
     /// <summary>
     /// Page size that was applied
     /// </summary>
     [JsonPropertyName("limit")]
-    public required int Limit { get; set; }
+    public int? Limit { get; set; }
 
     /// <summary>
     /// Offset that was applied
     /// </summary>
     [JsonPropertyName("offset")]
-    public required int Offset { get; set; }
+    public int? Offset { get; set; }
 }

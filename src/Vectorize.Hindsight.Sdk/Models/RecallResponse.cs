@@ -17,7 +17,7 @@ public sealed partial class RecallResponse
 {
 
     [JsonPropertyName("results")]
-    public required List<RecallResult> Results { get; set; }
+    public List<RecallResult> Results { get; set; } = [];
 
     [JsonPropertyName("trace")]
     public Dictionary<string, JsonElement> Trace { get; set; } = [];

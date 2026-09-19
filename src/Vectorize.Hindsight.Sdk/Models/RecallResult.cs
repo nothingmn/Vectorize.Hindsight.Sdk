@@ -17,10 +17,10 @@ public sealed partial class RecallResult
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("text")]
-    public required string Text { get; set; }
+    public string? Text { get; set; }
 
     [JsonPropertyName("type")]
     public string? Type { get; set; }

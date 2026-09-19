@@ -17,13 +17,13 @@ public sealed partial class ChunkData
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("text")]
-    public required string Text { get; set; }
+    public string? Text { get; set; }
 
     [JsonPropertyName("chunk_index")]
-    public required int ChunkIndex { get; set; }
+    public int? ChunkIndex { get; set; }
 
     /// <summary>
     /// Whether the chunk text was truncated due to token limits

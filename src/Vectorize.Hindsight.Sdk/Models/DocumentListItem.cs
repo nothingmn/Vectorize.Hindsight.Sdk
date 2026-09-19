@@ -23,7 +23,7 @@ public sealed partial class DocumentListItem
     /// Document ID
     /// </summary>
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
     /// Bank the document belongs to

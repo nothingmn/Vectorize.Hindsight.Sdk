@@ -309,7 +309,13 @@ def find_trx_files(reports: list[Path], trx_glob: str) -> list[Path]:
 
 
 def count_detected_tests(trx_files: list[Path]) -> int:
-    """Sums the `total` counter across every TRX result file."""
+    """Sums the `total` counter across every TRX result file.
+
+    The TRX document declares the VisualStudio TeamTest XML namespace, so elements
+    carry a `{namespace}Counters` tag rather than a bare `Counters`. Matching on
+    the tag name with `endswith` is what makes this work regardless of the exact
+    namespace the runner emits.
+    """
     total = 0
 
     for trx in trx_files:
@@ -319,8 +325,9 @@ def count_detected_tests(trx_files: list[Path]) -> int:
             print(f"::warning::Could not parse TRX file {trx}: {error}")
             continue
 
-        for counters in root.iter("Counters"):
-            total += int(counters.get("total") or 0)
+        for element in root.iter():
+            if isinstance(element.tag, str) and element.tag.endswith("Counters"):
+                total += int(element.get("total") or 0)
 
     return total
 

@@ -17,16 +17,16 @@ public sealed partial class KnowledgePageResponse
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("name")]
-    public required string Name { get; set; }
+    public string? Name { get; set; }
 
     /// <summary>
     /// Page type — from a `type:&lt;x&gt;` tag, else 'knowledge-page'.
     /// </summary>
     [JsonPropertyName("type")]
-    public required string Type { get; set; }
+    public string? Type { get; set; }
 
     /// <summary>
     /// The source query that rebuilds the page.
@@ -53,5 +53,5 @@ public sealed partial class KnowledgePageResponse
     /// The full markdown document: YAML frontmatter + markdown body.
     /// </summary>
     [JsonPropertyName("markdown")]
-    public required string Markdown { get; set; }
+    public string? Markdown { get; set; }
 }

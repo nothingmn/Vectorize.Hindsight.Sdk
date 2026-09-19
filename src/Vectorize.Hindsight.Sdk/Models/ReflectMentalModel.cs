@@ -20,13 +20,13 @@ public sealed partial class ReflectMentalModel
     /// Mental model ID
     /// </summary>
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
     /// Mental model content
     /// </summary>
     [JsonPropertyName("text")]
-    public required string Text { get; set; }
+    public string? Text { get; set; }
 
     /// <summary>
     /// Additional context

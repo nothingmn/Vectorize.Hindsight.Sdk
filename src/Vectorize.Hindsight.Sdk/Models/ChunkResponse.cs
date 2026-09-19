@@ -17,22 +17,22 @@ public sealed partial class ChunkResponse
 {
 
     [JsonPropertyName("chunk_id")]
-    public required string ChunkId { get; set; }
+    public string? ChunkId { get; set; }
 
     [JsonPropertyName("document_id")]
-    public required string DocumentId { get; set; }
+    public string? DocumentId { get; set; }
 
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     [JsonPropertyName("chunk_index")]
-    public required int ChunkIndex { get; set; }
+    public int? ChunkIndex { get; set; }
 
     [JsonPropertyName("chunk_text")]
-    public required string ChunkText { get; set; }
+    public string? ChunkText { get; set; }
 
     [JsonPropertyName("created_at")]
-    public required string CreatedAt { get; set; }
+    public string? CreatedAt { get; set; }
 
     /// <summary>
     /// Attachments referenced by this chunk's text, when it was retained with inline content. Each carries a bank-scoped `url` serving the original bytes. Omitted when there are none.

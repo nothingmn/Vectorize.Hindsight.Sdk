@@ -17,11 +17,11 @@ public sealed partial class ReprocessDocumentResponse
 {
 
     [JsonPropertyName("success")]
-    public required bool Success { get; set; }
+    public bool? Success { get; set; }
 
     [JsonPropertyName("operation_id")]
-    public required string OperationId { get; set; }
+    public string? OperationId { get; set; }
 
     [JsonPropertyName("items_count")]
-    public required int ItemsCount { get; set; }
+    public int? ItemsCount { get; set; }
 }

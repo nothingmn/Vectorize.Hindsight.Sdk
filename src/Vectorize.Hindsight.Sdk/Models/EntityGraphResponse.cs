@@ -17,17 +17,17 @@ public sealed partial class EntityGraphResponse
 {
 
     [JsonPropertyName("nodes")]
-    public required List<EntityGraphNode> Nodes { get; set; }
+    public List<EntityGraphNode> Nodes { get; set; } = [];
 
     [JsonPropertyName("edges")]
-    public required List<EntityGraphEdge> Edges { get; set; }
+    public List<EntityGraphEdge> Edges { get; set; } = [];
 
     [JsonPropertyName("total_entities")]
-    public required int TotalEntities { get; set; }
+    public int? TotalEntities { get; set; }
 
     [JsonPropertyName("total_edges")]
-    public required int TotalEdges { get; set; }
+    public int? TotalEdges { get; set; }
 
     [JsonPropertyName("limit")]
-    public required int Limit { get; set; }
+    public int? Limit { get; set; }
 }

@@ -17,22 +17,22 @@ public sealed partial class WebhookDeliveryResponse
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("webhook_id")]
     public string? WebhookId { get; set; }
 
     [JsonPropertyName("url")]
-    public required string Url { get; set; }
+    public string? Url { get; set; }
 
     [JsonPropertyName("event_type")]
-    public required string EventType { get; set; }
+    public string? EventType { get; set; }
 
     [JsonPropertyName("status")]
-    public required string Status { get; set; }
+    public string? Status { get; set; }
 
     [JsonPropertyName("attempts")]
-    public required int Attempts { get; set; }
+    public int? Attempts { get; set; }
 
     [JsonPropertyName("next_retry_at")]
     public string? NextRetryAt { get; set; }

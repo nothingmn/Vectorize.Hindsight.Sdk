@@ -17,11 +17,11 @@ public sealed partial class AuditLogStatsBucket
 {
 
     [JsonPropertyName("time")]
-    public required string Time { get; set; }
+    public string? Time { get; set; }
 
     [JsonPropertyName("actions")]
-    public required Dictionary<string, int> Actions { get; set; }
+    public Dictionary<string, int> Actions { get; set; } = [];
 
     [JsonPropertyName("total")]
-    public required int Total { get; set; }
+    public int? Total { get; set; }
 }

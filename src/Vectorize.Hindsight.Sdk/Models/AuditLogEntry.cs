@@ -17,13 +17,13 @@ public sealed partial class AuditLogEntry
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("action")]
-    public required string Action { get; set; }
+    public string? Action { get; set; }
 
     [JsonPropertyName("transport")]
-    public required string Transport { get; set; }
+    public string? Transport { get; set; }
 
     [JsonPropertyName("bank_id")]
     public string? BankId { get; set; }
@@ -47,5 +47,5 @@ public sealed partial class AuditLogEntry
     public Dictionary<string, JsonElement> Response { get; set; } = [];
 
     [JsonPropertyName("metadata")]
-    public required Dictionary<string, JsonElement> Metadata { get; set; }
+    public Dictionary<string, JsonElement> Metadata { get; set; } = [];
 }

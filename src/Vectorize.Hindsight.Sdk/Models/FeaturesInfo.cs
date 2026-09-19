@@ -20,65 +20,65 @@ public sealed partial class FeaturesInfo
     /// Whether observations (auto-consolidation) are enabled
     /// </summary>
     [JsonPropertyName("observations")]
-    public required bool Observations { get; set; }
+    public bool? Observations { get; set; }
 
     /// <summary>
     /// Whether MCP (Model Context Protocol) server is enabled
     /// </summary>
     [JsonPropertyName("mcp")]
-    public required bool Mcp { get; set; }
+    public bool? Mcp { get; set; }
 
     /// <summary>
     /// Whether the background worker is enabled
     /// </summary>
     [JsonPropertyName("worker")]
-    public required bool Worker { get; set; }
+    public bool? Worker { get; set; }
 
     /// <summary>
     /// Whether per-bank configuration API is enabled
     /// </summary>
     [JsonPropertyName("bank_config_api")]
-    public required bool BankConfigApi { get; set; }
+    public bool? BankConfigApi { get; set; }
 
     /// <summary>
     /// Whether the per-bank LLM connectivity probe is enabled
     /// </summary>
     [JsonPropertyName("bank_llm_health")]
-    public required bool BankLlmHealth { get; set; }
+    public bool? BankLlmHealth { get; set; }
 
     /// <summary>
     /// Whether file upload/conversion API is enabled
     /// </summary>
     [JsonPropertyName("file_upload_api")]
-    public required bool FileUploadApi { get; set; }
+    public bool? FileUploadApi { get; set; }
 
     /// <summary>
     /// Whether the document export endpoint is enabled
     /// </summary>
     [JsonPropertyName("document_export_api")]
-    public required bool DocumentExportApi { get; set; }
+    public bool? DocumentExportApi { get; set; }
 
     /// <summary>
     /// Whether the document import endpoint is enabled
     /// </summary>
     [JsonPropertyName("document_import_api")]
-    public required bool DocumentImportApi { get; set; }
+    public bool? DocumentImportApi { get; set; }
 
     /// <summary>
     /// Whether audit logging is enabled by default (overridable per bank)
     /// </summary>
     [JsonPropertyName("audit_log")]
-    public required bool AuditLog { get; set; }
+    public bool? AuditLog { get; set; }
 
     /// <summary>
     /// Whether per-bank LLM request tracing is enabled
     /// </summary>
     [JsonPropertyName("llm_trace")]
-    public required bool LlmTrace { get; set; }
+    public bool? LlmTrace { get; set; }
 
     /// <summary>
     /// Whether raw source text is persisted. When false, document/chunk source text is not stored.
     /// </summary>
     [JsonPropertyName("store_document_text")]
-    public required bool StoreDocumentText { get; set; }
+    public bool? StoreDocumentText { get; set; }
 }

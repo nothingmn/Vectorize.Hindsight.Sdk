@@ -17,7 +17,7 @@ public sealed partial class BackgroundResponse
 {
 
     [JsonPropertyName("mission")]
-    public required string Mission { get; set; }
+    public string? Mission { get; set; }
 
     /// <summary>
     /// Deprecated: same as mission

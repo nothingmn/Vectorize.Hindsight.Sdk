@@ -23,7 +23,7 @@ public sealed partial class ReflectFact
     /// Fact text. When type='observation', this contains markdown-formatted consolidated knowledge
     /// </summary>
     [JsonPropertyName("text")]
-    public required string Text { get; set; }
+    public string? Text { get; set; }
 
     [JsonPropertyName("type")]
     public string? Type { get; set; }

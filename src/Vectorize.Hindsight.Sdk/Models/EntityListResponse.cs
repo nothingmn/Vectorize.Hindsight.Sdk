@@ -17,14 +17,14 @@ public sealed partial class EntityListResponse
 {
 
     [JsonPropertyName("items")]
-    public required List<EntityListItem> Items { get; set; }
+    public List<EntityListItem> Items { get; set; } = [];
 
     [JsonPropertyName("total")]
-    public required int Total { get; set; }
+    public int? Total { get; set; }
 
     [JsonPropertyName("limit")]
-    public required int Limit { get; set; }
+    public int? Limit { get; set; }
 
     [JsonPropertyName("offset")]
-    public required int Offset { get; set; }
+    public int? Offset { get; set; }
 }

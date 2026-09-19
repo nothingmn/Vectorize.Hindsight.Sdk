@@ -17,11 +17,11 @@ public sealed partial class EntityStateResponse
 {
 
     [JsonPropertyName("entity_id")]
-    public required string EntityId { get; set; }
+    public string? EntityId { get; set; }
 
     [JsonPropertyName("canonical_name")]
-    public required string CanonicalName { get; set; }
+    public string? CanonicalName { get; set; }
 
     [JsonPropertyName("observations")]
-    public required List<EntityObservationResponse> Observations { get; set; }
+    public List<EntityObservationResponse> Observations { get; set; } = [];
 }

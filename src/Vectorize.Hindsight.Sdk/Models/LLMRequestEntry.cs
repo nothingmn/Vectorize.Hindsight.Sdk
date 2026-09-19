@@ -17,7 +17,7 @@ public sealed partial class LLMRequestEntry
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("bank_id")]
     public string? BankId { get; set; }
@@ -44,7 +44,7 @@ public sealed partial class LLMRequestEntry
     public string? Model { get; set; }
 
     [JsonPropertyName("status")]
-    public required string Status { get; set; }
+    public string? Status { get; set; }
 
     [JsonPropertyName("started_at")]
     public string? StartedAt { get; set; }
@@ -77,8 +77,8 @@ public sealed partial class LLMRequestEntry
     public string? Error { get; set; }
 
     [JsonPropertyName("llm_info")]
-    public required Dictionary<string, JsonElement> LlmInfo { get; set; }
+    public Dictionary<string, JsonElement> LlmInfo { get; set; } = [];
 
     [JsonPropertyName("metadata")]
-    public required Dictionary<string, JsonElement> Metadata { get; set; }
+    public Dictionary<string, JsonElement> Metadata { get; set; } = [];
 }

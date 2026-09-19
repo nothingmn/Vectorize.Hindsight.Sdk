@@ -17,23 +17,23 @@ public sealed partial class WebhookListResponse
 {
 
     [JsonPropertyName("items")]
-    public required List<WebhookResponse> Items { get; set; }
+    public List<WebhookResponse> Items { get; set; } = [];
 
     /// <summary>
     /// Total number of webhooks on the bank (ignores limit/offset)
     /// </summary>
     [JsonPropertyName("total")]
-    public required int Total { get; set; }
+    public int? Total { get; set; }
 
     /// <summary>
     /// Maximum number of webhooks returned in this page
     /// </summary>
     [JsonPropertyName("limit")]
-    public required int Limit { get; set; }
+    public int? Limit { get; set; }
 
     /// <summary>
     /// Offset this page started at
     /// </summary>
     [JsonPropertyName("offset")]
-    public required int Offset { get; set; }
+    public int? Offset { get; set; }
 }

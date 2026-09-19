@@ -20,19 +20,19 @@ public sealed partial class MemoryGraphEdgeData
     /// Edge ID (``&lt;source&gt;-&lt;target&gt;-&lt;linkType&gt;``)
     /// </summary>
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
     /// Source memory unit ID
     /// </summary>
     [JsonPropertyName("source")]
-    public required string Source { get; set; }
+    public string? Source { get; set; }
 
     /// <summary>
     /// Target memory unit ID
     /// </summary>
     [JsonPropertyName("target")]
-    public required string Target { get; set; }
+    public string? Target { get; set; }
 
     /// <summary>
     /// Link kind: 'entity', 'semantic', 'temporal', ...

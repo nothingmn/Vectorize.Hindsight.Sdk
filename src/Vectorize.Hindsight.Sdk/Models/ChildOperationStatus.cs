@@ -17,10 +17,10 @@ public sealed partial class ChildOperationStatus
 {
 
     [JsonPropertyName("operation_id")]
-    public required string OperationId { get; set; }
+    public string? OperationId { get; set; }
 
     [JsonPropertyName("status")]
-    public required string Status { get; set; }
+    public string? Status { get; set; }
 
     [JsonPropertyName("sub_batch_index")]
     public int? SubBatchIndex { get; set; }

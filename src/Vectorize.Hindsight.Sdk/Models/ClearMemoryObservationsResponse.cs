@@ -17,5 +17,5 @@ public sealed partial class ClearMemoryObservationsResponse
 {
 
     [JsonPropertyName("deleted_count")]
-    public required int DeletedCount { get; set; }
+    public int? DeletedCount { get; set; }
 }

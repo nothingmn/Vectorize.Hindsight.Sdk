@@ -30,7 +30,7 @@ public sealed partial class MentalModelRefreshScope
     /// Resolved tag match mode.
     /// </summary>
     [JsonPropertyName("tags_match")]
-    public required string TagsMatch { get; set; }
+    public string? TagsMatch { get; set; }
 
     /// <summary>
     /// Compound tag expressions used instead of flat tags, when set.
@@ -48,7 +48,7 @@ public sealed partial class MentalModelRefreshScope
     /// Whether other mental models were excluded from the reflect loop.
     /// </summary>
     [JsonPropertyName("exclude_mental_models")]
-    public required bool ExcludeMentalModels { get; set; }
+    public bool? ExcludeMentalModels { get; set; }
 
     /// <summary>
     /// Mental models excluded by ID (always includes the model being refreshed).

@@ -17,5 +17,5 @@ public sealed partial class MemoryGraphEdge
 {
 
     [JsonPropertyName("data")]
-    public required MemoryGraphEdgeData Data { get; set; }
+    public MemoryGraphEdgeData? Data { get; set; }
 }

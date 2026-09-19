@@ -17,5 +17,5 @@ public sealed partial class KnowledgePageBundleResponse
 {
 
     [JsonPropertyName("files")]
-    public required List<KnowledgePageBundleFile> Files { get; set; }
+    public List<KnowledgePageBundleFile> Files { get; set; } = [];
 }

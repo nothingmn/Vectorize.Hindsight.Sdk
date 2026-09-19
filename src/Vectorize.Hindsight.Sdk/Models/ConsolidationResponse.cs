@@ -20,7 +20,7 @@ public sealed partial class ConsolidationResponse
     /// ID of the async consolidation operation
     /// </summary>
     [JsonPropertyName("operation_id")]
-    public required string OperationId { get; set; }
+    public string? OperationId { get; set; }
 
     /// <summary>
     /// True if an existing pending task was reused

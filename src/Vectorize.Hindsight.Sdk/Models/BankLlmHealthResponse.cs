@@ -22,11 +22,11 @@ public sealed partial class BankLlmHealthResponse
     /// Bank identifier
     /// </summary>
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     /// <summary>
     /// Connectivity status per operation (retain, consolidation, reflect)
     /// </summary>
     [JsonPropertyName("operations")]
-    public required List<LlmOperationHealth> Operations { get; set; }
+    public List<LlmOperationHealth> Operations { get; set; } = [];
 }

@@ -20,5 +20,5 @@ public sealed partial class FileRetainResponse
     /// Operation IDs for tracking file conversion operations. Use GET /v1/default/banks/{bank_id}/operations to list operations.
     /// </summary>
     [JsonPropertyName("operation_ids")]
-    public required List<string> OperationIds { get; set; }
+    public List<string> OperationIds { get; set; } = [];
 }

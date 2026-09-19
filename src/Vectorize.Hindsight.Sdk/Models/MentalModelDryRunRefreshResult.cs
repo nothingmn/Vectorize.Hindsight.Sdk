@@ -26,25 +26,25 @@ public sealed partial class MentalModelDryRunRefreshResult
     /// The mental model previewed.
     /// </summary>
     [JsonPropertyName("mental_model_id")]
-    public required string MentalModelId { get; set; }
+    public string? MentalModelId { get; set; }
 
     /// <summary>
     /// Display name of the mental model.
     /// </summary>
     [JsonPropertyName("name")]
-    public required string Name { get; set; }
+    public string? Name { get; set; }
 
     /// <summary>
     /// The mode asked for (from the model's trigger, or overridden).
     /// </summary>
     [JsonPropertyName("requested_mode")]
-    public required string RequestedMode { get; set; }
+    public string? RequestedMode { get; set; }
 
     /// <summary>
     /// The mode the refresh actually ran in.
     /// </summary>
     [JsonPropertyName("effective_mode")]
-    public required string EffectiveMode { get; set; }
+    public string? EffectiveMode { get; set; }
 
     /// <summary>
     /// Why delta was requested but not applied, if that happened.
@@ -56,31 +56,31 @@ public sealed partial class MentalModelDryRunRefreshResult
     /// What a real refresh would do with the document.
     /// </summary>
     [JsonPropertyName("outcome")]
-    public required string Outcome { get; set; }
+    public string? Outcome { get; set; }
 
     /// <summary>
     /// Whether a real refresh would write new content.
     /// </summary>
     [JsonPropertyName("would_persist")]
-    public required bool WouldPersist { get; set; }
+    public bool? WouldPersist { get; set; }
 
     /// <summary>
     /// The resolved memory scope.
     /// </summary>
     [JsonPropertyName("scope")]
-    public required MentalModelRefreshScope Scope { get; set; }
+    public MentalModelRefreshScope? Scope { get; set; }
 
     /// <summary>
     /// The snapshot window read from.
     /// </summary>
     [JsonPropertyName("window")]
-    public required MentalModelRefreshWindow Window { get; set; }
+    public MentalModelRefreshWindow? Window { get; set; }
 
     /// <summary>
     /// Facts retrieved versus actually used.
     /// </summary>
     [JsonPropertyName("facts")]
-    public required MentalModelFactCounts Facts { get; set; }
+    public MentalModelFactCounts? Facts { get; set; }
 
     /// <summary>
     /// The evidence this run would ground the document on, keyed by fact type — the same shape a refresh persists under reflect_response.based_on. Returned so a preview can show its sources without having to write them anywhere.
@@ -92,25 +92,25 @@ public sealed partial class MentalModelDryRunRefreshResult
     /// The model's content as it stands now.
     /// </summary>
     [JsonPropertyName("current_content")]
-    public required string CurrentContent { get; set; }
+    public string? CurrentContent { get; set; }
 
     /// <summary>
     /// Raw reflect synthesis, before any delta operations.
     /// </summary>
     [JsonPropertyName("candidate_content")]
-    public required string CandidateContent { get; set; }
+    public string? CandidateContent { get; set; }
 
     /// <summary>
     /// The content a real refresh would store: the delta-edited document, or the candidate in full mode.
     /// </summary>
     [JsonPropertyName("preview_content")]
-    public required string PreviewContent { get; set; }
+    public string? PreviewContent { get; set; }
 
     /// <summary>
     /// Unified diff from current_content to preview_content. Empty when identical.
     /// </summary>
     [JsonPropertyName("diff")]
-    public required string Diff { get; set; }
+    public string? Diff { get; set; }
 
     /// <summary>
     /// Structured operations emitted, in delta mode.
@@ -128,7 +128,7 @@ public sealed partial class MentalModelDryRunRefreshResult
     /// Execution trace of the run, always included for a dry run.
     /// </summary>
     [JsonPropertyName("trace")]
-    public required MentalModelRefreshTrace Trace { get; set; }
+    public MentalModelRefreshTrace? Trace { get; set; }
 
     /// <summary>
     /// Token usage across the run's LLM calls.

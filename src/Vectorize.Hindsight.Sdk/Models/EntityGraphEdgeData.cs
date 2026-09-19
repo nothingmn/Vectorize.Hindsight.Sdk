@@ -20,19 +20,19 @@ public sealed partial class EntityGraphEdgeData
     /// Edge ID (``&lt;source&gt;-&lt;target&gt;``)
     /// </summary>
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
     /// Source entity ID
     /// </summary>
     [JsonPropertyName("source")]
-    public required string Source { get; set; }
+    public string? Source { get; set; }
 
     /// <summary>
     /// Target entity ID
     /// </summary>
     [JsonPropertyName("target")]
-    public required string Target { get; set; }
+    public string? Target { get; set; }
 
     /// <summary>
     /// Kind of relationship this edge represents

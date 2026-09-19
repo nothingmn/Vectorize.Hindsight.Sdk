@@ -21,13 +21,13 @@ public sealed partial class KnowledgeNode
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("kind")]
-    public required string Kind { get; set; }
+    public string? Kind { get; set; }
 
     [JsonPropertyName("name")]
-    public required string Name { get; set; }
+    public string? Name { get; set; }
 
     [JsonPropertyName("parent_id")]
     public string? ParentId { get; set; }

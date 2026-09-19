@@ -17,17 +17,17 @@ public sealed partial class AuditLogListResponse
 {
 
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     [JsonPropertyName("total")]
-    public required int Total { get; set; }
+    public int? Total { get; set; }
 
     [JsonPropertyName("limit")]
-    public required int Limit { get; set; }
+    public int? Limit { get; set; }
 
     [JsonPropertyName("offset")]
-    public required int Offset { get; set; }
+    public int? Offset { get; set; }
 
     [JsonPropertyName("items")]
-    public required List<AuditLogEntry> Items { get; set; }
+    public List<AuditLogEntry> Items { get; set; } = [];
 }

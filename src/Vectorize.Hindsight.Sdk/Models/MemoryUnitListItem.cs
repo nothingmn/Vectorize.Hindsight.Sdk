@@ -23,7 +23,7 @@ public sealed partial class MemoryUnitListItem
     /// Memory unit ID
     /// </summary>
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
     /// The fact text

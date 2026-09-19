@@ -17,7 +17,7 @@ public sealed partial class WebhookDeliveryListResponse
 {
 
     [JsonPropertyName("items")]
-    public required List<WebhookDeliveryResponse> Items { get; set; }
+    public List<WebhookDeliveryResponse> Items { get; set; } = [];
 
     [JsonPropertyName("next_cursor")]
     public string? NextCursor { get; set; }

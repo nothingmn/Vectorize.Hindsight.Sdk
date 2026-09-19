@@ -20,13 +20,13 @@ public sealed partial class ReflectToolCall
     /// Tool name: lookup, recall, learn, expand
     /// </summary>
     [JsonPropertyName("tool")]
-    public required string Tool { get; set; }
+    public string? Tool { get; set; }
 
     /// <summary>
     /// Tool input parameters
     /// </summary>
     [JsonPropertyName("input")]
-    public required Dictionary<string, JsonElement> Input { get; set; }
+    public Dictionary<string, JsonElement> Input { get; set; } = [];
 
     /// <summary>
     /// Tool output (only included when include.tool_calls.output is true)
@@ -38,7 +38,7 @@ public sealed partial class ReflectToolCall
     /// Execution time in milliseconds
     /// </summary>
     [JsonPropertyName("duration_ms")]
-    public required int DurationMs { get; set; }
+    public int? DurationMs { get; set; }
 
     /// <summary>
     /// Iteration number (1-based) when this tool was called

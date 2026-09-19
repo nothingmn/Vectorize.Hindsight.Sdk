@@ -23,7 +23,7 @@ public sealed partial class EntityGraphNodeData
     /// Entity ID
     /// </summary>
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
     /// Entity canonical name

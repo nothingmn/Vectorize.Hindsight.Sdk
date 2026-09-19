@@ -26,11 +26,11 @@ public sealed partial class LivenessResponse
     /// Hindsight version this process is running
     /// </summary>
     [JsonPropertyName("version")]
-    public required string Version { get; set; }
+    public string? Version { get; set; }
 
     /// <summary>
     /// Seconds since the process started
     /// </summary>
     [JsonPropertyName("uptime_seconds")]
-    public required double UptimeSeconds { get; set; }
+    public double? UptimeSeconds { get; set; }
 }

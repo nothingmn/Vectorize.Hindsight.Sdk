@@ -17,13 +17,13 @@ public sealed partial class WebhookResponse
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("bank_id")]
     public string? BankId { get; set; }
 
     [JsonPropertyName("url")]
-    public required string Url { get; set; }
+    public string? Url { get; set; }
 
     /// <summary>
     /// Signing secret (redacted in responses)
@@ -32,10 +32,10 @@ public sealed partial class WebhookResponse
     public string? Secret { get; set; }
 
     [JsonPropertyName("event_types")]
-    public required List<string> EventTypes { get; set; }
+    public List<string> EventTypes { get; set; } = [];
 
     [JsonPropertyName("enabled")]
-    public required bool Enabled { get; set; }
+    public bool? Enabled { get; set; }
 
     [JsonPropertyName("http_config")]
     public WebhookHttpConfig? HttpConfig { get; set; }

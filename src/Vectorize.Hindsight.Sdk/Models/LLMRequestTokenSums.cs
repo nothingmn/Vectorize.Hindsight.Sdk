@@ -17,14 +17,14 @@ public sealed partial class LLMRequestTokenSums
 {
 
     [JsonPropertyName("input")]
-    public required int Input { get; set; }
+    public int? Input { get; set; }
 
     [JsonPropertyName("output")]
-    public required int Output { get; set; }
+    public int? Output { get; set; }
 
     [JsonPropertyName("cached")]
-    public required int Cached { get; set; }
+    public int? Cached { get; set; }
 
     [JsonPropertyName("total")]
-    public required int Total { get; set; }
+    public int? Total { get; set; }
 }

@@ -17,13 +17,13 @@ public sealed partial class OperationResponse
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("task_type")]
-    public required string TaskType { get; set; }
+    public string? TaskType { get; set; }
 
     [JsonPropertyName("items_count")]
-    public required int ItemsCount { get; set; }
+    public int? ItemsCount { get; set; }
 
     [JsonPropertyName("document_id")]
     public string? DocumentId { get; set; }
@@ -47,7 +47,7 @@ public sealed partial class OperationResponse
     public RefreshMentalModelOperationDetails? Details { get; set; }
 
     [JsonPropertyName("created_at")]
-    public required string CreatedAt { get; set; }
+    public string? CreatedAt { get; set; }
 
     /// <summary>
     /// When this operation's row last changed (claim, progress heartbeat, or completion).
@@ -56,7 +56,7 @@ public sealed partial class OperationResponse
     public string? UpdatedAt { get; set; }
 
     [JsonPropertyName("status")]
-    public required string Status { get; set; }
+    public string? Status { get; set; }
 
     [JsonPropertyName("error_message")]
     public string? ErrorMessage { get; set; }

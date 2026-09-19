@@ -17,11 +17,11 @@ public sealed partial class DeleteOperationResponse
 {
 
     [JsonPropertyName("success")]
-    public required bool Success { get; set; }
+    public bool? Success { get; set; }
 
     [JsonPropertyName("message")]
-    public required string Message { get; set; }
+    public string? Message { get; set; }
 
     [JsonPropertyName("operation_id")]
-    public required string OperationId { get; set; }
+    public string? OperationId { get; set; }
 }

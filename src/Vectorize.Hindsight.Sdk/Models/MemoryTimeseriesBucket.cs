@@ -20,7 +20,7 @@ public sealed partial class MemoryTimeseriesBucket
     /// Bucket start timestamp in ISO-8601 (UTC).
     /// </summary>
     [JsonPropertyName("time")]
-    public required string Time { get; set; }
+    public string? Time { get; set; }
 
     /// <summary>
     /// World-fact memories ingested in this bucket.

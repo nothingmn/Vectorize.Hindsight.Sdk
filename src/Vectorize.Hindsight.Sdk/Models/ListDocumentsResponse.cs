@@ -17,14 +17,14 @@ public sealed partial class ListDocumentsResponse
 {
 
     [JsonPropertyName("items")]
-    public required List<DocumentListItem> Items { get; set; }
+    public List<DocumentListItem> Items { get; set; } = [];
 
     [JsonPropertyName("total")]
-    public required int Total { get; set; }
+    public int? Total { get; set; }
 
     [JsonPropertyName("limit")]
-    public required int Limit { get; set; }
+    public int? Limit { get; set; }
 
     [JsonPropertyName("offset")]
-    public required int Offset { get; set; }
+    public int? Offset { get; set; }
 }

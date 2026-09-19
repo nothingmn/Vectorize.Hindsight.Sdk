@@ -17,19 +17,19 @@ public sealed partial class BankProfileResponse
 {
 
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     [JsonPropertyName("name")]
-    public required string Name { get; set; }
+    public string? Name { get; set; }
 
     [JsonPropertyName("disposition")]
-    public required DispositionTraits Disposition { get; set; }
+    public DispositionTraits? Disposition { get; set; }
 
     /// <summary>
     /// The agent's mission - who they are and what they're trying to accomplish
     /// </summary>
     [JsonPropertyName("mission")]
-    public required string Mission { get; set; }
+    public string? Mission { get; set; }
 
     /// <summary>
     /// Deprecated: use mission instead

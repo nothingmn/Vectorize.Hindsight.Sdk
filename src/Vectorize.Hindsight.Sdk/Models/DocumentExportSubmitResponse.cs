@@ -22,7 +22,7 @@ public sealed partial class DocumentExportSubmitResponse
 {
 
     [JsonPropertyName("operation_id")]
-    public required string OperationId { get; set; }
+    public string? OperationId { get; set; }
 
     [JsonPropertyName("status")]
     public string? Status { get; set; }

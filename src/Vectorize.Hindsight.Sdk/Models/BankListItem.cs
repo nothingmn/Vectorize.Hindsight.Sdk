@@ -17,13 +17,13 @@ public sealed partial class BankListItem
 {
 
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     [JsonPropertyName("name")]
     public string? Name { get; set; }
 
     [JsonPropertyName("disposition")]
-    public required DispositionTraits Disposition { get; set; }
+    public DispositionTraits? Disposition { get; set; }
 
     [JsonPropertyName("mission")]
     public string? Mission { get; set; }

@@ -17,19 +17,19 @@ public sealed partial class RetainResponse
 {
 
     [JsonPropertyName("success")]
-    public required bool Success { get; set; }
+    public bool? Success { get; set; }
 
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     [JsonPropertyName("items_count")]
-    public required int ItemsCount { get; set; }
+    public int? ItemsCount { get; set; }
 
     /// <summary>
     /// Whether the operation was processed asynchronously
     /// </summary>
     [JsonPropertyName("async")]
-    public required bool Async { get; set; }
+    public bool? Async { get; set; }
 
     /// <summary>
     /// Operation ID for tracking async operations. Use GET /v1/default/banks/{bank_id}/operations to list operations. Only present when async=true. When items use different per-item strategies, use operation_ids instead.

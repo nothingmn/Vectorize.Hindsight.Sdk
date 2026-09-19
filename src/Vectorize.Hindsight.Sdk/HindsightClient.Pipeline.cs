@@ -33,7 +33,10 @@ public sealed partial class HindsightClient
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var operationName = $"{request.Method} {request.PathTemplate}";
+        // PathTemplate already carries the method, so adding it again produced
+        // "GET GET /v1/..." - and this string is the span name and the metric tag,
+        // so the defect reached every telemetry surface.
+        var operationName = request.PathTemplate;
         using var activity = _telemetry.StartCall(operationName, request.Method.Method);
         var started = TimeProvider.GetTimestamp();
 
@@ -106,7 +109,10 @@ public sealed partial class HindsightClient
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var operationName = $"{request.Method} {request.PathTemplate}";
+        // PathTemplate already carries the method, so adding it again produced
+        // "GET GET /v1/..." - and this string is the span name and the metric tag,
+        // so the defect reached every telemetry surface.
+        var operationName = request.PathTemplate;
         using var activity = _telemetry.StartCall(operationName, request.Method.Method);
         var started = TimeProvider.GetTimestamp();
 
@@ -143,7 +149,10 @@ public sealed partial class HindsightClient
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var operationName = $"{request.Method} {request.PathTemplate}";
+        // PathTemplate already carries the method, so adding it again produced
+        // "GET GET /v1/..." - and this string is the span name and the metric tag,
+        // so the defect reached every telemetry surface.
+        var operationName = request.PathTemplate;
         using var activity = _telemetry.StartCall(operationName, request.Method.Method);
         var started = TimeProvider.GetTimestamp();
 

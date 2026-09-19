@@ -26,7 +26,7 @@ public sealed partial class MentalModelRefreshWindow
     /// Database-time snapshot bounding the refresh. Memories written or edited after this are not read, so they stay newer than the persisted watermark and are caught by the next refresh.
     /// </summary>
     [JsonPropertyName("created_before")]
-    public required string CreatedBefore { get; set; }
+    public string? CreatedBefore { get; set; }
 
     /// <summary>
     /// The last_memory_seen_at a real refresh would persist: the newest in-scope memory visible at the snapshot, not now(). Null means no in-scope memory was visible.

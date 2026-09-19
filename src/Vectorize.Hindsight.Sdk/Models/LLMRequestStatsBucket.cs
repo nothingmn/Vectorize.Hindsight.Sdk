@@ -17,14 +17,14 @@ public sealed partial class LLMRequestStatsBucket
 {
 
     [JsonPropertyName("time")]
-    public required string Time { get; set; }
+    public string? Time { get; set; }
 
     [JsonPropertyName("statuses")]
-    public required Dictionary<string, int> Statuses { get; set; }
+    public Dictionary<string, int> Statuses { get; set; } = [];
 
     [JsonPropertyName("total")]
-    public required int Total { get; set; }
+    public int? Total { get; set; }
 
     [JsonPropertyName("tokens")]
-    public required LLMRequestTokenSums Tokens { get; set; }
+    public LLMRequestTokenSums? Tokens { get; set; }
 }

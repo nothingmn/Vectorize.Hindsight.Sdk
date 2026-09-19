@@ -17,10 +17,10 @@ public sealed partial class OperationStatusResponse
 {
 
     [JsonPropertyName("operation_id")]
-    public required string OperationId { get; set; }
+    public string? OperationId { get; set; }
 
     [JsonPropertyName("status")]
-    public required string Status { get; set; }
+    public string? Status { get; set; }
 
     [JsonPropertyName("operation_type")]
     public string? OperationType { get; set; }

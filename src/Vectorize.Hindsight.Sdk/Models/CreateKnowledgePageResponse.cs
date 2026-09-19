@@ -17,10 +17,10 @@ public sealed partial class CreateKnowledgePageResponse
 {
 
     [JsonPropertyName("page_id")]
-    public required string PageId { get; set; }
+    public string? PageId { get; set; }
 
     [JsonPropertyName("mental_model_id")]
-    public required string MentalModelId { get; set; }
+    public string? MentalModelId { get; set; }
 
     [JsonPropertyName("operation_id")]
     public string? OperationId { get; set; }

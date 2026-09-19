@@ -17,8 +17,8 @@ public sealed partial class KnowledgePageBundleFile
 {
 
     [JsonPropertyName("path")]
-    public required string Path { get; set; }
+    public string? Path { get; set; }
 
     [JsonPropertyName("content")]
-    public required string Content { get; set; }
+    public string? Content { get; set; }
 }

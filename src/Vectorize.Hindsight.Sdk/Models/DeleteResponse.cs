@@ -17,7 +17,7 @@ public sealed partial class DeleteResponse
 {
 
     [JsonPropertyName("success")]
-    public required bool Success { get; set; }
+    public bool? Success { get; set; }
 
     [JsonPropertyName("message")]
     public string? Message { get; set; }

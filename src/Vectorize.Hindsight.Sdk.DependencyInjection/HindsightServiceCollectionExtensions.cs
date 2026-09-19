@@ -15,14 +15,23 @@ namespace Vectorize.Hindsight.Sdk.DependencyInjection;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Every default here is added with <c>TryAdd</c> semantics, so a registration the
-/// host made itself wins regardless of whether it came before or after these
-/// calls. Optional collaborators — <see cref="HttpClient"/>,
-/// <see cref="IHindsightTransport"/>, <see cref="IApiKeyProvider"/> and
-/// <see cref="ILogger{T}"/> — are resolved with <c>GetService</c> and are used
-/// when present rather than replaced. The client's options are composed from the
-/// container, so a collaborator the host registered is the one that ships on the
-/// wire; nothing here writes a null over a value the caller supplied.
+/// Every service default here is added with <c>TryAdd</c> semantics, so a
+/// registration the host made itself always wins. Optional collaborators —
+/// <see cref="HttpClient"/>, <see cref="IHindsightTransport"/>,
+/// <see cref="IApiKeyProvider"/> and <see cref="ILogger{T}"/> — are resolved with
+/// <c>GetService</c> and used when present, never replaced. The client's options
+/// are composed from the container, so a collaborator the host registered is the
+/// one that ships on the wire; nothing here writes a null over a value the
+/// caller supplied.
+/// </para>
+/// <para>
+/// Option callbacks accumulate. Calling <see cref="AddHindsight(IServiceCollection, Action{HindsightClientOptions})"/>
+/// more than once, or mixing it with
+/// <see cref="AddHindsightFromConfiguration(IServiceCollection, IConfiguration)"/>,
+/// applies every callback in registration order when the client is first
+/// resolved — so a later call refines an earlier one instead of being silently
+/// discarded, and a configuration section read after an explicit callback
+/// overrides it. Within one key the last writer wins.
 /// </para>
 /// <para>
 /// No method on this type performs I/O, and the client's constructor performs
@@ -49,36 +58,42 @@ public static class HindsightServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The collection to add to.</param>
     /// <param name="configure">
-    /// Applied to the effective options when the client is first resolved. Null
-    /// means the options are left exactly as the container supplied them.
+    /// Applied to the effective options when the client is first resolved;
+    /// callbacks from earlier or later calls are applied too, in registration
+    /// order. Null contributes nothing.
     /// </param>
     /// <returns>The same collection, for chaining.</returns>
     /// <remarks>
     /// This overload reads no configuration. The API key therefore comes from
     /// <see cref="HindsightClientOptions.ApiKey"/> or
     /// <see cref="HindsightClientOptions.ApiKeyProvider"/> as the callback sets
-    /// them, from the <c>HINDSIGHT_API_KEY</c> environment variable as a last
-    /// resort, or from an <see cref="IApiKeyProvider"/> the host registered.
-    /// Use <see cref="AddHindsightFromConfiguration(IServiceCollection, IConfiguration)"/>
+    /// them, from an <see cref="IApiKeyProvider"/> the host registered, or from
+    /// the <c>HINDSIGHT_API_KEY</c> environment variable as a last resort. Use
+    /// <see cref="AddHindsightFromConfiguration(IServiceCollection, IConfiguration)"/>
     /// when the base address or the key should come from configuration.
     /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> is null.</exception>
     public static IServiceCollection AddHindsight(
         this IServiceCollection services,
         Action<HindsightClientOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        // Singleton, so a host can inject the effective options to log or assert
-        // on them, and so the client and the host observe one instance.
+        // The effective options are a singleton, so a host can inject them to log
+        // or assert on, and so the client and the host observe one instance.
         services.TryAddSingleton(_ => new HindsightClientOptions());
 
-        // The environment provider is the seam default and is registered under
-        // its own type. The configuration overload adds an IApiKeyProvider chain
-        // that takes precedence, so calling either overload — in any order, once
-        // each or twice — resolves the same way.
+        // The environment provider is the seam default, registered under its own
+        // type. The configuration overload adds an IApiKeyProvider chain that
+        // outranks it, so either overload resolves the same way in any order.
         services.TryAddSingleton<EnvironmentApiKeyProvider>();
 
-        services.TryAddSingleton(provider => CreateClient(provider, configure));
+        services.TryAddSingleton<HindsightClient>(CreateClient);
+
+        if (configure is not null)
+        {
+            Registration(services).Add(configure);
+        }
 
         return services;
     }
@@ -90,6 +105,7 @@ public static class HindsightServiceCollectionExtensions
     /// <param name="services">The collection to add to.</param>
     /// <param name="configuration">The configuration to bind from.</param>
     /// <returns>The same collection, for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configuration"/> is null.</exception>
     /// <remarks>
     /// Values are read when the client is first resolved, not when this method is
     /// called, so a reloadable configuration is honoured. The API key is
@@ -110,6 +126,8 @@ public static class HindsightServiceCollectionExtensions
     /// <param name="configuration">The configuration to bind from.</param>
     /// <param name="sectionName">The section to bind, e.g. <c>Hindsight</c>.</param>
     /// <returns>The same collection, for chaining.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configuration"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="sectionName"/> is null, empty or blank.</exception>
     public static IServiceCollection AddHindsightFromConfiguration(
         this IServiceCollection services,
         IConfiguration configuration,
@@ -117,32 +135,32 @@ public static class HindsightServiceCollectionExtensions
         AddHindsightFromConfiguration(services, configuration, sectionName, configure: null);
 
     /// <summary>
-    /// Binds a named configuration section, applies a callback, and registers
-    /// <see cref="HindsightClient"/> as a singleton.
+    /// Binds a named configuration section, applies a callback after it, and
+    /// registers <see cref="HindsightClient"/> as a singleton.
     /// </summary>
     /// <param name="services">The collection to add to.</param>
     /// <param name="configuration">The configuration to bind from.</param>
     /// <param name="sectionName">The section to bind, e.g. <c>Hindsight</c>.</param>
     /// <param name="configure">
     /// Applied after the section, so code can override a value that came from a
-    /// file. Resolved with the caller, never null on this overload.
+    /// file. Null contributes nothing.
     /// </param>
     /// <returns>The same collection, for chaining.</returns>
     /// <remarks>
     /// <para>Recognised keys, all optional and all read case-insensitively:</para>
     /// <list type="bullet">
-    /// <item><description><c>BaseAddress</c> — absolute http or https URI.</description></item>
+    /// <item><description><c>BaseAddress</c> — an absolute http or https URI.</description></item>
     /// <item><description><c>Tenant</c> — the <c>/v1/{tenant}</c> segment.</description></item>
-    /// <item><description><c>MaxAttempts</c> — integer, at least 1.</description></item>
-    /// <item><description><c>InitialRetryDelay</c>, <c>MaxRetryDelay</c>, <c>MaxRetryAfter</c>, <c>Timeout</c> — a <see cref="TimeSpan"/> in <c>hh:mm:ss</c> form, or <c>00:00:00.500</c> for sub-second values.</description></item>
+    /// <item><description><c>MaxAttempts</c> — an integer, at least 1.</description></item>
+    /// <item><description><c>InitialRetryDelay</c>, <c>MaxRetryDelay</c>, <c>MaxRetryAfter</c>, <c>Timeout</c> — a <see cref="TimeSpan"/>, in <c>hh:mm:ss</c> form or <c>00:00:00.500</c> for sub-second values.</description></item>
     /// <item><description><c>RetryJitterFraction</c> — a number between 0 and 1.</description></item>
     /// <item><description><c>UserAgent</c> — the <c>User-Agent</c> header.</description></item>
     /// <item><description><c>ApiKey</c> — read as a credential source, never copied into the options. See the note on the key below.</description></item>
     /// </list>
     /// <para>
-    /// A recognised key that is present but unparseable is a configuration error
-    /// and throws <see cref="HindsightConfigurationException"/> naming the key,
-    /// rather than being ignored and silently leaving a default in place.
+    /// A recognised key that is present but unparseable is a configuration error:
+    /// resolution throws <see cref="HindsightConfigurationException"/> naming the
+    /// key, rather than leaving a default in place and appearing to work.
     /// </para>
     /// <para>
     /// <b>The API key.</b> A secret in a file that is routinely committed — an
@@ -152,12 +170,14 @@ public static class HindsightServiceCollectionExtensions
     /// configuration. It registers an <see cref="IApiKeyProvider"/> that reads
     /// <c>{section}:ApiKey</c> at request time, chained after
     /// <see cref="EnvironmentApiKeyProvider"/> so an <c>HINDSIGHT_API_KEY</c>
-    /// environment variable wins over the file. The key can still come from
+    /// environment variable outranks the file. The key can still come from
     /// user-secrets, an environment variable, or any configuration provider a
     /// secret store plugs in as, and the host can replace the whole ladder by
     /// registering its own <see cref="IApiKeyProvider"/>.
     /// </para>
     /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configuration"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="sectionName"/> is null, empty or blank.</exception>
     /// <exception cref="HindsightConfigurationException">
     /// A recognised key is present but cannot be parsed as its declared type.
     /// </exception>
@@ -177,7 +197,7 @@ public static class HindsightServiceCollectionExtensions
         // Registered before the client, so the singleton factory finds it: the
         // environment variable first, because process-level deployment settings
         // outrank a file, then the configuration value. A provider the host
-        // registered first is left alone, because TryAdd keeps it.
+        // registered is left alone, because TryAdd keeps it.
         services.TryAddSingleton<IApiKeyProvider>(_ => new ChainedApiKeyProvider(
             new EnvironmentApiKeyProvider(),
             new ConfigurationApiKeyProvider(configuration, apiKeyKey)));
@@ -189,21 +209,16 @@ public static class HindsightServiceCollectionExtensions
         });
     }
 
-    /// <summary>
-    /// Builds the client from the container, so registered seams are used.
-    /// </summary>
+    /// <summary>Builds the client from the container, so registered seams are used.</summary>
     /// <param name="provider">The resolving container.</param>
-    /// <param name="configure">The caller's callback, applied before the seams are filled.</param>
     /// <returns>The singleton client.</returns>
-    private static HindsightClient CreateClient(
-        IServiceProvider provider,
-        Action<HindsightClientOptions>? configure)
+    private static HindsightClient CreateClient(IServiceProvider provider)
     {
         var options = provider.GetService<HindsightClientOptions>() ?? new HindsightClientOptions();
 
-        // Applied first, so an explicit value wins over a container registration
-        // and so "did the callback set a key?" can be answered below.
-        configure?.Invoke(options);
+        // Every callback registered by any AddHindsight* call, in the order those
+        // calls were made, applied to one options instance.
+        provider.GetService<HindsightRegistration>()?.Apply(options);
 
         // Filled only when unset. A host that registered an HttpClient,
         // IHindsightTransport or IApiKeyProvider gets that one; a host that
@@ -216,11 +231,38 @@ public static class HindsightServiceCollectionExtensions
         {
             // Last resort, and only when nothing above supplied a credential: the
             // variable the vendor's other clients honour. A deployment that needs
-            // no key is unaffected, because the provider returns null.
+            // no key is unaffected, because the provider reports null.
             options.ApiKeyProvider = provider.GetService<EnvironmentApiKeyProvider>();
         }
 
         return new HindsightClient(options, provider.GetService<ILogger<HindsightClient>>());
+    }
+
+    /// <summary>
+    /// Returns the per-container callback list, creating it on the first call.
+    /// </summary>
+    /// <param name="services">The collection being configured.</param>
+    /// <returns>The shared registration, so repeated calls accumulate onto it.</returns>
+    /// <remarks>
+    /// A callback appended to a second, separate instance would never be resolved,
+    /// which is why the existing instance is recovered from the collection rather
+    /// than created again.
+    /// </remarks>
+    private static HindsightRegistration Registration(IServiceCollection services)
+    {
+        foreach (var descriptor in services)
+        {
+            if (descriptor.ServiceType == typeof(HindsightRegistration)
+                && descriptor.ImplementationInstance is HindsightRegistration existing)
+            {
+                return existing;
+            }
+        }
+
+        var created = new HindsightRegistration();
+        services.TryAddSingleton(created);
+
+        return created;
     }
 
     /// <summary>Reads the recognised keys of a section onto options.</summary>
@@ -334,5 +376,28 @@ public static class HindsightServiceCollectionExtensions
             $"Configuration key '{section.Path}:{key}' has value '{value}', which is not {expected}.";
 
         return new HindsightConfigurationException(message);
+    }
+
+    /// <summary>
+    /// The option callbacks collected across every <c>AddHindsight</c> call on one
+    /// collection, applied in registration order.
+    /// </summary>
+    private sealed class HindsightRegistration
+    {
+        private readonly List<Action<HindsightClientOptions>> _configure = [];
+
+        /// <summary>Appends a callback.</summary>
+        /// <param name="configure">The callback, invoked when the client is resolved.</param>
+        internal void Add(Action<HindsightClientOptions> configure) => _configure.Add(configure);
+
+        /// <summary>Applies every callback, in order, to one options instance.</summary>
+        /// <param name="options">The options about to be handed to the client.</param>
+        internal void Apply(HindsightClientOptions options)
+        {
+            foreach (var configure in _configure)
+            {
+                configure(options);
+            }
+        }
     }
 }

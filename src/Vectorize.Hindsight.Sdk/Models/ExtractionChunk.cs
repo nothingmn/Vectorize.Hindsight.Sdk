@@ -20,11 +20,11 @@ public sealed partial class ExtractionChunk
     /// The chunk as the extractor saw it.
     /// </summary>
     [JsonPropertyName("text")]
-    public required string Text { get; set; }
+    public string? Text { get; set; }
 
     /// <summary>
     /// How many facts came out of this chunk.
     /// </summary>
     [JsonPropertyName("fact_count")]
-    public required int FactCount { get; set; }
+    public int? FactCount { get; set; }
 }

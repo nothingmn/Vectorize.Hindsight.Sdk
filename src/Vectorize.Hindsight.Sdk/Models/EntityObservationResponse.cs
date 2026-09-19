@@ -17,7 +17,7 @@ public sealed partial class EntityObservationResponse
 {
 
     [JsonPropertyName("text")]
-    public required string Text { get; set; }
+    public string? Text { get; set; }
 
     [JsonPropertyName("mentioned_at")]
     public string? MentionedAt { get; set; }

@@ -17,7 +17,7 @@ public sealed partial class PromptMessageModel
 {
 
     [JsonPropertyName("role")]
-    public required string Role { get; set; }
+    public string? Role { get; set; }
 
     [JsonPropertyName("blocks")]
     public List<PromptBlockModel> Blocks { get; set; } = [];

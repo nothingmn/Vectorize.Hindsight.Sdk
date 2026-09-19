@@ -29,13 +29,13 @@ public sealed partial class PromptBlockModel
     /// The block's text; empty when the block is inactive.
     /// </summary>
     [JsonPropertyName("text")]
-    public required string Text { get; set; }
+    public string? Text { get; set; }
 
     /// <summary>
     /// `config` — produced by a setting (`field` names it); `builtin` — Hindsight's own wording.
     /// </summary>
     [JsonPropertyName("source")]
-    public required string Source { get; set; }
+    public string? Source { get; set; }
 
     /// <summary>
     /// Config field behind this block; empty when no single field owns it.
@@ -71,7 +71,7 @@ public sealed partial class PromptBlockModel
     /// Shape of the value, so a client can offer the right control for editing it.
     /// </summary>
     [JsonPropertyName("kind")]
-    public required string Kind { get; set; }
+    public string? Kind { get; set; }
 
     /// <summary>
     /// Allowed values, when `kind` is `choice`.

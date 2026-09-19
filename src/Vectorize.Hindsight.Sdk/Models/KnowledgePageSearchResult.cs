@@ -17,22 +17,22 @@ public sealed partial class KnowledgePageSearchResult
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("name")]
-    public required string Name { get; set; }
+    public string? Name { get; set; }
 
     [JsonPropertyName("mental_model_id")]
     public string? MentalModelId { get; set; }
 
     [JsonPropertyName("snippet")]
-    public required string Snippet { get; set; }
+    public string? Snippet { get; set; }
 
     /// <summary>
     /// Rank-fusion score in 0..1, where 1.0 means every search arm placed this page first. It reflects where the page ranked for this query, not how well its text matched, so it is only comparable within one result set.
     /// </summary>
     [JsonPropertyName("score")]
-    public required double Score { get; set; }
+    public double? Score { get; set; }
 
     [JsonPropertyName("updated_at")]
     public string? UpdatedAt { get; set; }

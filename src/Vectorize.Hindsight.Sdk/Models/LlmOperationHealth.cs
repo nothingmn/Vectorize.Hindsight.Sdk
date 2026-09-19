@@ -21,19 +21,19 @@ public sealed partial class LlmOperationHealth
     /// Operation whose LLM was probed
     /// </summary>
     [JsonPropertyName("operation")]
-    public required string Operation { get; set; }
+    public string? Operation { get; set; }
 
     /// <summary>
     /// True only when the probe connected successfully
     /// </summary>
     [JsonPropertyName("ok")]
-    public required bool Ok { get; set; }
+    public bool? Ok { get; set; }
 
     /// <summary>
     /// 'connected'; 'not_configured' (provider is 'none'); 'auth_failed' (rejected — usually a wrong/expired API key); 'unreachable' (call failed); 'timeout'
     /// </summary>
     [JsonPropertyName("status")]
-    public required string Status { get; set; }
+    public string? Status { get; set; }
 
     /// <summary>
     /// Round-trip latency of the probe call

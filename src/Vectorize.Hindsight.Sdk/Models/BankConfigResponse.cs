@@ -20,17 +20,17 @@ public sealed partial class BankConfigResponse
     /// Bank identifier
     /// </summary>
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     /// <summary>
     /// Fully resolved configuration with all hierarchical overrides applied (Python field names)
     /// </summary>
     [JsonPropertyName("config")]
-    public required Dictionary<string, JsonElement> Config { get; set; }
+    public Dictionary<string, JsonElement> Config { get; set; } = [];
 
     /// <summary>
     /// Bank-specific configuration overrides only (Python field names)
     /// </summary>
     [JsonPropertyName("overrides")]
-    public required Dictionary<string, JsonElement> Overrides { get; set; }
+    public Dictionary<string, JsonElement> Overrides { get; set; } = [];
 }

@@ -17,5 +17,5 @@ public sealed partial class RecoverConsolidationResponse
 {
 
     [JsonPropertyName("retried_count")]
-    public required int RetriedCount { get; set; }
+    public int? RetriedCount { get; set; }
 }

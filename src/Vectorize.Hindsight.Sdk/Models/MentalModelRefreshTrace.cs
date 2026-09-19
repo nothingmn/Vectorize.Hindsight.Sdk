@@ -32,7 +32,7 @@ public sealed partial class MentalModelRefreshTrace
     /// Whether the refresh ran as full or delta.
     /// </summary>
     [JsonPropertyName("effective_mode")]
-    public required string EffectiveMode { get; set; }
+    public string? EffectiveMode { get; set; }
 
     /// <summary>
     /// Why delta was requested but not applied, if that happened.
@@ -44,7 +44,7 @@ public sealed partial class MentalModelRefreshTrace
     /// What the refresh did with the document.
     /// </summary>
     [JsonPropertyName("outcome")]
-    public required string Outcome { get; set; }
+    public string? Outcome { get; set; }
 
     /// <summary>
     /// Reflect tool calls made during the refresh.

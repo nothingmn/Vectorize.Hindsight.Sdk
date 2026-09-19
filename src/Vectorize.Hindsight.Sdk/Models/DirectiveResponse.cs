@@ -17,16 +17,16 @@ public sealed partial class DirectiveResponse
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     [JsonPropertyName("name")]
-    public required string Name { get; set; }
+    public string? Name { get; set; }
 
     [JsonPropertyName("content")]
-    public required string Content { get; set; }
+    public string? Content { get; set; }
 
     [JsonPropertyName("priority")]
     public int? Priority { get; set; }

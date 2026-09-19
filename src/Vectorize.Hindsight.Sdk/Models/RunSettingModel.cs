@@ -21,7 +21,7 @@ public sealed partial class RunSettingModel
 {
 
     [JsonPropertyName("field")]
-    public required string Field { get; set; }
+    public string? Field { get; set; }
 
     /// <summary>
     /// Effective value; null when unset.
@@ -33,7 +33,7 @@ public sealed partial class RunSettingModel
     /// Shape of the value, so a client can offer the right control.
     /// </summary>
     [JsonPropertyName("kind")]
-    public required string Kind { get; set; }
+    public string? Kind { get; set; }
 
     /// <summary>
     /// Whether this bank may override the field via the bank config API.

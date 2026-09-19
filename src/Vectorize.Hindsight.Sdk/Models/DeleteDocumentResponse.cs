@@ -17,14 +17,14 @@ public sealed partial class DeleteDocumentResponse
 {
 
     [JsonPropertyName("success")]
-    public required bool Success { get; set; }
+    public bool? Success { get; set; }
 
     [JsonPropertyName("message")]
-    public required string Message { get; set; }
+    public string? Message { get; set; }
 
     [JsonPropertyName("document_id")]
-    public required string DocumentId { get; set; }
+    public string? DocumentId { get; set; }
 
     [JsonPropertyName("memory_units_deleted")]
-    public required int MemoryUnitsDeleted { get; set; }
+    public int? MemoryUnitsDeleted { get; set; }
 }

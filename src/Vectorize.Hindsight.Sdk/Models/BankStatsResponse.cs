@@ -17,34 +17,34 @@ public sealed partial class BankStatsResponse
 {
 
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     [JsonPropertyName("total_nodes")]
-    public required int TotalNodes { get; set; }
+    public int? TotalNodes { get; set; }
 
     [JsonPropertyName("total_links")]
-    public required int TotalLinks { get; set; }
+    public int? TotalLinks { get; set; }
 
     [JsonPropertyName("total_documents")]
-    public required int TotalDocuments { get; set; }
+    public int? TotalDocuments { get; set; }
 
     [JsonPropertyName("nodes_by_fact_type")]
-    public required Dictionary<string, int> NodesByFactType { get; set; }
+    public Dictionary<string, int> NodesByFactType { get; set; } = [];
 
     [JsonPropertyName("links_by_link_type")]
-    public required Dictionary<string, int> LinksByLinkType { get; set; }
+    public Dictionary<string, int> LinksByLinkType { get; set; } = [];
 
     [JsonPropertyName("links_by_fact_type")]
-    public required Dictionary<string, int> LinksByFactType { get; set; }
+    public Dictionary<string, int> LinksByFactType { get; set; } = [];
 
     [JsonPropertyName("links_breakdown")]
-    public required Dictionary<string, Dictionary<string, int>> LinksBreakdown { get; set; }
+    public Dictionary<string, Dictionary<string, int>> LinksBreakdown { get; set; } = [];
 
     [JsonPropertyName("pending_operations")]
-    public required int PendingOperations { get; set; }
+    public int? PendingOperations { get; set; }
 
     [JsonPropertyName("failed_operations")]
-    public required int FailedOperations { get; set; }
+    public int? FailedOperations { get; set; }
 
     /// <summary>
     /// Async operations grouped by status (pending, processing, completed, failed, cancelled).

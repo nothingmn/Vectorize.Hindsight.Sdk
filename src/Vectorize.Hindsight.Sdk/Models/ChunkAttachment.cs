@@ -20,31 +20,31 @@ public sealed partial class ChunkAttachment
     /// The id inside the text's placeholder; a prefix of the bytes' sha256.
     /// </summary>
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
     /// Full sha256 of the attachment bytes.
     /// </summary>
     [JsonPropertyName("hash")]
-    public required string Hash { get; set; }
+    public string? Hash { get; set; }
 
     /// <summary>
     /// 'image' or 'file', as the caller sent it.
     /// </summary>
     [JsonPropertyName("kind")]
-    public required string Kind { get; set; }
+    public string? Kind { get; set; }
 
     /// <summary>
     /// MIME type of the attachment.
     /// </summary>
     [JsonPropertyName("media_type")]
-    public required string MediaType { get; set; }
+    public string? MediaType { get; set; }
 
     /// <summary>
     /// Size of the attachment in bytes.
     /// </summary>
     [JsonPropertyName("byte_size")]
-    public required int ByteSize { get; set; }
+    public int? ByteSize { get; set; }
 
     /// <summary>
     /// Original filename, when the caller supplied one.
@@ -56,5 +56,5 @@ public sealed partial class ChunkAttachment
     /// Bank-scoped API path serving the bytes. Requires the same authorization as the bank.
     /// </summary>
     [JsonPropertyName("url")]
-    public required string Url { get; set; }
+    public string? Url { get; set; }
 }

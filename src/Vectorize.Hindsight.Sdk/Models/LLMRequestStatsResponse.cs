@@ -17,17 +17,17 @@ public sealed partial class LLMRequestStatsResponse
 {
 
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     [JsonPropertyName("period")]
-    public required string Period { get; set; }
+    public string? Period { get; set; }
 
     [JsonPropertyName("trunc")]
-    public required string Trunc { get; set; }
+    public string? Trunc { get; set; }
 
     [JsonPropertyName("start")]
-    public required string Start { get; set; }
+    public string? Start { get; set; }
 
     [JsonPropertyName("buckets")]
-    public required List<LLMRequestStatsBucket> Buckets { get; set; }
+    public List<LLMRequestStatsBucket> Buckets { get; set; } = [];
 }

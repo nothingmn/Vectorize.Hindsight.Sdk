@@ -20,7 +20,7 @@ public sealed partial class ReflectResponse
     /// The reflect response as well-formatted markdown (headers, lists, bold/italic, code blocks, etc.)
     /// </summary>
     [JsonPropertyName("text")]
-    public required string Text { get; set; }
+    public string? Text { get; set; }
 
     /// <summary>
     /// Evidence used to generate the response. Only present when include.facts is set.

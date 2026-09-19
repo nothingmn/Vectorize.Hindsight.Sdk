@@ -26,13 +26,13 @@ public sealed partial class OperationProgress
     /// Coarse phase the operation last reported (e.g. 'processing_batch').
     /// </summary>
     [JsonPropertyName("stage")]
-    public required string Stage { get; set; }
+    public string? Stage { get; set; }
 
     /// <summary>
     /// ISO-8601 timestamp when this snapshot was written.
     /// </summary>
     [JsonPropertyName("at")]
-    public required string At { get; set; }
+    public string? At { get; set; }
 
     /// <summary>
     /// Units of work finished so far (sub-batches, memories), when known.

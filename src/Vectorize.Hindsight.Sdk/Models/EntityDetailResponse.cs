@@ -17,13 +17,13 @@ public sealed partial class EntityDetailResponse
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("canonical_name")]
-    public required string CanonicalName { get; set; }
+    public string? CanonicalName { get; set; }
 
     [JsonPropertyName("mention_count")]
-    public required int MentionCount { get; set; }
+    public int? MentionCount { get; set; }
 
     [JsonPropertyName("first_seen")]
     public string? FirstSeen { get; set; }
@@ -35,5 +35,5 @@ public sealed partial class EntityDetailResponse
     public Dictionary<string, JsonElement> Metadata { get; set; } = [];
 
     [JsonPropertyName("observations")]
-    public required List<EntityObservationResponse> Observations { get; set; }
+    public List<EntityObservationResponse> Observations { get; set; } = [];
 }

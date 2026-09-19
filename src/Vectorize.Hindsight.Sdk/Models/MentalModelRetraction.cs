@@ -37,7 +37,7 @@ public sealed partial class MentalModelRetraction
     /// Whether the pass that removes them ran to completion (zero edits still counts).
     /// </summary>
     [JsonPropertyName("applied")]
-    public required bool Applied { get; set; }
+    public bool? Applied { get; set; }
 
     /// <summary>
     /// Why removal was postponed, when it was. Re-ingested facts return under new ids once consolidation catches up, so a retraction seen while facts are still pending is not acted on — removing content before the replacements land would delete claims that are still true.

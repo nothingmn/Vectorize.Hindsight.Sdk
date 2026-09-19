@@ -14,13 +14,13 @@ public sealed partial class ValidationError
 {
 
     [JsonPropertyName("loc")]
-    public required List<JsonElement> Loc { get; set; }
+    public List<JsonElement> Loc { get; set; } = [];
 
     [JsonPropertyName("msg")]
-    public required string Msg { get; set; }
+    public string? Msg { get; set; }
 
     [JsonPropertyName("type")]
-    public required string Type { get; set; }
+    public string? Type { get; set; }
 
     [JsonPropertyName("input")]
     public JsonElement? Input { get; set; }

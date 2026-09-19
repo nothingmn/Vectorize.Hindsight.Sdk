@@ -23,7 +23,7 @@ public sealed partial class MemoryGraphNodeData
     /// Memory unit ID
     /// </summary>
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     /// <summary>
     /// Short display label (the text, truncated)

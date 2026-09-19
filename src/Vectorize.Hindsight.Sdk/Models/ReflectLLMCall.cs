@@ -20,11 +20,11 @@ public sealed partial class ReflectLLMCall
     /// Call scope: agent_1, agent_2, final, etc.
     /// </summary>
     [JsonPropertyName("scope")]
-    public required string Scope { get; set; }
+    public string? Scope { get; set; }
 
     /// <summary>
     /// Execution time in milliseconds
     /// </summary>
     [JsonPropertyName("duration_ms")]
-    public required int DurationMs { get; set; }
+    public int? DurationMs { get; set; }
 }

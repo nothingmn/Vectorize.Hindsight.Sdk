@@ -26,5 +26,5 @@ public sealed partial class CreateMentalModelResponse
     /// Operation ID to track refresh progress
     /// </summary>
     [JsonPropertyName("operation_id")]
-    public required string OperationId { get; set; }
+    public string? OperationId { get; set; }
 }

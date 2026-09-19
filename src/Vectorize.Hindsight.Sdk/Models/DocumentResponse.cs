@@ -17,10 +17,10 @@ public sealed partial class DocumentResponse
 {
 
     [JsonPropertyName("id")]
-    public required string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     [JsonPropertyName("original_text")]
     public string? OriginalText { get; set; }
@@ -29,13 +29,13 @@ public sealed partial class DocumentResponse
     public string? ContentHash { get; set; }
 
     [JsonPropertyName("created_at")]
-    public required string CreatedAt { get; set; }
+    public string? CreatedAt { get; set; }
 
     [JsonPropertyName("updated_at")]
-    public required string UpdatedAt { get; set; }
+    public string? UpdatedAt { get; set; }
 
     [JsonPropertyName("memory_unit_count")]
-    public required int MemoryUnitCount { get; set; }
+    public int? MemoryUnitCount { get; set; }
 
     /// <summary>
     /// Memory count per fact type (world, experience, observation)

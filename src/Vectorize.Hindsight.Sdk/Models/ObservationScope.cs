@@ -20,11 +20,11 @@ public sealed partial class ObservationScope
     /// The exact tag set defining this scope (normalized order). Empty list is the global/untagged scope.
     /// </summary>
     [JsonPropertyName("tags")]
-    public required List<string> Tags { get; set; }
+    public List<string> Tags { get; set; } = [];
 
     /// <summary>
     /// Number of observations that live under this scope
     /// </summary>
     [JsonPropertyName("count")]
-    public required int Count { get; set; }
+    public int? Count { get; set; }
 }

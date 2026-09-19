@@ -20,23 +20,23 @@ public sealed partial class ObservationScopesResponse
     /// Distinct observation scopes, most populous first
     /// </summary>
     [JsonPropertyName("scopes")]
-    public required List<ObservationScope> Scopes { get; set; }
+    public List<ObservationScope> Scopes { get; set; } = [];
 
     /// <summary>
     /// Total number of distinct scopes in the bank (ignores limit/offset)
     /// </summary>
     [JsonPropertyName("total")]
-    public required int Total { get; set; }
+    public int? Total { get; set; }
 
     /// <summary>
     /// Maximum number of scopes returned in this page
     /// </summary>
     [JsonPropertyName("limit")]
-    public required int Limit { get; set; }
+    public int? Limit { get; set; }
 
     /// <summary>
     /// Offset this page started at
     /// </summary>
     [JsonPropertyName("offset")]
-    public required int Offset { get; set; }
+    public int? Offset { get; set; }
 }

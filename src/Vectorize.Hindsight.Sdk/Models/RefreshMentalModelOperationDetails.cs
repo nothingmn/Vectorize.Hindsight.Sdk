@@ -35,7 +35,7 @@ public sealed partial class RefreshMentalModelOperationDetails
     /// What the refresh did with the document: rewrote it (`content_written`), produced a document identical to the stored one (`content_unchanged`), had no new facts to read at all (`content_preserved_no_new_facts`), or refused to write (the `refresh_failed_*` values).
     /// </summary>
     [JsonPropertyName("outcome")]
-    public required string Outcome { get; set; }
+    public string? Outcome { get; set; }
 
     /// <summary>
     /// Why the refresh refused to write, finer-grained than the outcome — it distinguishes an op call that failed from one whose operations were all rejected, and from a baseline document that could not be read. Null unless `outcome` is one of the `refresh_failed_*` values.

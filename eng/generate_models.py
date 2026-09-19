@@ -118,6 +118,17 @@ def cs_property(name: str) -> str:
 # Populated once the spec is loaded: schema names that are bare string enums.
 ENUM_SCHEMAS: set[str] = set()
 
+# Populated once the spec is loaded: schemas reachable from a request body.
+#
+# This drives where C#'s `required` modifier is emitted, and the split is
+# deliberate. On a REQUEST model, `required` is compile-time enforcement at the
+# construction site: the caller controls the value and the compiler insists they
+# supply it. On a RESPONSE model the same modifier is a runtime landmine - it makes
+# the deserializer throw when the server omits a field, so a minor server-side drift
+# becomes an unreadable payload the caller can do nothing about. A client should be
+# tolerant of what it receives and strict about what it sends.
+REQUEST_SCHEMAS: set[str] = set()
+
 
 def ref_to_type(ref: str) -> str:
     """A reference to a bare enum schema maps to `string`, not to the class.
@@ -264,10 +275,16 @@ def generate_schema(name: str, schema: dict[str, Any], report: list[str]) -> str
             ctype.startswith("List<") is False and ctype.endswith("?")
         )
         needs_nullable = nullable or (prop_name not in required)
+        # On a response model nothing is guaranteed: the server may omit an optional
+        # field, or one the spec marks required if it drifts. Making response members
+        # nullable is what lets a payload deserialize instead of throwing - a client
+        # should be tolerant of what it receives and strict about what it sends.
+        response_nullable = name not in REQUEST_SCHEMAS
+
         if ctype in {"int", "long", "double", "bool"}:
-            decl_type = ctype + "?" if needs_nullable else ctype
+            decl_type = ctype + "?" if (needs_nullable or response_nullable) else ctype
         elif ctype == "string":
-            decl_type = "string?" if needs_nullable else "string"
+            decl_type = "string?" if (needs_nullable or response_nullable) else "string"
         elif ctype == "JsonElement":
             # Nullable, always. A default-constructed JsonElement has
             # ValueKind.Undefined, and the framework's JsonElementConverter throws
@@ -308,7 +325,16 @@ def generate_schema(name: str, schema: dict[str, Any], report: list[str]) -> str
                 or ctype.startswith("Dictionary<")
                 or ctype.endswith("?") is False
             )
-            is_required = prop_name in required and reference_typed and not nullable
+            is_required = (
+                prop_name in required
+                and reference_typed
+                and not nullable
+                and name in REQUEST_SCHEMAS
+            )
+            if name not in REQUEST_SCHEMAS and not ctype.startswith("List<") \
+                    and not ctype.startswith("Dictionary<") and ctype != "JsonElement?":
+                # A response-only member: nullable, so an absent field is not fatal.
+                decl_type = decl_type if decl_type.endswith("?") else decl_type + "?"
 
             default = ""
             if is_required:
@@ -525,6 +551,35 @@ def main() -> int:
     schemas = spec["components"]["schemas"]
 
     ENUM_SCHEMAS.update(n for n, s in schemas.items() if "enum" in s)
+
+    # Walk the paths to find which schemas a caller ever constructs.
+    def collect(node: object, out: set[str]) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "$ref":
+                    out.add(value.split("/")[-1])
+                else:
+                    collect(value, out)
+        elif isinstance(node, list):
+            for item in node:
+                collect(item, out)
+
+    roots: set[str] = set()
+    for path_item in spec["paths"].values():
+        for method in ("get", "post", "put", "patch", "delete"):
+            operation = path_item.get(method)
+            if operation and operation.get("requestBody"):
+                collect(operation["requestBody"], roots)
+
+    frontier = set(roots)
+    REQUEST_SCHEMAS.update(roots)
+    while frontier:
+        name = frontier.pop()
+        if name in schemas:
+            nested: set[str] = set()
+            collect(schemas[name], nested)
+            frontier |= (nested - REQUEST_SCHEMAS)
+            REQUEST_SCHEMAS.update(nested)
 
     report: list[str] = []
     generated: dict[pathlib.Path, str] = {}

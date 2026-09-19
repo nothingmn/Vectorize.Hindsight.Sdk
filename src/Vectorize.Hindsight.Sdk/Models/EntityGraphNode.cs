@@ -17,5 +17,5 @@ public sealed partial class EntityGraphNode
 {
 
     [JsonPropertyName("data")]
-    public required EntityGraphNodeData Data { get; set; }
+    public EntityGraphNodeData? Data { get; set; }
 }

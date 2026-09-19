@@ -17,17 +17,17 @@ public sealed partial class GraphDataResponse
 {
 
     [JsonPropertyName("nodes")]
-    public required List<MemoryGraphNode> Nodes { get; set; }
+    public List<MemoryGraphNode> Nodes { get; set; } = [];
 
     [JsonPropertyName("edges")]
-    public required List<MemoryGraphEdge> Edges { get; set; }
+    public List<MemoryGraphEdge> Edges { get; set; } = [];
 
     [JsonPropertyName("table_rows")]
-    public required List<MemoryGraphTableRow> TableRows { get; set; }
+    public List<MemoryGraphTableRow> TableRows { get; set; } = [];
 
     [JsonPropertyName("total_units")]
-    public required int TotalUnits { get; set; }
+    public int? TotalUnits { get; set; }
 
     [JsonPropertyName("limit")]
-    public required int Limit { get; set; }
+    public int? Limit { get; set; }
 }

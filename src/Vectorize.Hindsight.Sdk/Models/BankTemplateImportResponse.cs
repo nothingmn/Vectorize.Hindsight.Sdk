@@ -20,13 +20,13 @@ public sealed partial class BankTemplateImportResponse
     /// Bank that was imported into
     /// </summary>
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     /// <summary>
     /// Whether bank config was updated
     /// </summary>
     [JsonPropertyName("config_applied")]
-    public required bool ConfigApplied { get; set; }
+    public bool? ConfigApplied { get; set; }
 
     /// <summary>
     /// IDs of newly created mental models

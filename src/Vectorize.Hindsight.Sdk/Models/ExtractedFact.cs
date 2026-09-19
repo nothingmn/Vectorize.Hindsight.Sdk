@@ -24,13 +24,13 @@ public sealed partial class ExtractedFact
     /// The extracted fact text.
     /// </summary>
     [JsonPropertyName("text")]
-    public required string Text { get; set; }
+    public string? Text { get; set; }
 
     /// <summary>
     /// Perspective classification: 'world' or 'experience'.
     /// </summary>
     [JsonPropertyName("fact_type")]
-    public required string FactType { get; set; }
+    public string? FactType { get; set; }
 
     /// <summary>
     /// ISO timestamp the fact's event started, if dated.

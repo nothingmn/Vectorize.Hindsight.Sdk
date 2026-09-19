@@ -20,11 +20,11 @@ public sealed partial class VersionResponse
     /// API version string
     /// </summary>
     [JsonPropertyName("api_version")]
-    public required string ApiVersion { get; set; }
+    public string? ApiVersion { get; set; }
 
     /// <summary>
     /// Enabled feature flags
     /// </summary>
     [JsonPropertyName("features")]
-    public required FeaturesInfo Features { get; set; }
+    public FeaturesInfo? Features { get; set; }
 }

@@ -26,7 +26,7 @@ public sealed partial class MentalModelTraceToolCall
     /// Tool name: recall, search_observations, get_mental_model, expand, …
     /// </summary>
     [JsonPropertyName("tool")]
-    public required string Tool { get; set; }
+    public string? Tool { get; set; }
 
     /// <summary>
     /// The agent's stated reason for the call.
@@ -62,7 +62,7 @@ public sealed partial class MentalModelTraceToolCall
     /// Execution time in milliseconds.
     /// </summary>
     [JsonPropertyName("duration_ms")]
-    public required int DurationMs { get; set; }
+    public int? DurationMs { get; set; }
 
     /// <summary>
     /// Agent loop iteration (1-based) this call belongs to.

@@ -17,19 +17,19 @@ public sealed partial class MemoriesTimeseriesResponse
 {
 
     [JsonPropertyName("bank_id")]
-    public required string BankId { get; set; }
+    public string? BankId { get; set; }
 
     /// <summary>
     /// One of: 1h, 12h, 1d, 7d, 30d, 90d.
     /// </summary>
     [JsonPropertyName("period")]
-    public required string Period { get; set; }
+    public string? Period { get; set; }
 
     /// <summary>
     /// Bucket granularity: minute, hour, day.
     /// </summary>
     [JsonPropertyName("trunc")]
-    public required string Trunc { get; set; }
+    public string? Trunc { get; set; }
 
     /// <summary>
     /// Timestamp column used to assign each row to a bucket. `created_at` shows ingest time; `mentioned_at` / `occurred_start` show event time (falls back to `created_at` per row when null).

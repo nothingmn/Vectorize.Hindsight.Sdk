@@ -17,8 +17,8 @@ public sealed partial class KnowledgePageSearchResponse
 {
 
     [JsonPropertyName("results")]
-    public required List<KnowledgePageSearchResult> Results { get; set; }
+    public List<KnowledgePageSearchResult> Results { get; set; } = [];
 
     [JsonPropertyName("total")]
-    public required int Total { get; set; }
+    public int? Total { get; set; }
 }

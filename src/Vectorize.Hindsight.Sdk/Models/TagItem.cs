@@ -20,11 +20,11 @@ public sealed partial class TagItem
     /// The tag value
     /// </summary>
     [JsonPropertyName("tag")]
-    public required string Tag { get; set; }
+    public string? Tag { get; set; }
 
     /// <summary>
     /// Number of memories with this tag
     /// </summary>
     [JsonPropertyName("count")]
-    public required int Count { get; set; }
+    public int? Count { get; set; }
 }
