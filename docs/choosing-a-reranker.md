@@ -354,11 +354,15 @@ So GPU work needs **1.23.x or older** unless you install a CUDA 13 toolkit some 
 **4. Install the CUDA libraries** (cuDNN and cuBLAS — not part of the NuGet package):
 
 ```bash
-uv pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cudnn-cu12 \
-               nvidia-cufft-cu12 nvidia-curand-cu12
-# then point the loader at them
-export LD_LIBRARY_PATH="$(find ~/.venv -name '*.so*' -printf '%h\n' | sort -u | tr '\n' ':')$LD_LIBRARY_PATH"
+# Into any venv; these are just .so files, so no root is needed.
+uv venv --python 3.12 cudalibs
+uv pip install --python /var/tmp/cudalibs/bin/python nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cudnn-cu12 nvidia-cufft-cu12 nvidia-curand-cu12
+# then point the loader at them (adjust the path to wherever you installed them)
+export LD_LIBRARY_PATH="$(find /var/tmp/cudalibs -name '*.so*' -printf '%h\n' | sort -u | tr '\n' ':')$LD_LIBRARY_PATH"
 ```
+
+Versions confirmed working: `nvidia-cudnn-cu12==9.26.0.51`, `nvidia-cufft-cu12==11.4.1.4`,
+`nvidia-curand-cu12==10.3.10.19`.
 
 Verify with `ldd libonnxruntime_providers_cuda.so | grep 'not found'` — an empty result means it is
 ready. Then confirm the provider actually attached:
