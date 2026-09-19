@@ -207,6 +207,8 @@ namespace Vectorize.Hindsight.Sdk.Http;
 [JsonSerializable(typeof(WebhookHttpConfig))]
 [JsonSerializable(typeof(WebhookListResponse))]
 [JsonSerializable(typeof(WebhookResponse))]
+[JsonSerializable(typeof(FileRetainRequest))]
+[JsonSerializable(typeof(FileRetainMetadata))]
 [JsonSerializable(typeof(HindsightMemoryContent))]
 [JsonSerializable(typeof(HindsightContentBlock))]
 [JsonSerializable(typeof(HindsightTagGroup))]
@@ -418,6 +420,8 @@ internal static class HindsightWireModels
         typeof(WebhookHttpConfig),
         typeof(WebhookListResponse),
         typeof(WebhookResponse),
+        typeof(FileRetainRequest),
+        typeof(FileRetainMetadata),
         typeof(HindsightMemoryContent),
         typeof(HindsightContentBlock),
         typeof(HindsightTagGroup),

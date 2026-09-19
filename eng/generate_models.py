@@ -347,9 +347,13 @@ def generate_context(schemas: dict[str, Any], enum_names: set[str]) -> str:
             continue
         types.append(cs_name(name))
 
-    # Hand-written union types, declared here so the context is complete.
+    # Hand-written types, declared here so the context is complete. The
+    # generator cannot discover these from the spec: the unions come from
+    # union-typed properties and the upload options from prose.
     types.extend(
         [
+            "FileRetainRequest",
+            "FileRetainMetadata",
             "HindsightMemoryContent",
             "HindsightContentBlock",
             "HindsightTagGroup",
