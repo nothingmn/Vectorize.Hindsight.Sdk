@@ -325,9 +325,39 @@ User query ──┬─ Bank A ─ recall ─┐
              └─ Bank C ─ recall ─┘
 ```
 
-The banks stay isolated for storage and permissions; relevance across them is decided per query.
-There is **no reranker** — merging is a policy this library can defend, and relevance over the
-combined set is left to the model the candidates are handed to.
+Banks are usually separated by **ownership, permissions, trust level, lifecycle or source** — the
+separation *is* the storage and permission boundary, so nothing is merged at write time and no bank
+needs to know about another. But a question often spans them, and answering it means querying each and
+combining what comes back.
+
+The difficulty is that **a bank's retrieval score is only meaningful inside that bank**. It came from
+that bank's own pipeline over its own content distribution, so a 0.93 from one bank is not the same
+quantity as a 0.93 from another — and sorting the merged set by those numbers asserts something usually
+false. The other traps are a large bank crowding out a small authoritative one, the same fact appearing
+in several banks, and one unreachable bank being treated as a total failure.
+
+So the merge **interleaves by each bank's own rank** (A1, B1, C1, A2…), caps each bank after its own
+ranking, collapses only identity-duplicates with every bank recorded on the survivor, and treats
+partial failure as a first-class outcome. That ordering is a policy the library can defend rather than
+a relevance judgement.
+
+Cross-bank *relevance* is the separate question, and it is what the optional reranker adds:
+
+```
+first stage:   "What looks relevant inside this bank?"      <- the bank's native recall
+second stage:  "Of everything retrieved from every bank,
+                what is most useful for this query?"        <- the reranker
+```
+
+Only the second stage compares candidates against each other under one query and one model, which is
+why it is the only comparison that means anything across banks. It is optional: without one you get the
+defensible policy order, not a ranking — and note that a reranker only reorders what recall returned, so
+it cannot recover a passage a bank's own retrieval buried.
+
+The trade-offs are real: **N banks means N recall calls**, latency is the slowest bank rather than the
+average, and quality depends on the reranker if you want more than a policy order. What you get is
+isolation intact, no write-time coupling, graceful degradation when a bank is unreachable, and
+provenance that survives the merge.
 
 ```csharp
 var result = await client.RecallAcrossBanksAsync(
@@ -376,6 +406,10 @@ dotnet run --project samples/Vectorize.Hindsight.Sdk.CrossBankSample
 ```
 
 ### Choosing a reranker
+
+**Read [How to choose your reranking for cross-bank recalls](docs/choosing-a-reranker.md)** for the
+full guide: which provider to pick, where to get each ONNX model, where to put it, every option, and
+the measured RAM and latency for each.
 
 Reranking is **opt-in, and selecting a provider is a registration rather than a branch**. There is no
 switch statement over provider names and no registry to update: an `IRerankerFactory` is registered
@@ -450,7 +484,13 @@ The model assets are fetched with `test-infra/fetch-reranker-model.sh`. Design p
 - **A missing GPU falls back to CPU with a warning** rather than failing. Check `ProviderInUse`.
 - **Each provider answers a different question.** ONNX is local and free per call, so it scales with
   traffic; TypeSafe is a model call per recall, so it costs money and a round trip but needs no assets
-  and no deployment. Pick on that axis, not on benchmark folklore.
+  and no deployment. Pick on that axis, not on benchmark folklore. Measured for a 10-candidate rerank:
+  **ONNX INT8 ~117 ms and ~1.0 GB resident, $0 per call; TypeSafe ~284 ms and ~634 input tokens per
+  call, no local RAM.** Identity costs nothing and ranks nothing.
+- **Configuration is your code.** There is no appsettings key that selects a reranker and no switch
+  statement over provider names — you pass one to the constructor, set it per call on
+  `CrossBankRecallOptions`, or register it in your container. Precedence is
+  `per-call ?? constructor ?? identity`.
 
 **TypeSafe `Choice` as a reranker.** It fits, and the reason is specific: a
 [Choice](https://docs.typesafe.ai/primitives/choice) question returns a **probability distribution
@@ -640,6 +680,9 @@ inventory/                                       derived operation and schema in
 - [`inventory/`](inventory/) — every operation and schema, derived from the spec in code.
 - [`docs/admin-cli-surface.md`](docs/admin-cli-surface.md) — the admin CLI surface, verified against
   the deployed binary, including observed exit codes and output formats.
+- [`docs/choosing-a-reranker.md`](docs/choosing-a-reranker.md) — **how to choose your reranking**:
+  the three providers compared, where to get each ONNX model and where to put it, how to configure
+  each one, measured RAM and latency, and what is not yet measured.
 - [`docs/reranker-live-verification.md`](docs/reranker-live-verification.md) — the live TypeSafe
   rerank run, what it establishes, and what it does not.
 - [`test-infra/README.md`](test-infra/README.md) — the local rig and its isolation guarantees.
