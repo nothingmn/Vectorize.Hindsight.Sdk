@@ -35,11 +35,11 @@ public sealed partial class BankTemplateManifest
     /// Mental models to create or update (matched by id). Omit to leave unchanged.
     /// </summary>
     [JsonPropertyName("mental_models")]
-    public List<BankTemplateMentalModel> MentalModels { get; set; } = [];
+    public List<BankTemplateMentalModel>? MentalModels { get; set; }
 
     /// <summary>
     /// Directives to create or update (matched by name). Omit to leave unchanged.
     /// </summary>
     [JsonPropertyName("directives")]
-    public List<BankTemplateDirective> Directives { get; set; } = [];
+    public List<BankTemplateDirective>? Directives { get; set; }
 }

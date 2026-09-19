@@ -35,5 +35,5 @@ public sealed partial class ChunkData
     /// Attachments this chunk's text references, in order of first appearance, when it was retained with inline content. The text keeps each attachment's placeholder token (⟦hs-att:...⟧) where it sat, so a multimodal agent can render or reason over the original at the position it occupied in the source document. Omitted when there are none.
     /// </summary>
     [JsonPropertyName("attachments")]
-    public List<ChunkAttachment> Attachments { get; set; } = [];
+    public List<ChunkAttachment>? Attachments { get; set; }
 }

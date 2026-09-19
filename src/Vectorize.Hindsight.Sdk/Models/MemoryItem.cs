@@ -50,7 +50,7 @@ public sealed partial class MemoryItem
     /// Optional entities to combine with auto-extracted entities.
     /// </summary>
     [JsonPropertyName("entities")]
-    public List<EntityInput> Entities { get; set; } = [];
+    public List<EntityInput>? Entities { get; set; }
 
     /// <summary>
     /// Whether the names in 'entities' are resolved against the entities already in the bank. True (default) matches each name to a similar existing entity when it scores above the match threshold, so a name close to one already in the bank may resolve to that one instead of the one you wrote. False takes your names literally — an existing entity is reused only on a case-insensitive name match, any other name creates a new entity, and your names are never merged with each other. This applies only to the entities you supply here; auto-extracted entities are always resolved, since they are the extractor's guess at a name rather than yours. Ignored when 'entities' is omitted.
@@ -62,7 +62,7 @@ public sealed partial class MemoryItem
     /// Optional tags for visibility scoping. Memories with tags can be filtered during recall.
     /// </summary>
     [JsonPropertyName("tags")]
-    public List<string> Tags { get; set; } = [];
+    public List<string>? Tags { get; set; }
 
     /// <summary>
     /// How to scope observations during consolidation. 'per_tag' runs one consolidation pass per individual tag, creating separate observations for each tag. 'combined' (default) runs a single pass with all tags together. 'shared' runs a single pass over one global, untagged scope, so memories consolidate together regardless of their tags — useful for deduplicating across volatile per-call provenance tags (e.g. per-session ids) while keeping those tags on the source facts. A list of tag lists runs one pass per inner list, giving full control over which combinations to use.

@@ -55,6 +55,17 @@ MODELS_DIR = ROOT / "src" / "Vectorize.Hindsight.Sdk" / "Models"
 # public API instead of collapsing to JsonElement.
 UNION_TYPE_OVERRIDES: dict[tuple[str, str], str] = {
     ("MemoryItem", "content"): "HindsightMemoryContent",
+
+    # The tag-group expression tree, on the three models that carry one. Without these
+    # the generated model used List<JsonElement>, which meant the hand-written
+    # HindsightTagGroup tree existed but was never reached from a request - the typed
+    # union was dead weight and a caller had to assemble raw JSON to filter by tags.
+    ("RecallRequest", "tag_groups"): "List<HindsightTagGroup>",
+    ("ReflectRequest", "tag_groups"): "List<HindsightTagGroup>",
+    ("MentalModelRefreshScope", "tag_groups"): "List<HindsightTagGroup>",
+    ("MentalModelDryRunRefreshResult", "tag_groups"): "List<HindsightTagGroup>",
+    ("MentalModelRefreshTrace", "tag_groups"): "List<HindsightTagGroup>",
+    ("DocumentResponse", "tag_groups"): "List<HindsightTagGroup>",
     ("MemoryItem", "observation_scopes"): "HindsightObservationScopes",
     ("DocumentResponse", "observation_scopes"): "HindsightObservationScopes",
     ("TagGroupAndInput", "and"): "List<HindsightTagGroup>",
@@ -281,6 +292,15 @@ def generate_schema(name: str, schema: dict[str, Any], report: list[str]) -> str
         # should be tolerant of what it receives and strict about what it sends.
         response_nullable = name not in REQUEST_SCHEMAS
 
+        # An `anyOf: [array, null]` member is "may be absent", which is NOT the same as
+        # "empty by default". Emitting `= []` and serializing `"tags":[]` changes what the
+        # server sees: `tags: []` is a real filter value on this API, and it collides with
+        # `tag_groups` (documented as mutually exclusive, so a request carrying both is
+        # rejected). Nullable collections are therefore emitted as nullable with no
+        # initialiser, so DefaultIgnoreCondition.WhenWritingNull omits them exactly as the
+        # caller left them.
+        nullable_collection = nullable and ctype.startswith("List<")
+
         if ctype in {"int", "long", "double", "bool"}:
             decl_type = ctype + "?" if (needs_nullable or response_nullable) else ctype
         elif ctype == "string":
@@ -337,12 +357,14 @@ def generate_schema(name: str, schema: dict[str, Any], report: list[str]) -> str
                 decl_type = decl_type if decl_type.endswith("?") else decl_type + "?"
 
             default = ""
-            if is_required:
-                modifier = "required "
-            else:
-                modifier = ""
+            modifier = "required " if is_required else ""
+
+            if not is_required and not nullable_collection:
                 if ctype.startswith("List<") or ctype.startswith("Dictionary<"):
                     default = " = [];"
+
+            if nullable_collection:
+                decl_type = decl_type if decl_type.endswith("?") else decl_type + "?"
 
             members.append(f'    [JsonPropertyName("{prop_name}")]')
             members.append(f"    public {modifier}{decl_type} {cs_prop} {{ get; set; }}{default}")

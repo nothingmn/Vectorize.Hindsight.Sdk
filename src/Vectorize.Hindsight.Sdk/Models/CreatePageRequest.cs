@@ -29,7 +29,7 @@ public sealed partial class CreatePageRequest
     /// Tags that SCOPE which memories this page is built from — not labels. Every tag here, including a `type:&lt;x&gt;` tag used to set the page's rendered type, is part of the filter. By default a tagged page matches with `all_strict`: a memory must carry EVERY one of these tags, and untagged memories are excluded entirely. Tags invented for the page (a topic, a document type) therefore match nothing unless your memories were retained with those exact tags, and the page generates as 'I don't have information about this'. Omit this field to build the page from the whole bank, or set `trigger.tags_match` to 'all' to require the tags while still including untagged memories.
     /// </summary>
     [JsonPropertyName("tags")]
-    public List<string> Tags { get; set; } = [];
+    public List<string>? Tags { get; set; }
 
     [JsonPropertyName("max_tokens")]
     public int? MaxTokens { get; set; }

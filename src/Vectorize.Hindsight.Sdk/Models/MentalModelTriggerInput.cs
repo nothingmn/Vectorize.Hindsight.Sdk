@@ -60,7 +60,7 @@ public sealed partial class MentalModelTriggerInput
     /// Filter which fact types are retrieved during reflect. None means all types (world, experience, observation).
     /// </summary>
     [JsonPropertyName("fact_types")]
-    public List<string> FactTypes { get; set; } = [];
+    public List<string>? FactTypes { get; set; }
 
     /// <summary>
     /// If true, exclude all mental models from the reflect loop (skip search_mental_models tool).
@@ -72,7 +72,7 @@ public sealed partial class MentalModelTriggerInput
     /// Exclude specific mental models by ID from the reflect loop.
     /// </summary>
     [JsonPropertyName("exclude_mental_model_ids")]
-    public List<string> ExcludeMentalModelIds { get; set; } = [];
+    public List<string>? ExcludeMentalModelIds { get; set; }
 
     /// <summary>
     /// Override how the model's tags filter memories during refresh. If not set, defaults to 'all_strict' when the model has tags (security isolation) or 'any' when the model has no tags. Under 'all_strict' a memory must carry EVERY one of the model's tags and untagged memories are excluded, which is why a model tagged with labels its memories do not carry refreshes to empty content. Set to 'all' to keep requiring the tags while including untagged memories, or to 'any' to include untagged memories alongside any single tag match.
@@ -84,7 +84,7 @@ public sealed partial class MentalModelTriggerInput
     /// Compound boolean tag expressions to use during refresh instead of the model's own tags. When set, these tag groups are passed to reflect and the model's flat tags are NOT used for filtering. Supports nested and/or/not expressions for complex tag-based scoping.
     /// </summary>
     [JsonPropertyName("tag_groups")]
-    public List<JsonElement> TagGroups { get; set; } = [];
+    public List<JsonElement>? TagGroups { get; set; }
 
     /// <summary>
     /// Override whether the internal recall used during refresh returns raw chunk text. None means use the bank/global config default (recall_include_chunks).

@@ -113,7 +113,7 @@ public sealed partial class BankTemplateConfig
     /// Controlled vocabulary for entity labels
     /// </summary>
     [JsonPropertyName("entity_labels")]
-    public List<LabelGroupOutput> EntityLabels { get; set; } = [];
+    public List<LabelGroupOutput>? EntityLabels { get; set; }
 
     /// <summary>
     /// Allow entities outside the label vocabulary
@@ -149,7 +149,7 @@ public sealed partial class BankTemplateConfig
     /// MCP tool allowlist for this bank (None = all tools)
     /// </summary>
     [JsonPropertyName("mcp_enabled_tools")]
-    public List<string> McpEnabledTools { get; set; } = [];
+    public List<string>? McpEnabledTools { get; set; }
 
     /// <summary>
     /// LLM batch size for observation consolidation
@@ -179,7 +179,7 @@ public sealed partial class BankTemplateConfig
     /// Per-scope overrides of max_observations_per_scope: [{"scope": ["run_*", "shared"], "limit": 1}]. Each scope is a list of fnmatch tag-globs; a consolidation scope matches under exact cover (every tag matched by a glob and every glob matched by a tag). The first matching rule wins; unmatched scopes fall back to max_observations_per_scope.
     /// </summary>
     [JsonPropertyName("observation_scope_limits")]
-    public List<Dictionary<string, JsonElement>> ObservationScopeLimits { get; set; } = [];
+    public List<Dictionary<string, JsonElement>>? ObservationScopeLimits { get; set; }
 
     /// <summary>
     /// Max tokens of source facts per reflect call
@@ -209,7 +209,7 @@ public sealed partial class BankTemplateConfig
     /// Per-bank Gemini/VertexAI safety filter settings
     /// </summary>
     [JsonPropertyName("llm_gemini_safety_settings")]
-    public List<JsonElement> LlmGeminiSafetySettings { get; set; } = [];
+    public List<JsonElement>? LlmGeminiSafetySettings { get; set; }
 
     /// <summary>
     /// Recall budget mapping function: 'fixed' or 'adaptive'

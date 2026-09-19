@@ -69,7 +69,7 @@ public sealed partial class DryRunExtractRequest
     /// Controlled vocabulary for entity labels (overrides the bank's config for this call)
     /// </summary>
     [JsonPropertyName("entity_labels")]
-    public List<LabelGroupInput> EntityLabels { get; set; } = [];
+    public List<LabelGroupInput>? EntityLabels { get; set; }
 
     [JsonPropertyName("entities_allow_free_form")]
     public bool? EntitiesAllowFreeForm { get; set; }

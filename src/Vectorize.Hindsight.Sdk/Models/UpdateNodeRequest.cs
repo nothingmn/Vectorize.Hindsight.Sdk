@@ -30,7 +30,7 @@ public sealed partial class UpdateNodeRequest
     /// Replaces the page's tags, which SCOPE which memories it is built from. Pass `[]` to clear them and rebuild the page from the whole bank — the fix when a page generates 'I don't have information about this' because its tags match no memory. See the matching rules on this field in `CreatePageRequest`; `trigger.tags_match` widens them.
     /// </summary>
     [JsonPropertyName("tags")]
-    public List<string> Tags { get; set; } = [];
+    public List<string>? Tags { get; set; }
 
     [JsonPropertyName("max_tokens")]
     public int? MaxTokens { get; set; }

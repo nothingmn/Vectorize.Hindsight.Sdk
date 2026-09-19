@@ -24,7 +24,7 @@ public sealed partial class MentalModelRefreshScope
     /// Flat tags used to filter memories (null when unused).
     /// </summary>
     [JsonPropertyName("tags")]
-    public List<string> Tags { get; set; } = [];
+    public List<string>? Tags { get; set; }
 
     /// <summary>
     /// Resolved tag match mode.
@@ -36,13 +36,13 @@ public sealed partial class MentalModelRefreshScope
     /// Compound tag expressions used instead of flat tags, when set.
     /// </summary>
     [JsonPropertyName("tag_groups")]
-    public List<JsonElement> TagGroups { get; set; } = [];
+    public List<HindsightTagGroup>? TagGroups { get; set; }
 
     /// <summary>
     /// Fact types retrieved (null means all).
     /// </summary>
     [JsonPropertyName("fact_types")]
-    public List<string> FactTypes { get; set; } = [];
+    public List<string>? FactTypes { get; set; }
 
     /// <summary>
     /// Whether other mental models were excluded from the reflect loop.

@@ -62,7 +62,7 @@ public sealed partial class ReflectRequest
     /// Scope raw facts, observations, mental models, and tagged directives during reflection. With no tags, memory retrieval is unfiltered while only untagged/global directives are loaded. Use tags=[] with tags_match='exact' to select the untagged/global scope.
     /// </summary>
     [JsonPropertyName("tags")]
-    public List<string> Tags { get; set; } = [];
+    public List<string>? Tags { get; set; }
 
     /// <summary>
     /// How to match tags: 'any' (OR, includes untagged), 'all' (AND, includes untagged), 'any_strict' (OR, excludes untagged), 'all_strict' (AND, excludes untagged), or 'exact' (set equality). Untagged directives remain global in every mode.
@@ -74,7 +74,7 @@ public sealed partial class ReflectRequest
     /// Compound tag filter using boolean groups. Groups in the list are AND-ed. Each group is a leaf {tags, match} or compound {and: [...]}, {or: [...]}, {not: ...}. Mutually exclusive with tags. A leaf may set resolve='fuzzy' to match its tags against the bank's tags by trigram similarity instead of literally, so a query that says 'typsecript' still reaches memories tagged 'typescript'.
     /// </summary>
     [JsonPropertyName("tag_groups")]
-    public List<JsonElement> TagGroups { get; set; } = [];
+    public List<HindsightTagGroup>? TagGroups { get; set; }
 
     /// <summary>
     /// Apply every active directive regardless of tags. By default directives are scoped like memories: untagged directives always apply, and tagged directives apply only when the request's tags match them. Set true to apply all active directives, ignoring tag scope.
@@ -86,7 +86,7 @@ public sealed partial class ReflectRequest
     /// Filter which fact types are retrieved during reflect. None means all types (world, experience, observation).
     /// </summary>
     [JsonPropertyName("fact_types")]
-    public List<string> FactTypes { get; set; } = [];
+    public List<string>? FactTypes { get; set; }
 
     /// <summary>
     /// If true, exclude all mental models from the reflect loop (skip search_mental_models tool).
@@ -98,5 +98,5 @@ public sealed partial class ReflectRequest
     /// Exclude specific mental models by ID from the reflect loop.
     /// </summary>
     [JsonPropertyName("exclude_mental_model_ids")]
-    public List<string> ExcludeMentalModelIds { get; set; } = [];
+    public List<string>? ExcludeMentalModelIds { get; set; }
 }

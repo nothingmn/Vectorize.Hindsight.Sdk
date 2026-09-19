@@ -38,7 +38,7 @@ public sealed partial class UpdateMentalModelRequest
     /// Tags for scoped visibility
     /// </summary>
     [JsonPropertyName("tags")]
-    public List<string> Tags { get; set; } = [];
+    public List<string>? Tags { get; set; }
 
     /// <summary>
     /// Trigger settings

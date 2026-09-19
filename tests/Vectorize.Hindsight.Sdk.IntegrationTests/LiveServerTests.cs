@@ -119,27 +119,46 @@ public sealed class LiveServerTests
     }
 
     [LiveServerFact]
-    public async Task A_validation_failure_answers_422_with_per_field_detail()
+    public async Task A_server_rejected_request_answers_422_with_per_field_detail()
     {
-        // Observed body: detail is an array of objects with loc/msg/type/input, and loc
-        // is a mixed array of strings and integers.
+        // Observed response: detail is an array of objects with loc/msg/type/input, and loc
+        // is a mixed array of strings and integers. Two ways in, both real:
+        //   - a blank query, which the client does not pre-validate because the server's
+        //     rule for "blank" is the server's to state
+        //   - a well-formed value the server's enum does not permit, which the client
+        //     cannot pre-validate either because the value set grows
         using var client = LiveServer.CreateClient();
         await using var cleanup = new BankCleanup();
         var bankId = cleanup.Track(LiveServer.NewBankId("validation"));
 
         await client.CreateOrUpdateBankAsync(bankId, new CreateBankRequest(), CancellationToken.None);
 
-        var exception = await Assert.ThrowsAsync<HindsightRequestValidationException>(
-            () => client.RecallMemoriesAsync(bankId, new RecallRequest { Query = "anything" }, CancellationToken.None));
+        var blankQuery = await Assert.ThrowsAsync<HindsightRequestValidationException>(
+            () => client.RecallMemoriesAsync(
+                bankId, new RecallRequest { Query = "   " }, CancellationToken.None));
 
-        Assert.Equal(422, exception.StatusCode);
-        Assert.NotNull(exception.Errors);
-        Assert.NotEmpty(exception.Errors);
+        Assert.Equal(422, blankQuery.StatusCode);
+        Assert.NotNull(blankQuery.Errors);
+        Assert.NotEmpty(blankQuery.Errors);
 
-        var error = exception.Errors[0];
+        var badEnum = await Assert.ThrowsAsync<HindsightRequestValidationException>(
+            () => client.RecallMemoriesAsync(
+                bankId,
+                new RecallRequest { Query = "anything", Budget = "definitely-not-a-budget" },
+                CancellationToken.None));
+
+        Assert.Equal(422, badEnum.StatusCode);
+        Assert.NotNull(badEnum.Errors);
+        Assert.NotEmpty(badEnum.Errors);
+
+        var error = badEnum.Errors[0];
         Assert.False(string.IsNullOrWhiteSpace(error.Message));
         Assert.Equal(JsonValueKind.Array, error.Location.ValueKind);
         Assert.False(string.IsNullOrWhiteSpace(error.LocationPath));
+
+        // The input the server echoes back is preserved, because it is untyped and a legal
+        // null in the specification.
+        Assert.NotNull(error.Input);
     }
 
     [LiveServerFact]

@@ -77,7 +77,7 @@ public sealed partial class PromptBlockModel
     /// Allowed values, when `kind` is `choice`.
     /// </summary>
     [JsonPropertyName("choices")]
-    public List<string> Choices { get; set; } = [];
+    public List<string>? Choices { get; set; }
 
     /// <summary>
     /// Whether this bank may override the field via the bank config API. Server-level fields shape the prompt but cannot be set per bank, and offering to edit one would only collect a 400.

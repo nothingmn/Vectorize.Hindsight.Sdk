@@ -20,5 +20,5 @@ public sealed partial class ConsolidationRequest
     /// Optional list of tag scopes to consolidate. Each scope is a list of tags. Only unconsolidated memories whose tags contain all tags in at least one scope will be processed. If omitted, all unconsolidated memories are processed.
     /// </summary>
     [JsonPropertyName("observation_scopes")]
-    public List<List<string>> ObservationScopes { get; set; } = [];
+    public List<List<string>>? ObservationScopes { get; set; }
 }

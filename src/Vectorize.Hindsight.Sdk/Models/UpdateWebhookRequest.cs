@@ -32,7 +32,7 @@ public sealed partial class UpdateWebhookRequest
     /// List of event types
     /// </summary>
     [JsonPropertyName("event_types")]
-    public List<string> EventTypes { get; set; } = [];
+    public List<string>? EventTypes { get; set; }
 
     /// <summary>
     /// Whether this webhook is active

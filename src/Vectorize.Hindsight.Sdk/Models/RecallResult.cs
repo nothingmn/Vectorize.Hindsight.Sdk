@@ -26,7 +26,7 @@ public sealed partial class RecallResult
     public string? Type { get; set; }
 
     [JsonPropertyName("entities")]
-    public List<string> Entities { get; set; } = [];
+    public List<string>? Entities { get; set; }
 
     [JsonPropertyName("context")]
     public string? Context { get; set; }
@@ -50,10 +50,10 @@ public sealed partial class RecallResult
     public string? ChunkId { get; set; }
 
     [JsonPropertyName("tags")]
-    public List<string> Tags { get; set; } = [];
+    public List<string>? Tags { get; set; }
 
     [JsonPropertyName("source_fact_ids")]
-    public List<string> SourceFactIds { get; set; } = [];
+    public List<string>? SourceFactIds { get; set; }
 
     [JsonPropertyName("scores")]
     public RecallScores? Scores { get; set; }
@@ -62,5 +62,5 @@ public sealed partial class RecallResult
     /// Attachments this fact was drawn from, as recorded per fact at extraction time — the same edge the memory read endpoints return, not everything its chunk happened to carry. A fact stated in prose reports none. Omitted when there are none.
     /// </summary>
     [JsonPropertyName("attachments")]
-    public List<ChunkAttachment> Attachments { get; set; } = [];
+    public List<ChunkAttachment>? Attachments { get; set; }
 }

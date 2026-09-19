@@ -44,5 +44,5 @@ public sealed partial class UpdateDirectiveRequest
     /// New tags
     /// </summary>
     [JsonPropertyName("tags")]
-    public List<string> Tags { get; set; } = [];
+    public List<string>? Tags { get; set; }
 }

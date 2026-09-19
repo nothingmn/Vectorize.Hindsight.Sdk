@@ -71,7 +71,7 @@ public sealed partial class OperationStatusResponse
     /// Child operations for batch operations (if applicable)
     /// </summary>
     [JsonPropertyName("child_operations")]
-    public List<ChildOperationStatus> ChildOperations { get; set; } = [];
+    public List<ChildOperationStatus>? ChildOperations { get; set; }
 
     /// <summary>
     /// Raw task payload (params the operation was submitted with). Only populated when include_payload=true.

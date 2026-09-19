@@ -71,5 +71,5 @@ public sealed partial class DocumentResponse
     /// Attachments referenced by this document, when it was retained with inline content. Each carries a bank-scoped `url` serving the original bytes. Omitted when there are none.
     /// </summary>
     [JsonPropertyName("attachments")]
-    public List<ChunkAttachment> Attachments { get; set; } = [];
+    public List<ChunkAttachment>? Attachments { get; set; }
 }

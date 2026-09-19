@@ -29,7 +29,7 @@ public sealed partial class RetainRequest
     /// Deprecated. Use item-level tags instead.
     /// </summary>
     [JsonPropertyName("document_tags")]
-    public List<string> DocumentTags { get; set; } = [];
+    public List<string>? DocumentTags { get; set; }
 
     /// <summary>
     /// Optional client-supplied UUID used as the identity of an async retain operation. Re-submitting with the same operation_id returns the original operation and creates no new work, so retrying after a lost or timed-out acknowledgement will not enqueue a duplicate. Reusing an id that belongs to a different operation returns HTTP 409. Ignored for synchronous retain.

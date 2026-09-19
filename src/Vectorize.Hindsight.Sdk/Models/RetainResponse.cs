@@ -41,7 +41,7 @@ public sealed partial class RetainResponse
     /// Operation IDs when items were submitted as multiple strategy groups (async=true with mixed per-item strategies). operation_id is set to the first entry for backward compatibility.
     /// </summary>
     [JsonPropertyName("operation_ids")]
-    public List<string> OperationIds { get; set; } = [];
+    public List<string>? OperationIds { get; set; }
 
     /// <summary>
     /// Token usage metrics for LLM calls during fact extraction (only present for synchronous operations)
