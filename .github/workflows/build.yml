@@ -38,7 +38,7 @@ jobs:
       # symbol package, and a shallow clone has no commit to read. Without it the source
       # link is empty and the symbol package resolves to nothing.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
