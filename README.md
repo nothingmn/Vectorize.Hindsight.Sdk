@@ -777,6 +777,7 @@ spec/                                            the pinned OpenAPI specificatio
 test-infra/                                      the local server rig
 docs/                                            verified API notes, live findings, decisions
 inventory/                                       derived operation and schema inventory
+requirements/                                    product + technical requirements for planned work
 ```
 
 ---
@@ -790,6 +791,8 @@ inventory/                                       derived operation and schema in
 - [`inventory/`](inventory/) — every operation and schema, derived from the spec in code.
 - [`docs/admin-cli-surface.md`](docs/admin-cli-surface.md) — the admin CLI surface, verified against
   the deployed binary, including observed exit codes and output formats.
+- [`requirements/`](requirements/) — product and technical requirements for planned work: bank
+  pre-selection (classification) and post-query reranking, both mental-model driven.
 - [`docs/choosing-a-reranker.md`](docs/choosing-a-reranker.md) — **how to choose your reranking**:
   the three providers compared, where to get each ONNX model and where to put it, how to configure
   each one, measured RAM and latency, and what is not yet measured.
