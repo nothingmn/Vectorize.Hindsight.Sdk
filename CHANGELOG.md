@@ -18,6 +18,28 @@ mixing a 0.1.0 client with a 0.2.0 admin bridge would be reading a contract that
 
 ### Added
 
+**Derived build versions carrying the commit hash.** `eng/package_version.py` now resolves the
+version a build carries from a single declaration (`VersionPrefix` in `Directory.Build.props`) plus
+git: a commit tagged `v<prefix>` produces the bare release, and anything else produces
+`<prefix>-<sha9>` — the first nine characters of the commit as the final segment, so an artifact
+identifies its commit without a lookup. Both workflows derive the value and pass it via
+`-p:Version`, then verify the produced identity by reading the `.nuspec` back rather than trusting
+the archive name.
+
+The hash is a pre-release identifier because it cannot be anything else: `dotnet pack` rejects
+`0.1.0.abc123456` (the fourth segment must be numeric and fits in 16 bits, so even an all-digit
+5-character hash overflows) and strips `+build` metadata from the package identity. Probed against
+.NET 10 rather than assumed. The release workflow additionally refuses a tag that disagrees with the
+declared version, or a tag pointing at a different commit than the one being built.
+
+### Fixed
+
+**Package verification read two generations of archives at once.** `dotnet pack` writes into its
+output directory rather than replacing it, so packages from an earlier version survived alongside
+the current ones. Adding the hash segment surfaced this as nine verification failures that were all
+stale artifacts — the same class of bug as the coverage gate merging a history of test runs. Both
+`artifacts/test-results` and `artifacts/packages` are now purged before the step that fills them.
+
 **Reranker selection by registration.** `IRerankerFactory` in the core library and the registration
 helpers in the DI package. Selecting a reranker is a registration, not a branch: nothing compares a
 provider name or switches on a type to decide which reranker to build, so a provider added in a later

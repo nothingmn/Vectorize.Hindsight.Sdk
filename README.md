@@ -668,6 +668,44 @@ pushed to a public feed on a tag would be one mistyped tag away from an irrevers
 workflow refuses to proceed when a tag and that value disagree, because the alternative is a release
 page advertising one version while the package contains another.
 
+The version carried by a build is derived, never typed:
+
+```
+HEAD exactly on tag v<prefix>   ->  0.2.0              a release
+otherwise                       ->  0.2.0-13ef01127    a pre-release candidate
+```
+
+The **first nine characters of the commit hash are the final segment**, so every artifact identifies
+the commit inside it without a lookup. The increment itself is a human decision — a commit graph
+cannot know whether the next release is a patch or a breaking change — so `VersionPrefix` is bumped
+by hand and the rest is mechanical. A tagged build carries the bare version: appending a hash to a
+release would make it a pre-release of itself, and NuGet would order it *below* the release that
+anyone resolving `0.2.0` receives.
+
+The hash has to be a pre-release identifier rather than a fourth numeric segment, because that is the
+only position NuGet accepts it in. Probed against .NET 10:
+
+| Attempt | Result |
+| --- | --- |
+| `0.1.0.abc123456` | **Rejected** — the fourth segment must be numeric, and a hex hash has letters |
+| `0.1.0.65535` | **Rejected** — the fourth segment is a `UInt16`; even an all-digit 5-character hash overflows it |
+| `0.1.0+gabc123456` | Accepted, but the package is `0.1.0.nupkg` — NuGet strips build metadata from the identity, so the hash is invisible |
+| `0.1.0-abc123456` | **Accepted** — the package is `0.1.0-abc123456.nupkg`, with the hash as the final segment |
+
+Verified end to end rather than assumed: packing with `-p:Version=0.1.0-cafebabe1` puts that value in
+the archive name, in `<version>` inside the `.nuspec` (the identity NuGet actually resolves), and in
+the assembly's informational version.
+
+The guard rails are the ones that fire on a mistake nobody would notice:
+
+| Situation | Behaviour |
+| --- | --- |
+| `VersionPrefix` is not `MAJOR.MINOR.PATCH` | Fails; the version is derived from it, so it must be well formed |
+| No `VersionPrefix` declared | Fails; the version must come from one place |
+| `VersionPrefix` lower than an existing tag | Fails; those packages would sort below what is already published and be silently ignored |
+| Commit hash all digits with a leading zero | Fails with the SemVer reason, rather than surfacing as an opaque pack error |
+| `GITHUB_SHA` present | Preferred over local `git`, so a detached or shallow CI checkout cannot report a different commit than the one built |
+
 ### What the packaging checks actually catch
 
 Each was verified by injecting the failure it guards against:
@@ -680,6 +718,13 @@ Each was verified by injecting the failure it guards against:
 | `consume_package.sh` | A package that packs but cannot be restored, loaded, or called |
 | `coverage_gate.py` | A floor that stopped applying, and a test run that discovered zero tests |
 | `EnablePackageValidation` | A public member removed since the baseline |
+
+Two of these read a directory rather than a file, and `dotnet` appends to those directories instead
+of replacing them. So both `artifacts/test-results` and `artifacts/packages` are purged before the
+step that fills them: without that, the coverage gate merges a history of test runs (inflating the
+count and keeping a no-longer-covered package in the report), and package verification reads two
+generations of archives at once. CI gets this for free from a fresh checkout — which is exactly why
+it has to be explicit locally, or the numbers stop describing the current code.
 
 ### Dependency hygiene
 

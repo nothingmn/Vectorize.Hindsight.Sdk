@@ -55,9 +55,21 @@ jobs:
       - name: Determine the intended version
         id: version
         run: |
-          DECLARED="$(python3 eng/package_version.py)"
+          # --release gives the bare MAJOR.MINOR.PATCH: the version a tag names and
+          # the version a release publishes. The hash-bearing build version is not
+          # used here, because a release is identified by its tag, and appending a
+          # hash would make the release a pre-release of itself.
+          DECLARED="$(python3 eng/package_version.py --release)"
+          PREFIX="$(python3 eng/package_version.py --prefix)"
+          SHA="$(python3 eng/package_version.py --sha)"
+
           echo "declared=$DECLARED" >> "$GITHUB_OUTPUT"
-          echo "Declared version: $DECLARED"
+          echo "prefix=$PREFIX"     >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA"           >> "$GITHUB_OUTPUT"
+
+          echo "Declared prefix : $PREFIX"
+          echo "Release version : $DECLARED"
+          echo "Commit          : $SHA"
 
           # A tag and the declared version must agree. A tag that says v0.2.0 while the
           # build produces 0.1.0 is the failure this check exists to prevent: the release
@@ -70,6 +82,18 @@ jobs:
               echo "::error::Bump VersionPrefix in Directory.Build.props, or retag."
               exit 1
             fi
+
+            # The tag must point at the commit being released, and that commit must be
+            # the one this version's hash segment would name. A tag on a different
+            # commit than the one built is the same class of disagreement as a
+            # mismatched version, and just as invisible in the artifact.
+            TAG_SHA="$(git rev-parse "${GITHUB_REF_NAME}^{commit}")"
+            if [[ "$TAG_SHA" != "$GITHUB_SHA" ]]; then
+              echo "::error::Tag ${GITHUB_REF_NAME} points at ${TAG_SHA:0:9} but this run is building ${GITHUB_SHA:0:9}."
+              exit 1
+            fi
+
+            echo "Tag and commit agree: ${GITHUB_REF_NAME} -> ${TAG_SHA:0:9}."
           else
             echo "tag=" >> "$GITHUB_OUTPUT"
             echo "Not a tag build; producing artifacts for inspection only."
@@ -95,6 +119,7 @@ jobs:
 
       - name: Build
         run: dotnet build Vectorize.Hindsight.Sdk.slnx --configuration Release --no-restore
+             -p:Version=${{ steps.version.outputs.declared }}
 
       - name: Test
         run: dotnet test Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build
@@ -106,8 +131,27 @@ jobs:
         run: python3 eng/coverage_gate.py './artifacts/test-results/**/coverage.cobertura.xml'
 
       - name: Pack
-        run: dotnet pack Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build
-             --output ./artifacts/packages
+        run: |
+          rm -rf ./artifacts/packages
+          mkdir -p ./artifacts/packages
+          dotnet pack Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build \
+            --output ./artifacts/packages \
+            -p:Version=${{ steps.version.outputs.declared }}
+
+      # A release package must carry the bare version — no hash suffix. The hash would
+      # make it a pre-release of the very version it is releasing, so NuGet would order
+      # it below the release and anyone resolving `0.1.0` would not get it.
+      - name: Verify the release packages carry the bare version
+        run: |
+          DECLARED="${{ steps.version.outputs.declared }}"
+          for pkg in ./artifacts/packages/*.nupkg; do
+            name="$(basename "$pkg")"
+            if [[ "$name" == *"-${{ steps.version.outputs.sha }}"* ]]; then
+              echo "::error::$name carries the commit hash; a release must carry only $DECLARED."
+              exit 1
+            fi
+          done
+          echo "No release package carries the commit hash."
 
       - name: Verify the produced packages
         run: python3 eng/verify_packages.py ./artifacts/packages --expect-version "${{ steps.version.outputs.declared }}"

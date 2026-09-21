@@ -62,7 +62,15 @@ run "Verify the committed inventory matches the spec" \
   python3 eng/generate_inventory.py --check
 
 run "Report the version the build will produce" \
-  python3 eng/package_version.py
+  bash -c "echo \"  prefix: \$(python3 eng/package_version.py --prefix)\"; \
+           echo \"  sha   : \$(python3 eng/package_version.py --sha)\"; \
+           echo \"  build : \$(python3 eng/package_version.py)\""
+
+# The version the workflow derives, captured once so every later step builds the
+# same thing the workflow would. Sourcing it here rather than re-deriving means a
+# drift between the two is impossible to miss: the pack and the verification both
+# use this value.
+BUILD_VERSION="$(python3 eng/package_version.py)"
 
 # --- Build and test -----------------------------------------------------------
 
@@ -70,7 +78,8 @@ run "Restore" \
   dotnet restore Vectorize.Hindsight.Sdk.slnx
 
 run "Build (Release)" \
-  dotnet build Vectorize.Hindsight.Sdk.slnx --configuration Release --no-restore
+  dotnet build Vectorize.Hindsight.Sdk.slnx --configuration Release --no-restore \
+    -p:Version="$BUILD_VERSION"
 
 if [[ "$QUICK" -eq 0 ]]; then
   run "Test with coverage" \
@@ -96,11 +105,32 @@ fi
 # --- Package ------------------------------------------------------------------
 
 run "Pack" \
-  bash -c "dotnet pack Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build \
-    --output ./artifacts/packages"
+  bash -c "
+    # Purge first, for the same reason the test results are purged: dotnet pack writes
+    # into the output directory rather than replacing it, so a package from an earlier
+    # version survives alongside the current one. Verification then reads a mixture of
+    # generations and reports the old ones as wrong - or, worse, passes because a stale
+    # package happens to satisfy the check. In CI a fresh checkout hides this; locally
+    # it must be explicit.
+    rm -rf ./artifacts/packages
+    mkdir -p ./artifacts/packages
+    dotnet pack Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build \
+      --output ./artifacts/packages \
+      -p:Version=\"$BUILD_VERSION\""
 
 run "Verify the produced packages" \
-  bash -c "python3 eng/verify_packages.py ./artifacts/packages --expect-version \"\$(python3 eng/package_version.py)\""
+  bash -c "python3 eng/verify_packages.py ./artifacts/packages --expect-version \"$BUILD_VERSION\""
+
+# The version must be reproducible: what the workflow used must equal what the source
+# derives for this commit. A disagreement means an artifact exists that does not
+# identify the code inside it.
+run "Verify the derived version is reproducible" \
+  bash -c "RECOMPUTED=\"\$(python3 eng/package_version.py)\"; \
+           if [[ \"$BUILD_VERSION\" != \"\$RECOMPUTED\" ]]; then \
+             echo \"::error::build used $BUILD_VERSION but the source now derives \$RECOMPUTED.\"; \
+             exit 1; \
+           fi; \
+           echo \"  verified: $BUILD_VERSION\""
 
 # A packed archive is not a usable one. This consumes the package the way a real
 # consumer would — restore it from a local feed and call into it — which is the only

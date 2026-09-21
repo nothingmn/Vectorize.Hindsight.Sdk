@@ -48,6 +48,38 @@ jobs:
           dotnet-version: '10.0.x'
 
       # ---------------------------------------------------------------------
+      # Decide the version before anything else.
+      #
+      # One place declares it: VersionPrefix in Directory.Build.props. Everything
+      # else is derived here — the commit hash as the final segment — so a
+      # workflow cannot disagree with the build about what was produced.
+      #
+      # The hash is a pre-release identifier, not a fourth numeric segment,
+      # because that is the only form NuGet accepts. `dotnet pack` rejects
+      # `0.1.0.abc123456` outright (the fourth segment must be numeric and fits
+      # in 16 bits) and strips `+build` metadata from the package identity. See
+      # the header of eng/package_version.py for the three probes behind this.
+      # ---------------------------------------------------------------------
+      - name: Determine the version
+        id: version
+        run: |
+          VERSION="$(python3 eng/package_version.py)"
+          PREFIX="$(python3 eng/package_version.py --prefix)"
+          SHA="$(python3 eng/package_version.py --sha)"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "prefix=$PREFIX"   >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA"         >> "$GITHUB_OUTPUT"
+
+          echo "Declared prefix : $PREFIX"
+          echo "Commit          : $SHA"
+          echo "Build version   : $VERSION"
+
+          # A tagged commit produces the bare release; anything else is a
+          # pre-release candidate carrying the hash. Both are derived, never
+          # typed, which is what keeps the tag and the package in agreement.
+
+      # ---------------------------------------------------------------------
       # Static checks first: the workflow files themselves, then the generated
       # code. A stale generated file is reported as drift rather than as whatever
       # confusing compile error it happens to produce against the new model shapes.
@@ -76,6 +108,7 @@ jobs:
 
       - name: Build
         run: dotnet build Vectorize.Hindsight.Sdk.slnx --configuration Release --no-restore
+             -p:Version=${{ steps.version.outputs.version }}
 
       # The integration suite skips itself when no server is present, stating the reason
       # rather than failing. The unit suites need neither network nor credentials.
@@ -92,16 +125,44 @@ jobs:
       # Package, then verify what was produced.
       # ---------------------------------------------------------------------
 
+      # dotnet pack writes into the output directory rather than replacing it, so a stale
+      # package from an earlier version would survive alongside the current one and be read
+      # by the verification below. A fresh runner has no such directory; this keeps the
+      # invariant true regardless.
       - name: Pack
-        run: dotnet pack Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build
-             --output ./artifacts/packages
+        run: |
+          rm -rf ./artifacts/packages
+          mkdir -p ./artifacts/packages
+          dotnet pack Vectorize.Hindsight.Sdk.slnx --configuration Release --no-build \
+            --output ./artifacts/packages \
+            -p:Version=${{ steps.version.outputs.version }}
 
-      # `dotnet pack` succeeds on a well-formed archive; it says nothing about whether
-      # the archive contains what a consumer needs. This is the check that a package with
-      # no README, a placeholder description, or a dependency on a version that cannot
-      # exist fails here rather than in someone else's restore.
-      - name: Verify the produced packages
-        run: python3 eng/verify_packages.py ./artifacts/packages --expect-version "$(python3 eng/package_version.py)"
+      # Packing can succeed while producing the wrong version — if a project set
+      # <Version> itself, or if -p:Version was not applied for some reason. The
+      # archive name is not evidence; this opens it and reads the identity inside.
+      - name: Verify the produced packages carry the derived version
+        run: python3 eng/verify_packages.py ./artifacts/packages --expect-version "${{ steps.version.outputs.version }}"
+
+      - name: Verify the derived version is reproducible
+        run: |
+          # The version the workflow used must equal the version the source
+          # declares for this commit. If these ever disagree, an artifact has
+          # been built that does not identify the code inside it.
+          EXPECTED="${{ steps.version.outputs.version }}"
+          RECOMPUTED="$(python3 eng/package_version.py)"
+          if [[ "$EXPECTED" != "$RECOMPUTED" ]]; then
+            echo "::error::the build used $EXPECTED but the source now derives $RECOMPUTED."
+            exit 1
+          fi
+
+          # And the hash segment must really be this commit's, not a stale value.
+          SHA="$(python3 eng/package_version.py --sha)"
+          if [[ "${GITHUB_SHA:0:9}" != "$SHA" ]]; then
+            echo "::error::version hash segment $SHA does not match GITHUB_SHA ${GITHUB_SHA:0:9}."
+            exit 1
+          fi
+
+          echo "Verified: $EXPECTED carries ${GITHUB_SHA:0:9}."
 
       # Neither `dotnet pack` nor the check above proves the archive can be *restored and
       # called*. This consumes the packages from a local feed in a throwaway project, so a

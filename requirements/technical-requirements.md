@@ -389,6 +389,48 @@ rather than implying the ordering is good. *Recommended.*
 | D23 | ONNX classifier verified against a reference implementation | recommended |
 | D24 | Tests assert the intended provider actually ran | recommended |
 | D25 | Quality is measured or declared unmeasured | recommended |
+| D26 | Build version is derived: `<VersionPrefix>` on a tag, otherwise `<VersionPrefix>-<sha9>` | **decided** |
+| D27 | The commit hash is a pre-release identifier, not a fourth version segment | **decided** |
+| D28 | Pack and test-result directories are purged before the step that fills them | **decided** |
+
+### 10.1 Versioning (D26–D28)
+
+`Directory.Build.props` declares `VersionPrefix` once. `eng/package_version.py` derives everything
+else:
+
+```
+HEAD exactly on tag v<prefix>   ->  <prefix>            a release
+otherwise                       ->  <prefix>-<sha9>     a pre-release candidate
+```
+
+The first nine characters of the commit hash are the final segment, so an artifact identifies its
+commit without a lookup — and `GITHUB_SHA` is preferred over local `git`, so a detached or shallow CI
+checkout cannot report a different commit than the one built. The **increment is human** (a commit
+graph cannot know whether the next release is a patch or a breaking change); only the derivation is
+mechanical.
+
+The hash cannot be a fourth numeric segment, which was measured rather than assumed:
+
+| Attempt | Result |
+| --- | --- |
+| `0.1.0.abc123456` | Rejected — the fourth segment must be numeric; a hex hash has letters |
+| `0.1.0.65535` | Rejected — the fourth segment is a `UInt16`; even an all-digit 5-character hash overflows |
+| `0.1.0+gabc123456` | Accepted, but the package is `0.1.0.nupkg` — NuGet strips build metadata from the identity |
+| `0.1.0-abc123456` | **Accepted** — the package is `0.1.0-abc123456.nupkg`, hash as the final segment |
+
+A tagged build carries the **bare** version: appending a hash to a release would make it a
+pre-release of itself, and NuGet would order it below the release that a consumer resolving the bare
+version receives. Both workflows pass the derived value via `-p:Version` rather than letting each
+project infer one, and both verify the produced identity by reading the `.nuspec` back — the archive
+name is not evidence that the package contains what it claims.
+
+D28 exists because two gates read a *directory* rather than a file, and `dotnet` appends to those
+directories instead of replacing them. Unpurged, the coverage gate merges a history of test runs and
+package verification reads two generations of archives at once. This was found the hard way: adding
+the hash suffix left five bare-`0.1.0` packages beside the new ones and the verification failed with
+nine problems that were all stale artifacts. CI gets a fresh checkout for free, which is precisely
+why the purge has to be explicit locally.
+
 
 ---
 
