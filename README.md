@@ -793,6 +793,8 @@ Stated plainly rather than left implicit:
 ## Repository layout
 
 ```
+AGENTS.md                                        end-to-end instructions for using this library,
+                                                 written for an LLM agent (kept honest by a test)
 src/Vectorize.Hindsight.Sdk/                     the HTTP client
   Models/                                        generated DTOs (181) + HindsightValues
   Operations/                                    generated operations (15 files, tagged)
@@ -829,6 +831,10 @@ requirements/                                    product + technical requirement
 
 ## Documentation
 
+- [`AGENTS.md`](AGENTS.md) — **start here if you are an agent.** End-to-end instructions for using
+  this library: the five-minute version, every operation, the traps, and task recipes. A test
+  (`AgentDocumentationTests`) fails the build if the document names an operation or type that does
+  not exist, so it cannot silently rot.
 - [`docs/api-surface.md`](docs/api-surface.md) — the verified surface, the decisions taken, and
   the seven excluded operations.
 - [`docs/live-verification.md`](docs/live-verification.md) — what the specification does not
