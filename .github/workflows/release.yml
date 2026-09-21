@@ -213,7 +213,7 @@ jobs:
       # instead. That is how this workflow is validated before a real release.
       - name: Upload artifacts for inspection
         if: github.ref_type != 'tag'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-artifacts
           path: |
