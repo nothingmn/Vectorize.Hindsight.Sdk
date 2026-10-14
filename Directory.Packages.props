@@ -34,7 +34,7 @@
          Directory.Build.props for why 8.0.0 is not used (it pulls a package with an
          advisory, and warnings are errors here) and why it is not referenced locally
          (it warns in a checkout with no remote). -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.402" />
   </ItemGroup>
 
 </Project>
