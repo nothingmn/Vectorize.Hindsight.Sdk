@@ -59,7 +59,7 @@ public sealed partial class OperationStatusResponse
     /// Internal metadata for debugging. Structure may change without notice. Not for production use.
     /// </summary>
     [JsonPropertyName("result_metadata")]
-    public Dictionary<string, JsonElement> ResultMetadata { get; set; } = [];
+    public Dictionary<string, JsonElement>? ResultMetadata { get; set; }
 
     /// <summary>
     /// Typed, per-operation-type outcome detail, discriminated by its own `operation_type`. Populated for `refresh_mental_model` operations that have finished; null for operation types that report no typed detail, for operations still in flight, and for operations recorded before this field existed. Unlike `result_metadata` this is a supported field — new operation types add their own shape here rather than flattening fields onto the operation.
@@ -77,5 +77,5 @@ public sealed partial class OperationStatusResponse
     /// Raw task payload (params the operation was submitted with). Only populated when include_payload=true.
     /// </summary>
     [JsonPropertyName("task_payload")]
-    public Dictionary<string, JsonElement> TaskPayload { get; set; } = [];
+    public Dictionary<string, JsonElement>? TaskPayload { get; set; }
 }

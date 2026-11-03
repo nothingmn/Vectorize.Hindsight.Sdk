@@ -44,7 +44,7 @@ public sealed partial class RecallResult
     public string? DocumentId { get; set; }
 
     [JsonPropertyName("metadata")]
-    public Dictionary<string, string>? Metadata { get; set; } = [];
+    public Dictionary<string, string>? Metadata { get; set; }
 
     [JsonPropertyName("chunk_id")]
     public string? ChunkId { get; set; }

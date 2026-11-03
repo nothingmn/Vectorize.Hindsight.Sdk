@@ -65,13 +65,13 @@ public sealed partial class DocumentListItem
     /// Parameters used during retain
     /// </summary>
     [JsonPropertyName("retain_params")]
-    public Dictionary<string, JsonElement> RetainParams { get; set; } = [];
+    public Dictionary<string, JsonElement>? RetainParams { get; set; }
 
     /// <summary>
     /// Document metadata
     /// </summary>
     [JsonPropertyName("document_metadata")]
-    public Dictionary<string, JsonElement> DocumentMetadata { get; set; } = [];
+    public Dictionary<string, JsonElement>? DocumentMetadata { get; set; }
 
     /// <summary>
     /// Tags associated with this document

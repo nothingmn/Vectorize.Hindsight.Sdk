@@ -258,7 +258,7 @@ public sealed class ListMentalModelsQuery
     /// </summary>
     public string? TagsMatch { get; set; }
     /// <summary>
-    /// Detail level: 'metadata' (names/tags/staleness — the default), 'content' (adds content/config), 'full' (includes reflect_response). Content is opt-in: it is returned only when explicitly requested.
+    /// Detail level: 'metadata' (names/tags/staleness only — omits content), 'content' (adds content/config), 'full' (includes reflect_response). Content is opt-in: it is returned only when explicitly requested. Callers MUST pass an explicit detail rather than depend on the default: this contract declares 'metadata', but a 0.9.2 deployment was measured serving 'full' when no detail was given.
     /// </summary>
     public string? Detail { get; set; }
     public int? Limit { get; set; }

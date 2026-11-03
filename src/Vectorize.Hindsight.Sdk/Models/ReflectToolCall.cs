@@ -32,7 +32,7 @@ public sealed partial class ReflectToolCall
     /// Tool output (only included when include.tool_calls.output is true)
     /// </summary>
     [JsonPropertyName("output")]
-    public Dictionary<string, JsonElement> Output { get; set; } = [];
+    public Dictionary<string, JsonElement>? Output { get; set; }
 
     /// <summary>
     /// Execution time in milliseconds

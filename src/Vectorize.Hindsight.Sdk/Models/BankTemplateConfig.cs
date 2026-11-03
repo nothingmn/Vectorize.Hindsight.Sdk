@@ -131,7 +131,7 @@ public sealed partial class BankTemplateConfig
     /// Map of retain strategy name to per-strategy config dict
     /// </summary>
     [JsonPropertyName("retain_strategies")]
-    public Dictionary<string, JsonElement> RetainStrategies { get; set; } = [];
+    public Dictionary<string, JsonElement>? RetainStrategies { get; set; }
 
     /// <summary>
     /// Max chunks per streaming batch (0 disables batching)
@@ -191,13 +191,13 @@ public sealed partial class BankTemplateConfig
     /// Trigger fields merged over the built-in knowledge-page default when a page is created (e.g. {"refresh_cron": "0 * * * *"}). A trigger sent with the create request still wins.
     /// </summary>
     [JsonPropertyName("knowledge_page_default_trigger")]
-    public Dictionary<string, JsonElement> KnowledgePageDefaultTrigger { get; set; } = [];
+    public Dictionary<string, JsonElement>? KnowledgePageDefaultTrigger { get; set; }
 
     /// <summary>
     /// Default reflect options for this bank (e.g. {"reflect_search_observations_max_tokens": 3000, "reflect_search_observations_include_entities": false}). Applied to every reflect in the bank -- API, MCP and mental-model refresh -- whenever the request (or the model's trigger) leaves the option unset.
     /// </summary>
     [JsonPropertyName("reflect_default_options")]
-    public Dictionary<string, JsonElement> ReflectDefaultOptions { get; set; } = [];
+    public Dictionary<string, JsonElement>? ReflectDefaultOptions { get; set; }
 
     /// <summary>
     /// Minimum seconds between two automatic refreshes of the same mental model in this bank. 0 (the default) means no floor. Overridable per model via the trigger's min_refresh_interval_seconds.
@@ -317,5 +317,5 @@ public sealed partial class BankTemplateConfig
     /// Memory Defense policy for this bank (validated against the DefensePolicy schema on write)
     /// </summary>
     [JsonPropertyName("memory_defense")]
-    public Dictionary<string, JsonElement> MemoryDefense { get; set; } = [];
+    public Dictionary<string, JsonElement>? MemoryDefense { get; set; }
 }

@@ -41,10 +41,10 @@ public sealed partial class AuditLogEntry
     public int? DurationMs { get; set; }
 
     [JsonPropertyName("request")]
-    public Dictionary<string, JsonElement> Request { get; set; } = [];
+    public Dictionary<string, JsonElement>? Request { get; set; }
 
     [JsonPropertyName("response")]
-    public Dictionary<string, JsonElement> Response { get; set; } = [];
+    public Dictionary<string, JsonElement>? Response { get; set; }
 
     [JsonPropertyName("metadata")]
     public Dictionary<string, JsonElement> Metadata { get; set; } = [];

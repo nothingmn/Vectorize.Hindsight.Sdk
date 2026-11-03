@@ -327,7 +327,16 @@ def generate_schema(name: str, schema: dict[str, Any], report: list[str]) -> str
         # rejected). Nullable collections are therefore emitted as nullable with no
         # initialiser, so DefaultIgnoreCondition.WhenWritingNull omits them exactly as the
         # caller left them.
-        nullable_collection = nullable and ctype.startswith("List<")
+        #
+        # Dictionaries are covered by the same rule, and that is not cosmetic: `response_schema`
+        # is an `anyOf: [object, null]` member, and an empty DICTIONARY is a different value from
+        # an absent one. Emitting `= []` serialised `"response_schema": {}`, which the server
+        # rejects with `422 response_schema must define a non-empty 'properties' object` — so
+        # every mental-model create/update carrying a trigger, and every reflect call that set a
+        # schema, was refused. A List-only test for nullability sent exactly the wrong shape.
+        nullable_collection = nullable and (
+            ctype.startswith("List<") or ctype.startswith("Dictionary<")
+        )
 
         if ctype in {"int", "long", "double", "bool"}:
             decl_type = ctype + "?" if (needs_nullable or response_nullable) else ctype

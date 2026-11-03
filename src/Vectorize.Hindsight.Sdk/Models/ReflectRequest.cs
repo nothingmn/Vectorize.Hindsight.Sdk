@@ -56,7 +56,7 @@ public sealed partial class ReflectRequest
     /// Optional JSON Schema for structured output. When provided, the response will include a 'structured_output' field with the LLM response parsed according to this schema.
     /// </summary>
     [JsonPropertyName("response_schema")]
-    public Dictionary<string, JsonElement> ResponseSchema { get; set; } = [];
+    public Dictionary<string, JsonElement>? ResponseSchema { get; set; }
 
     /// <summary>
     /// Scope raw facts, observations, mental models, and tagged directives during reflection. With no tags, memory retrieval is unfiltered while only untagged/global directives are loaded. Use tags=[] with tags_match='exact' to select the untagged/global scope.

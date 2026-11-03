@@ -39,4 +39,20 @@ internal static partial class RerankLog
         Level = LogLevel.Warning,
         Message = "ONNX reranker has mapped {UnmappedCount} token piece(s) to the unknown token. The SentencePiece asset and the tokenizer vocabulary may belong to different models.")]
     internal static partial void UnmappedPieces(ILogger logger, long unmappedCount);
+
+    [LoggerMessage(
+        EventId = 4,
+        Level = LogLevel.Debug,
+        Message = "ONNX rerank timing: documents={Documents} batches={Batches} batchSize={BatchSize} maxSeq={MaxSequenceLength} tokens={Tokens} encodeMs={EncodeMs} scoreMs={ScoreMs} totalMs={TotalMs} provider={Provider}.")]
+    internal static partial void RerankTiming(
+        ILogger logger,
+        int documents,
+        int batches,
+        int batchSize,
+        int maxSequenceLength,
+        int tokens,
+        long encodeMs,
+        long scoreMs,
+        long totalMs,
+        string provider);
 }

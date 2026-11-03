@@ -460,6 +460,66 @@ public sealed class HttpTransportTests
     }
 
     [Fact]
+    public async Task A_multipart_request_announces_the_boundary_that_its_body_uses()
+    {
+        // The body carries a boundary, and the header must announce the same one. When the wrapper
+        // around the multipart content did not publish its inner Content-Type, the request went out
+        // with a body containing a boundary and NO header naming it, so the server could not split the
+        // parts and reported every field missing (422 "body.files: Field required; body.request: Field
+        // required"). Asserting on the recorded HttpRequestMessage is what pins the wire format; the
+        // library's own request model cannot, because it never described a header.
+        var (transport, handler) = Create();
+        using (transport)
+        {
+            handler.EnqueueJson(HttpStatusCode.OK, """{"success":true}""");
+
+            var request = new HindsightRequest
+            {
+                Method = HttpMethod.Post,
+                Path = "/v1/default/banks/b/files/retain",
+                PathTemplate = "POST /v1/default/banks/{bank_id}/files/retain",
+                Multipart = new MultipartPayload
+                {
+                    Parts =
+                    [
+                        new MultipartPart
+                        {
+                            Name = "request",
+                            Content = Encoding.UTF8.GetBytes("{}"),
+                            ContentType = "text/plain",
+                        },
+                        new MultipartPart
+                        {
+                            Name = "files",
+                            FileName = "note.txt",
+                            Content = Encoding.UTF8.GetBytes("hello"),
+                            ContentType = "text/plain",
+                        },
+                    ],
+                },
+            };
+
+            await transport.SendAsync(request, false, CancellationToken.None);
+
+            var sent = handler.Requests[0];
+            Assert.NotNull(sent.Content);
+            Assert.NotNull(sent.Content!.Headers.ContentType);
+            Assert.Equal("multipart/form-data", sent.Content.Headers.ContentType!.MediaType, ignoreCase: true);
+
+            var boundaryParameter = Assert.Single(
+                sent.Content.Headers.ContentType.Parameters,
+                p => p.Name.Equals("boundary", StringComparison.OrdinalIgnoreCase));
+
+            // A boundary parameter with no value is the same defect wearing a header.
+            var boundary = boundaryParameter.Value?.Trim('"');
+            Assert.False(string.IsNullOrWhiteSpace(boundary));
+
+            var body = handler.Bodies[0] ?? string.Empty;
+            Assert.Contains($"--{boundary}", body, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public async Task A_stream_backed_multipart_part_is_sent_by_filename()
     {
         var (transport, handler) = Create();

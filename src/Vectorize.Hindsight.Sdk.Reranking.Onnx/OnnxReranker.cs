@@ -99,7 +99,25 @@ public sealed class OnnxReranker : IReranker, IDisposable
             throw new HindsightConfigurationException("BatchSize must be positive.");
         }
 
-        _tokenizer = CrossEncoderTokenizer.Load(options.TokenizerJsonPath!, options.SentencePieceModelPath!);
+        // The tokenizer assets are read BEFORE the session is built, so a corrupt-but-present file throws
+        // here rather than in the session try below. Without this wrap those types (JsonReaderException,
+        // KeyNotFoundException, InvalidProtocolBufferException, …) escape TryCreate — whose catch filter
+        // only admits HindsightConfigurationException/HindsightProtocolException — and unwind the host's
+        // composition instead of degrading to "no reranker". Mirrors the same wrap already present in
+        // CrossEncoderDescriptorWindowMeasurer.LoadTokenizer, which loads the same assets.
+        CrossEncoderTokenizer tokenizer;
+        try
+        {
+            tokenizer = CrossEncoderTokenizer.Load(options.TokenizerJsonPath!, options.SentencePieceModelPath!);
+        }
+        catch (Exception ex)
+        {
+            throw new HindsightConfigurationException(
+                $"The tokenizer assets could not be read from {options.TokenizerJsonPath} and "
+                + $"{options.SentencePieceModelPath}: {ex.GetType().Name}: {ex.Message}");
+        }
+
+        _tokenizer = tokenizer;
 
         var sessionOptions = BuildSessionOptions(options, out var providerWarning);
 
@@ -246,6 +264,14 @@ public sealed class OnnxReranker : IReranker, IDisposable
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            // Cost was previously only ever INFERRED from outer wall-clock timings, and the inference
+            // kept being wrong. A batched int8 forward of N documents at MaxSequenceLength is the single
+            // largest term in a cross-bank recall, so it is measured where it happens: documents,
+            // batches, the token count actually encoded, and encode vs score milliseconds. Emitted
+            // through the library's log seam at Debug rather than to the console — a library that writes
+            // to stdout in a hot path corrupts its host's output.
+            var timing = System.Diagnostics.Stopwatch.StartNew();
+
             var scores = new double[documents.Count];
 
             // Encode once, keeping the original index so scores can be placed back in the caller's
@@ -256,20 +282,40 @@ public sealed class OnnxReranker : IReranker, IDisposable
                 encoded[index] = (index, _tokenizer.Encode(query, documents[index] ?? string.Empty, _options.MaxSequenceLength));
             }
 
+            var encodedTokens = encoded.Sum(item => item.Ids.Length);
+            var encodeMs = timing.ElapsedMilliseconds;
+
             // Shortest first: grouping by length is what makes the padding cheap.
             var ordered = encoded.OrderBy(item => item.Ids.Length).ToList();
 
+            var batchCount = 0;
             for (var offset = 0; offset < ordered.Count; offset += _options.BatchSize)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var batch = ordered.Skip(offset).Take(_options.BatchSize).ToList();
                 var batchScores = ScoreBatch(batch);
+                batchCount++;
 
                 for (var position = 0; position < batch.Count; position++)
                 {
                     scores[batch[position].Index] = batchScores[position];
                 }
+            }
+
+            if (_options.Logger is { } timingLogger)
+            {
+                RerankLog.RerankTiming(
+                    timingLogger,
+                    documents.Count,
+                    batchCount,
+                    _options.BatchSize,
+                    _options.MaxSequenceLength,
+                    encodedTokens,
+                    encodeMs,
+                    timing.ElapsedMilliseconds - encodeMs,
+                    timing.ElapsedMilliseconds,
+                    ProviderInUse);
             }
 
             Interlocked.Add(ref _scoredDocumentCount, documents.Count);

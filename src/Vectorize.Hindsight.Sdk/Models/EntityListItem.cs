@@ -32,5 +32,5 @@ public sealed partial class EntityListItem
     public string? LastSeen { get; set; }
 
     [JsonPropertyName("metadata")]
-    public Dictionary<string, JsonElement> Metadata { get; set; } = [];
+    public Dictionary<string, JsonElement>? Metadata { get; set; }
 }

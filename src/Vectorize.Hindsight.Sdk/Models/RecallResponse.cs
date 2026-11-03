@@ -20,25 +20,25 @@ public sealed partial class RecallResponse
     public List<RecallResult> Results { get; set; } = [];
 
     [JsonPropertyName("trace")]
-    public Dictionary<string, JsonElement> Trace { get; set; } = [];
+    public Dictionary<string, JsonElement>? Trace { get; set; }
 
     /// <summary>
     /// Entity states for entities mentioned in results
     /// </summary>
     [JsonPropertyName("entities")]
-    public Dictionary<string, EntityStateResponse>? Entities { get; set; } = [];
+    public Dictionary<string, EntityStateResponse>? Entities { get; set; }
 
     /// <summary>
     /// Chunks for facts, keyed by chunk_id
     /// </summary>
     [JsonPropertyName("chunks")]
-    public Dictionary<string, ChunkData>? Chunks { get; set; } = [];
+    public Dictionary<string, ChunkData>? Chunks { get; set; }
 
     /// <summary>
     /// Source facts for observation-type results, keyed by fact ID
     /// </summary>
     [JsonPropertyName("source_facts")]
-    public Dictionary<string, RecallResult>? SourceFacts { get; set; } = [];
+    public Dictionary<string, RecallResult>? SourceFacts { get; set; }
 
     /// <summary>
     /// Whether the source_facts map was cut short by the token budget. When true, some IDs in results[].source_fact_ids have no entry in source_facts — the budget ran out, the references are not dangling. Only set when source facts were requested.

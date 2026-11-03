@@ -50,5 +50,5 @@ public sealed partial class OperationProgress
     /// Operation-specific counters (e.g. observations_created, round, items_in_sub_batch).
     /// </summary>
     [JsonPropertyName("detail")]
-    public Dictionary<string, int>? Detail { get; set; } = [];
+    public Dictionary<string, int>? Detail { get; set; }
 }

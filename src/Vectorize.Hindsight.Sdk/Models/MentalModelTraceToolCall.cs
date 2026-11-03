@@ -44,7 +44,7 @@ public sealed partial class MentalModelTraceToolCall
     /// What the tool returned. Present on a dry run, which stores nothing; omitted from the trace persisted by a real refresh to keep that row bounded.
     /// </summary>
     [JsonPropertyName("output")]
-    public Dictionary<string, JsonElement> Output { get; set; } = [];
+    public Dictionary<string, JsonElement>? Output { get; set; }
 
     /// <summary>
     /// The refresh window's lower bound as given to this call — the delta watermark. Named for what it actually filters: the predicate is on the memory's updated_at, so a memory merely touched since the last refresh qualifies. Null means the tool applies no time bound at all, so its results are not limited to the window (mental-model lookup and chunk expansion behave this way).

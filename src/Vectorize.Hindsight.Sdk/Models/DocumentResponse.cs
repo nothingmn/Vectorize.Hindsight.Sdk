@@ -41,7 +41,7 @@ public sealed partial class DocumentResponse
     /// Memory count per fact type (world, experience, observation)
     /// </summary>
     [JsonPropertyName("nodes_by_fact_type")]
-    public Dictionary<string, int>? NodesByFactType { get; set; } = [];
+    public Dictionary<string, int>? NodesByFactType { get; set; }
 
     /// <summary>
     /// Tags associated with this document
@@ -53,13 +53,13 @@ public sealed partial class DocumentResponse
     /// Document metadata
     /// </summary>
     [JsonPropertyName("document_metadata")]
-    public Dictionary<string, JsonElement> DocumentMetadata { get; set; } = [];
+    public Dictionary<string, JsonElement>? DocumentMetadata { get; set; }
 
     /// <summary>
     /// Parameters used during retain
     /// </summary>
     [JsonPropertyName("retain_params")]
-    public Dictionary<string, JsonElement> RetainParams { get; set; } = [];
+    public Dictionary<string, JsonElement>? RetainParams { get; set; }
 
     /// <summary>
     /// The observation_scopes spec configured at retain time (e.g. 'all_combinations', 'per_tag', or explicit tag-set lists), captured into retain_params. None when none was set (default 'combined' scoping) or for documents retained before this was captured.

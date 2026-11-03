@@ -62,7 +62,7 @@ public sealed partial class MentalModelResponse
     /// Full reflect API response payload including based_on facts and observations
     /// </summary>
     [JsonPropertyName("reflect_response")]
-    public Dictionary<string, JsonElement> ReflectResponse { get; set; } = [];
+    public Dictionary<string, JsonElement>? ReflectResponse { get; set; }
 
     /// <summary>
     /// True when memories matching this mental model's tag/fact_type scope have been written since last_memory_seen_at — the same check that decides whether a scheduled refresh does any work, so a model flagged here is one a refresh would actually rewrite. Populated on both the single read and the list. Deletions are not observed: removing an in-scope memory leaves no write behind, so it does not raise this flag.

@@ -92,6 +92,44 @@ and cached, with the same fall-back-to-identity posture.
   memories the banks already returned: the fallback is reported on `RerankFailure` and disclosed in
   the rendered context, so a model is never told that position means relevance when it does not.
 
+**Multipart requests announced no boundary, so every file upload was rejected.** The wrapper that
+attaches streams to `MultipartFormDataContent` never published the inner content's `Content-Type`, and
+that header — which is where the generated boundary lives — stayed on the inner object. The request went
+out with a body containing a boundary and no header naming it, and the server reported every field
+missing (`422 body.files: Field required; body.request: Field required`). The body bytes were always
+correct, which is why the upload tests — which assert the library's own request model and never
+described a header — stayed green. Fixed by copying the header in the wrapper's constructor, and pinned
+by a test that asserts the sent `HttpRequestMessage`'s media type, its `boundary` parameter, and that
+the same boundary appears in the body. Found by a downstream host against a live server; details in
+[`docs/downstream-defects.md`](docs/downstream-defects.md).
+
+**An unset `response_schema` was serialised as `{}` and rejected by the server.** `response_schema` is
+declared `anyOf: [object, null]`, and the generator honoured nullability for `List<>` members only —
+so a nullable `Dictionary<>` member was emitted non-nullable with `= []`, and the serialiser wrote an
+empty object instead of omitting the member. Every mental-model create or update that set a trigger, and
+every reflect call that set a schema, was refused with `422 response_schema must define a non-empty
+'properties' object`. The rule now covers both collection shapes, which changes 19 models: every
+specification-declared nullable dictionary becomes nullable with no initialiser, so an absent field stays
+absent. Fixed in `eng/generate_models.py` rather than in generated code, because `*.g.cs` is regenerated.
+
+**A corrupt-but-present tokenizer escaped `OnnxRerankerFactory.TryCreate` and unwound the composition.**
+The constructor validates that each asset exists — and those checks throw the two types the factory
+catches — but the tokenizer *load* sat outside that wrap, and a truncated or malformed file throws
+`JsonReaderException`, `KeyNotFoundException` or `InvalidProtocolBufferException`. None of those were
+admitted by the filter, so the exception crossed the factory, was swallowed by the host's composition
+catch, and left every routing service null: the feature silently dead rather than degraded. The load is
+now wrapped and rethrown as `HindsightConfigurationException` with the cause preserved.
+
+**The declared `detail` default on a mental-model read is not the served one.** This 0.10.0 contract
+declares `metadata`; a 0.9.2 deployment was measured serving `full` with no `detail` given, which
+silently over-fetches content and trace data. The description now states that callers must pass an
+explicit `detail` rather than depend on the default, and records the version where the two disagreed.
+
+**Rerank cost is measured where it is incurred.** `RerankLog.RerankTiming` (source-generated, `Debug`)
+reports documents, batches, batch size, sequence length, encoded tokens, and encode vs score vs total
+milliseconds. The cost had only ever been estimated from outer wall-clock timings, and the estimates
+kept being wrong.
+
 ## [0.1.0] — 2026-09-19
 
 First release. Not published to nuget.org; produced by CI and attached as a build artifact.

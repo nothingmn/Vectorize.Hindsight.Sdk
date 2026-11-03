@@ -38,7 +38,7 @@ public sealed partial class MemoryItem
     public string? Context { get; set; }
 
     [JsonPropertyName("metadata")]
-    public Dictionary<string, string>? Metadata { get; set; } = [];
+    public Dictionary<string, string>? Metadata { get; set; }
 
     /// <summary>
     /// Optional document ID for this memory item. Provide a distinct document_id per source document — items sharing a document_id are grouped into the same document. Auto-generated when omitted.

@@ -331,6 +331,15 @@ internal sealed class MultipartFormDataContentAdapter : HttpContent
 
     internal MultipartFormDataContentAdapter(MultipartPayload payload)
     {
+        // The wrapper must PUBLISH its inner content type. MultipartFormDataContent generates the
+        // boundary and puts it in ITS OWN Content-Type header — and that header lives on the inner
+        // object, not on this wrapper. Without copying it across, the request goes out with a body
+        // that contains a boundary and NO header announcing it, so the server cannot split the parts
+        // and reports every field missing (observed against a live server as:
+        // "body.files: Field required; body.request: Field required", 422). Copying the header is what
+        // makes the wire format legal; nothing else about the body changes.
+        Headers.ContentType = _inner.Headers.ContentType;
+
         foreach (var part in payload.Parts)
         {
             if (part.Content is not null)

@@ -32,7 +32,7 @@ public sealed partial class ReflectResponse
     /// Structured output parsed according to the request's response_schema. Only present when response_schema was provided in the request.
     /// </summary>
     [JsonPropertyName("structured_output")]
-    public Dictionary<string, JsonElement> StructuredOutput { get; set; } = [];
+    public Dictionary<string, JsonElement>? StructuredOutput { get; set; }
 
     /// <summary>
     /// Why structured output could not be produced. Present only when a response_schema was given and the extraction call failed (provider error, timeout, unparseable output). A missing structured_output *without* this field means the answer held nothing matching the schema — the reflect itself still succeeded either way.

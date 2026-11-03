@@ -32,7 +32,7 @@ public sealed partial class EntityDetailResponse
     public string? LastSeen { get; set; }
 
     [JsonPropertyName("metadata")]
-    public Dictionary<string, JsonElement> Metadata { get; set; } = [];
+    public Dictionary<string, JsonElement>? Metadata { get; set; }
 
     [JsonPropertyName("observations")]
     public List<EntityObservationResponse> Observations { get; set; } = [];

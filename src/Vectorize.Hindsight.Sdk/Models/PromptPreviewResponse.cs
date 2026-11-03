@@ -53,7 +53,7 @@ public sealed partial class PromptPreviewResponse
     /// JSON schema the response is constrained to, when the operation constrains it.
     /// </summary>
     [JsonPropertyName("response_schema")]
-    public Dictionary<string, JsonElement> ResponseSchema { get; set; } = [];
+    public Dictionary<string, JsonElement>? ResponseSchema { get; set; }
 
     /// <summary>
     /// Why no prompt is sent, when the configuration means none is.

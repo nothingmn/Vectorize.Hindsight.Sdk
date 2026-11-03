@@ -56,6 +56,51 @@ public sealed class OnnxRerankerFactoryTests
     }
 
     [Fact]
+    public void A_corrupt_but_present_tokenizer_is_reported_rather_than_thrown()
+    {
+        // The asset-existence checks throw HindsightConfigurationException, and TryCreate catches only
+        // that and HindsightProtocolException. A file that EXISTS but cannot be PARSED threw something
+        // else entirely (JsonReaderException, KeyNotFoundException, InvalidProtocolBufferException),
+        // which escaped TryCreate, was swallowed by the host's composition catch, and left every
+        // routing service null - the feature silently dead rather than degraded. The contract in this
+        // factory's own documentation is that a broken model reports a reason and returns null.
+        var directory = Directory.CreateTempSubdirectory("hindsight-corrupt-tokenizer-");
+
+        try
+        {
+            // The model only has to EXIST: the tokenizer is read first, so the corrupt asset is what
+            // the constructor reaches. Its contents are never parsed.
+            var modelPath = Path.Combine(directory.FullName, "model_int8.onnx");
+            File.WriteAllText(modelPath, "not an onnx graph");
+
+            var tokenizerPath = Path.Combine(directory.FullName, "tokenizer.json");
+            File.WriteAllText(tokenizerPath, "{ \"model\": { \"vocab\": ");
+
+            var sentencePiecePath = Path.Combine(directory.FullName, "sentencepiece.bpe.model");
+            File.WriteAllText(sentencePiecePath, "not a sentencepiece model");
+
+            using var provider = new ServiceCollection().BuildServiceProvider();
+            using var factory = new OnnxRerankerFactory(new OnnxRerankerOptions
+            {
+                ModelPath = modelPath,
+                TokenizerJsonPath = tokenizerPath,
+                SentencePieceModelPath = sentencePiecePath,
+            });
+
+            var reranker = factory.TryCreate(provider, out var reason);
+
+            Assert.Null(reranker);
+            Assert.NotNull(reason);
+            Assert.Contains("HindsightConfigurationException", reason, StringComparison.Ordinal);
+            Assert.Contains("tokenizer", reason, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
     public void Required_turns_a_missing_model_into_a_configuration_failure()
     {
         // The other valid posture: a host that has decided local ranking is required fails at first
