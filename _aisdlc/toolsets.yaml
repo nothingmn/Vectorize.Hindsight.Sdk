@@ -1,0 +1,318 @@
+# _aisdlc/toolsets.yaml
+#
+# THE TOOL SURFACE EACH ROLE IS LAUNCHED WITH — the built-in toolsets (Hermes's own) and the MCP servers
+# (this stack's instruments) — and the rule in that role's own `STATIC.md` that asks for each of them.
+#
+# WHY THIS FILE EXISTS. The coordinator's role table (`docker/coordinator/roles.default.yaml`) bounds what a role
+# may ask of the STACK, and nothing bounded the SHELL. Measured on the profile that serves the roles — `hermes
+# tools list` — seventeen built-in toolsets were enabled at once and the three MCP servers (coordinator,
+# roslyn-lens, zoekt) carried every tool they expose, so a reviewer could `grep` where it was supposed to call
+# `code_search`, and the operator was compensating by typing "only use our MCP tools" into every prompt. A
+# promise in a prompt is not a boundary. `scripts/aisdlc-role.sh` reads THIS file and passes the row to
+# `hermes -t`, so a role that should have no shell is launched without one instead of being asked not to use it.
+#
+# THE TWO BOUNDS COMPOSE, AND NEITHER IS THE WHOLE BOUNDARY.
+#
+#   * `-t` bounds the BUILT-IN toolsets, and it also decides which MCP servers are spawned and therefore which
+#     MCP toolsets a session carries (`hermes_cli/mcp_startup.py::set_mcp_server_filter`, applied in
+#     `tools/mcp_tool_discovery.py::discover_mcp_tools`). A row that named only built-in toolsets would strip the
+#     coordinator as well — and the coordinator is the role's INSTRUMENT, the one surface whose `x-coord-role`
+#     header (`docker/coordinator/roles.default.yaml`, `header:`) bounds what the role may ask and returns one
+#     evidence record with the steps it took.
+#   * So every row names `coordinator`. Without it a restricted role has no instruments at all: no shell, no
+#     record, and a role gate that never gets asked anything.
+#   * WITHIN `mcp-coordinator`, the gate is the bound: the role's capability row decides which operations the
+#     dispatch will answer, and a request outside it is refused with a code that names the role, the capability
+#     and the tool (WP-355). This file does not restate that grant list — a second copy would be a second
+#     declaration.
+#   * `zoekt` (search) and `roslyn-lens` (analysis) are registered DIRECTLY, so a session holding them reaches
+#     those services without passing the role gate. They are a BYPASS of the gate, and they are granted narrowly:
+#     only to a role whose own rules name the direct surface, and only where the role's coordinator row already
+#     grants the tier that surface serves (`product-owner` and `product-documentation-reviewer` carry `search.*`
+#     and no analysis tier at all, so they get `zoekt` and never `roslyn-lens`). A direct server is for the
+#     reading the role's rule describes; a question that spans surfaces goes to the coordinator, which is why
+#     every row that holds a direct server holds the coordinator too.
+#
+# THE SPELLING OF THE MCP NAMES IS MEASURED, NOT ASSUMED, AND IT IS NOT THE TOOLSET NAME. The servers register as
+# `mcp-<server>` toolsets in `toolsets.py`, but on the installed build (Hermes v0.21.7) `-t` resolves a `-t` entry
+# against the configured `mcp_servers` KEY when the server is not yet registered — `hermes_cli/oneshot.py::
+# _validate_explicit_toolsets` falls back to `_configured_mcp_servers()` — and the spawn allowlist compares the
+# raw `-t` words against those same keys. Measured in `hindsight-agent-1`:
+#
+#   $ hermes -t "mcp-coordinator,file,todo" -z "reply with the single word: ok"
+#   hermes -z: ignoring unknown --toolsets entries: mcp-coordinator      <- the coordinator is NOT there
+#   ok
+#   $ hermes -t "coordinator,file,todo" -z "reply with the single word: ok"
+#   ok                                                                    <- accepted, and it spawns
+#
+# So a row writes `coordinator`, `zoekt`, `roslyn-lens` — the configured server names, which is the spelling both
+# the validator and the spawn filter match. `mcp-coordinator` reads like the right name and is silently dropped,
+# which is the exact failure this file exists to remove; `scripts/tests/toolset-table-check.sh` therefore refuses
+# the `mcp-` spelling outright rather than letting it pass as a synonym.
+#
+# THE READING RULE, AND IT IS THE WHOLE TABLE. **Silence withholds.** A role keeps a surface only when a rule in
+# its own `STATIC.md` asks for it, or when the work that rule assigns cannot be done without it. No row keeps a
+# surface "because it might be useful"; a row that keeps one on taste is the defect this file exists to remove.
+# Each `why:` names the rule it stands on, and where a role DROPS something an operator would expect it to have,
+# the same line says which rule withholds it. `_aisdlc/default` has no `STATIC.md` on purpose — `default` is not
+# a role, it is the profile a connection that names no narrower role gets — so its row is justified by the
+# entry file's own statement rather than by a rule.
+#
+# `code_execution` IS IN NO ROW, AND THE REASON IS A RULE AND NOT A MOOD. It is arbitrary code with no process
+# boundary: the widest bypass in the vocabulary. `terminal` already runs the commands and the scripts, and no
+# role's `STATIC.md` names `code_execution`, so no row may keep it. A row that keeps it is refused by
+# `scripts/tests/toolset-table-check.sh` unless that role's own protocol names it in so many words — which is how
+# a future seat that genuinely needs it gets it: by writing the rule first.
+#
+# THE CLASSES, AND WHY THE SPLIT IS BY PURPOSE RATHER THAN BY SENIORITY.
+#
+#   profile   default. Not a role: it withholds nothing (see below).
+#   process   project-manager. The seat that dispatches every worker, owns the record and schedules the long-run
+#             continuation, so it is the only role that keeps `delegation` and `cronjob` — and the only one that
+#             keeps `clarify`, because every other role's sub-agent block says it cannot ask the human anything.
+#   working   developer, qa. They run `dotnet test`, the scripts and the change loop, so they keep the shell — and
+#             the reason line says what it is for: the shell may RUN the work, it may never BE the evidence.
+#   inquiry   research. It measures with the shell because its rule 2 says a stated number comes from the command
+#             that produced it; it writes nothing into the tree, because rule 1 forbids implementing.
+#   review    product-owner, product-documentation-reviewer, technical-architect-reviewer. They read and judge and
+#             write only their own artefacts — requirements, findings — and never the fix. They keep `file`, which
+#             is how a reviewer opens what it is reviewing and how the product owner writes a requirement; they
+#             keep NO `terminal` and NO `code_execution`, so the shell is absent by construction rather than absent
+#             by promise. The two reviewers are additionally starved of the record by their own rule 1, so
+#             `memory` and `session_search` go with the shell.
+#   design    software-architect. Deferred entirely by the operator's instruction (revision 5 requirements, the
+#             lock note and its §9 register of held questions), and given a complete row anyway: a seat that is
+#             not running is a seat that must not be a hole in the table.
+#
+# THE VOCABULARY IS HERMES'S OWN, MEASURED RATHER THAN ASSUMED. `vocabulary:` is the built-in toolsets an AISDLC
+# role could conceivably be justified in holding, spelled exactly as `hermes tools list` spells them. Hermes also
+# offers `video`, `video_gen`, `x_search`, `stt`, `kanban`, `context_engine`, `homeassistant`, `spotify`, `yuanbao`
+# and the `a2a` plugin; no role protocol asks for any of them, so they are not in the vocabulary and no row may
+# name them. `mcp_servers:` carries the three this stack registers, and each says whether it is the GATE
+# (`coordinator`) or a DIRECT bypass (`zoekt`, `roslyn-lens`).
+# `scripts/tests/toolset-table-check.sh` fails when a row names a surface neither block carries, and — on a
+# machine that has `hermes` — when the installed Hermes no longer offers a built-in one the vocabulary declares,
+# which is how a rename upstream is caught instead of silently disabling a row.
+#
+# THE SUBSET THIS FILE IS WRITTEN IN, AND WHY IT IS SO PLAIN. It is read by `scripts/lib/toolsets.sh` line-wise,
+# with no YAML package, because the launcher has to run inside the agent container where no interpreter with
+# PyYAML is promised; `_aisdlc/config.yaml` is read the same way for the same reason. So: block mappings, block
+# sequences, one comma-separated scalar per field, one `why:` per role on one line. Anything else is refused by
+# the check rather than silently half-read.
+
+version: 2
+
+# The built-ins, as `hermes tools list` names them. A row may name only these or one of the `mcp_servers:` below.
+vocabulary:
+  - web
+  - browser
+  - terminal
+  - file
+  - code_execution
+  - vision
+  - image_gen
+  - tts
+  - skills
+  - todo
+  - memory
+  - session_search
+  - connections
+  - clarify
+  - delegation
+  - cronjob
+  - computer_use
+
+# The three this stack's agent registers (`docker/agent/config-seed.yaml`). `kind: gate` is the instrument every
+# row must name — its `x-coord-role` header is what bounds the role within it. `kind: direct` is a bypass of that
+# gate and is granted only where a role's own rule reads that surface and its coordinator row grants the tier.
+mcp_servers:
+  - name: coordinator
+    kind: gate
+    why: the role's instrument — it dispatches across the surfaces, binds the role from `x-coord-role`, and returns one evidence record with the steps it took, so every row names it and no row is without an instrument.
+  - name: zoekt
+    kind: direct
+    why: the search surface — text, file and line over the whole tree with the revision it read.
+  - name: roslyn-lens
+    kind: direct
+    why: the analysis surface — symbols, references, hierarchy, resolved through the compiler.
+
+roles:
+  # -------------------------------------------------------------------------------------------------------
+  # `default` — every surface a role protocol could name. It is not a role: there is no `_aisdlc/default/STATIC.md`
+  # and `docker/agent/entries/default.yaml` says so ("this entry does not invent one"), which makes it the
+  # profile a connection naming no narrower role gets. ADR-0055's fail-closed note is why it is the WIDEST:
+  # a misconfigured entry must be loud (a role with a full surface) rather than silently narrowed to a subset
+  # nobody chose. `code_execution` is the one built-in it does not carry: no protocol in this repository names
+  # it, `terminal` already runs commands, and the width that signals a misconfiguration is width in the surfaces
+  # a role could actually be justified in holding. Its MCP reach is all three.
+  # -------------------------------------------------------------------------------------------------------
+  - role: default
+    class: profile
+    keeps: web, browser, terminal, file, vision, image_gen, tts, skills, todo, memory, session_search, connections, clarify, delegation, cronjob, computer_use, coordinator, zoekt, roslyn-lens
+    why: no protocol narrows it — `entries/default.yaml` states there is no default STATIC.md — so it keeps every built-in a protocol could name except `code_execution` (no rule names it; `terminal` subsumes it) and all three MCP surfaces, and that width is how a misconfigured entry announces itself.
+
+  # -------------------------------------------------------------------------------------------------------
+  # `project-manager` — the primary seat. It keeps the shell because its own rules require it to observe rather
+  # than be told (rule 3, "Nothing is 'fixed' until it has been run. Never report a result you have not
+  # observed."), because it owns the record and writes every brief and handoff (rule 4), and because the
+  # long-run block's step 6 makes it verify in the container and drive the deployed system. `delegation` is
+  # sub-agent point 3 ("You are the only seat that can spawn agents"); `cronjob` is long-run step 1 ("Create the
+  # scheduled continuation job first"); `clarify` is sub-agent point 2 ("You are the human's only channel").
+  #
+  # THE THREE MCP SURFACES ARE RULE 9. A child that reports "no callers" has to be checked against the analysis
+  # surface, not against a `grep` this seat ran to save a round: the manager's coordinator row grants it
+  # `search.*`, `analysis.symbol`/`analysis.references` and `structural.outline`, so it reads text, structure and
+  # the one evidence record rather than guessing from a match.
+  #
+  # AND IT DROPS `todo` AND `session_search`, WHICH LOOKS ODD AND IS THE POINT. Long-run step 1 says "The run's
+  # memory is that document on disk, never the conversation" — a seat that can search its own past sessions, or
+  # hold a plan in a session-local list, has a second memory beside the state document, and the continuation job
+  # can then resume from neither. `web` is dropped for the reason the role table gives at its `project-manager`
+  # row: it carries no `web.external`. `code_execution` is dropped because no rule names it and `terminal` runs
+  # the scripts already.
+  # -------------------------------------------------------------------------------------------------------
+  - role: project-manager
+    class: process
+    keeps: terminal, file, skills, memory, clarify, delegation, cronjob, coordinator, zoekt, roslyn-lens
+    why: rules 3 and 4 and long-run steps 1 and 6 make it run, write and schedule; rule 9 makes it check a child's symbol claim on the analysis surface and its text on the search surface, with the coordinator returning the one evidence record, so `todo` and `session_search` are withheld (long-run step 1 — the run's memory is the document on disk) and `code_execution` is withheld because no rule names it.
+
+  - role: program-manager
+    class: process
+    keeps: a2a, terminal, file, skills, memory, clarify, delegation, cronjob, coordinator, zoekt, roslyn-lens
+    why: the only seat that speaks to peer project managers, so `a2a` is kept here and nowhere else; `delegation` is rule 10 (every unit is a brief), `clarify` is the human's channel, `terminal` and `file` are the register and the re-derivation of a child's facts, and `cronjob` is the two clocks in `_aisdlc/status-bump.md`
+
+  # -------------------------------------------------------------------------------------------------------
+  # `developer` — the working seat that writes the change and runs it. `terminal` and `file` are rule 6 ("Verify
+  # against the real system. A passing read-through of the code proves nothing.") and sub-agent point 4 (the
+  # shared build lock, a test run scoped to its own area); `skills` and `memory` are rule 7, which names the
+  # `recall-evidence` skill and the bank by name. The search and analysis surfaces are rule 9: the structure
+  # question is the instrument's answer, and its coordinator row grants both tiers.
+  #
+  # WHAT THE SHELL IS FOR HERE, IN THE ROW ITSELF: it may RUN the work — build it, test it, read the result of
+  # the run it performed — and it may never BE the evidence about the repository's structure. That answer
+  # belongs to the analysis surface, which is why the row keeping `terminal` is not a licence to `grep` for
+  # callers. `web` is withheld because the role table's `developer` row carries no `web.external` (rule 7 sends
+  # this seat to the bank); `delegation` because sub-agent point 3 says it cannot spawn one; `clarify` because
+  # sub-agent point 2 says it cannot ask the human; `code_execution` because no rule names it and `terminal` is
+  # the shell this seat actually uses; `todo`, `session_search`, `connections`, `vision`, `image_gen`, `tts`,
+  # `computer_use`, `browser` because no rule in the file asks for them.
+  # -------------------------------------------------------------------------------------------------------
+  - role: developer
+    class: working
+    keeps: terminal, file, skills, memory, coordinator, zoekt, roslyn-lens
+    why: rule 6 and sub-agent point 4 — it builds, tests and reads its own run — so the shell may run the work and may never be the evidence; rule 9 sends the structure question to the analysis surface and text to the search surface with `skills` and `memory` from rule 7, `web` is withheld because its row carries no `web.external`, and `code_execution` because no rule names it.
+
+  # -------------------------------------------------------------------------------------------------------
+  # `qa` — the independent challenge. Rule 3 is why it has a shell at all: "Verify against the real system, not
+  # a description of it. Assert a count or a side effect; get evidence from an actual run." `file` is the same
+  # rule seen from the other side: an asserted count is read out of the run's own artefact — a `.trx`, a log, the
+  # test file that was executed — not out of a summary of it. `skills` and `memory` are rule 7, and rule 7 is the
+  # one rule the two reviewers do NOT have: QA is the judge that gets the record, because its job is to find what
+  # recurred. Rule 9 puts code structure on the analysis surface and text on the search surface, and its
+  # coordinator row grants every tier those surfaces serve.
+  #
+  # `delegation` is withheld by sub-agent point 3 and `clarify` by point 2; rule 6 ("You do not fix") is why no
+  # edit path beyond the run's own artefacts is needed, `web` is withheld because the role table's `qa` row
+  # carries no `web.external`, and `code_execution` because no rule names it — `terminal` runs the runner.
+  # -------------------------------------------------------------------------------------------------------
+  - role: qa
+    class: working
+    keeps: terminal, file, skills, memory, coordinator, zoekt, roslyn-lens
+    why: rule 3 — a count or a side effect from an actual run, read out of the run's own artefact — makes the shell the instrument that produces the evidence and never a substitute for it; rule 9 puts structure on the analysis surface and text on the search surface, rule 7 adds `skills` and `memory`, and `code_execution` is withheld because no rule names it.
+
+  # -------------------------------------------------------------------------------------------------------
+  # `research` — the one role whose own protocol sends it outside the stack. Rule 3 ("Distinguish what is
+  # currently true from what used to be true") is what `web` answers, and its role-table row is the only
+  # non-`default` row in the middle of the set carrying `web.external`. `skills` and `memory` are rule 7.
+  #
+  # AND IT KEEPS THE SHELL, BECAUSE RULE 2 IS NOT SATISFIABLE WITHOUT IT: "Never present an inference as a
+  # measurement. If you state a number, run the command that produces it, in the same breath." A row that gave
+  # this seat `web, skills, memory` and argued the number would arrive from an instrument instead would leave the
+  # role unable to obey its own non-negotiable rule — the table contradicting the protocol it is built from.
+  # `terminal` is the command that produces the number. What it does NOT get is `file`: rule 1 ("You investigate
+  # and explain. You do not implement, redesign, accept work or change scope.") leaves no write path in the
+  # mandate, and the artefact goes back as the return. `code_execution` is withheld as everywhere else — a
+  # command is run through the shell that shows it, not through a runtime with no process boundary.
+  # -------------------------------------------------------------------------------------------------------
+  - role: research
+    class: inquiry
+    keeps: terminal, web, skills, memory, coordinator, zoekt, roslyn-lens
+    why: rule 2 ("If you state a number, run the command that produces it, in the same breath") is why `terminal` stays — this seat measures and does not infer — with rule 3's `web.external` grant behind `web`, rule 8's text-and-structure split behind `zoekt` and `roslyn-lens`, and rule 7 behind `skills` and `memory`; rule 1 leaves no write path, so `file` and `code_execution` are withheld.
+
+  # -------------------------------------------------------------------------------------------------------
+  # `product-owner` — writes requirement artefacts and nothing else (rule 1), and may never resolve what it
+  # cannot trace to the human's own words (rule 6). `skills` and `memory` are rule 7, and rule 7 is unusually
+  # load-bearing here: "Look for questions the human has already ruled, and requirements that churned — do not
+  # re-ask a settled question."
+  #
+  # IT KEEPS `file`, AND THE BOUND IS THE RULE RATHER THAN THE ABSENCE OF THE TOOL. Rule 1 — "You may write only
+  # requirement artefacts" — is a LICENCE to write, bounded by its subject. Withholding `file` did not enforce
+  # that bound; it made the seat unable to produce the artefact it exists to produce, and pushed the writing onto
+  # the project manager, who does not own the words. The bound is enforced where every other rule of this
+  # protocol is: the rule itself, and a reviewer who reads the diff. What the row does NOT carry is a shell:
+  # `terminal` and `code_execution` would be a write path and a reach into the tree that no rule of this seat
+  # asks for, and rule 6 keeps every claim to the human's own words, which is the text surface (`zoekt`) and the
+  # record (`memory`), not a command.
+  # -------------------------------------------------------------------------------------------------------
+  - role: product-owner
+    class: review
+    keeps: file, skills, memory, coordinator, zoekt
+    why: rule 1 ("You may write only requirement artefacts") is a licence whose bound is the rule — requirement artefacts only — not the absence of `file`, so `file` stays; rule 7 is why `skills`, `memory` and the text surface, rule 6 keeps every claim to the human's own words, and `terminal`, `code_execution` and `roslyn-lens` are withheld because no rule asks for a shell or a code engine.
+
+  # -------------------------------------------------------------------------------------------------------
+  # `product-documentation-reviewer` — the narrowest row in the table, and the narrowness is rule 1: "You do not
+  # consult the record — the `recall-evidence` read the working roles perform is deliberately withheld from this
+  # role." So `memory` and `session_search` go with the shell: one is the bank, the other is this seat's own past
+  # framing, and both are the organisation's prior view arriving by a different road. `skills` goes too, for the
+  # same reason and for one more: no rule in this file names a skill, and a skill carries a method the
+  # organisation settled.
+  #
+  # WHAT SURVIVES IS THE READING PATH AND THE RANKING, AND BOTH ARE RULES. `file` is rule 8: a reviewer that cannot
+  # open the requirement it is reviewing has no review — it reads the artefact with `file` and writes the gap
+  # analysis with `file`, and it still never fixes (sub-agent 4, "You are the review, not the fix"). `todo` is
+  # rule 2: every finding "ranked by severity, size and complexity". `zoekt` is the text surface those findings
+  # turn on. `coordinator` is the instrument, and it is the gate that keeps this seat inside its `search.*`-only
+  # row — which is also why `roslyn-lens` is NOT here: the role table gives this reviewer no analysis tier, and a
+  # documentation finding is not a symbol fact.
+  # -------------------------------------------------------------------------------------------------------
+  - role: product-documentation-reviewer
+    class: review
+    keeps: file, todo, coordinator, zoekt
+    why: rule 8 — it reads the artefact with `file` and writes its findings with `file`, and never the fix (sub-agent 4) — with rule 2's ranking behind `todo` and the text surface behind `zoekt`; `roslyn-lens` is withheld because its role row carries no analysis tier, and rule 1 withholds the record, so `memory`, `session_search`, `skills` and every shell are absent by construction.
+
+  # -------------------------------------------------------------------------------------------------------
+  # `technical-architect-reviewer` — same starvation rule, same absence of a shell, and the absence is what makes
+  # rule 6 mean something: "Never state an inference as a measurement. If you cite a number, run the command that
+  # produces it, in the same breath. Read the code, not just the design that describes it."
+  #
+  # IT KEEPS `file`: the design set it reviews is in the tree, and a reviewer with no read path cannot open the
+  # document under review — it would be reviewing a summary nobody showed it. `file` reads the artefact and the
+  # design set and writes the findings document; it never fixes, because rule 1 and rule 4 ("You are the review,
+  # not the fix") bound what the write is for. The code is read through the semantic and structural tiers
+  # (`roslyn-lens`), text through `zoekt`, and the spanning question through `coordinator`, which returns one
+  # evidence record with the revision it read. `todo` is rule 2's ranking.
+  # -------------------------------------------------------------------------------------------------------
+  - role: technical-architect-reviewer
+    class: review
+    keeps: file, todo, coordinator, zoekt, roslyn-lens
+    why: rule 9 — `file` opens the artefact and the design set and writes the findings, never the fix (rules 1 and 4) — rule 2's ranked gap analysis is `todo`, rule 6's "read the code, not just the design" is `roslyn-lens`, text is `zoekt` and the one evidence record is `coordinator`; no shell, and `memory`/`session_search` are withheld by rule 1.
+
+  # -------------------------------------------------------------------------------------------------------
+  # `software-architect` — DEFERRED, AND STILL ROWED. The operator deferred this seat entirely (revision 5
+  # requirements, the lock note: "The Technical Architect is deferred entirely, by the operator's instruction.
+  # No architect work is authorised", and §9 is a register of held questions rather than a plan). The row is
+  # written anyway so the table is complete, and it is written to what the file already says the seat does:
+  # rule 6 ("Keep the stack aligned. When something significant changes, update the owning document") and rule 3
+  # (a work breakdown for the developers and a separate one for QA) are why `file` is here; rule 7 is why
+  # `skills` and `memory` are; rule 3's "distinguish what is currently true from what used to be true" outside
+  # the tree is `web`, matching the `web.external` its row carries; rule 9 is why it reads code through the
+  # analysis surface and text through the search surface rather than through a `grep`.
+  #
+  # NO SHELL: the role table's `software-architect` row carries no `execution.*`, and rule 4 ("Design for
+  # verification. If QA cannot prove the behaviour matches intent, the design is not finished") puts the running
+  # on QA's side of the line. `delegation` and `clarify` are withheld by sub-agent points 3 and 2.
+  # -------------------------------------------------------------------------------------------------------
+  - role: software-architect
+    class: design
+    keeps: file, web, skills, memory, coordinator, zoekt, roslyn-lens
+    why: rules 3 and 6 (a work breakdown, and the owning document updated when the stack moves) are why `file` is here, rule 7 is why `skills` and `memory` are, and rule 9 is why it reads the code through the analysis surface and text through the search surface; it runs nothing because its row carries no `execution.*` and rule 4 puts the running on QA's side.

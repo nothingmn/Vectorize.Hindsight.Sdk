@@ -1,0 +1,6 @@
+# Local content cache for the aisdlc tool — regenerated on demand, never committed.
+.aisdlc-cache/
+
+# Build output.
+bin/
+obj/

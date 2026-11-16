@@ -1,0 +1,49 @@
+# AISDLC deployment configuration — the values THIS deployment sets.
+#
+# Both keys below are DEPLOYMENT configuration, not protocol. A different project does not inherit them:
+# it points at a different bank, and usually at a different store. Copying `_aisdlc/` into another
+# repository means editing THIS FILE, not editing twenty protocol documents.
+#
+# That is the point of the file. The bank name appears here and nowhere else in `_aisdlc/`: every other
+# document says "the bank named in `_aisdlc/config.yaml`". A name hardcoded in each role's protocol is a
+# name that drifts between them silently, and a protocol that reads from the wrong bank is worse than one
+# that refuses to read at all.
+#
+# Overrides, for a run that must not or cannot read this file (the only other place a bank may be named):
+#   --bank <name>              on the aisdlc CLI
+#   $AISDLC_BANK              in the environment
+#   --url <url> / $AISDLC_HINDSIGHT_URL   for the store address
+#
+# WHY THE DEFAULT IS LOOPBACK, AND NOT AN ADDRESS ON THE NETWORK. This stack runs its own memory server
+# (ADR-0016), deliberately, "so that nothing depends on a particular LAN address" — and every surface it
+# publishes binds 127.0.0.1, never a wildcard and never a LAN address (ADR-0042, ADR-0044). A protocol set
+# whose default pointed at a LAN address would reintroduce exactly the dependency that decision removed, and
+# would make every role's model read depend on the operator's machine being on one particular network. So the
+# tracked default is the stack's own store on its own loopback port, and a deployment that wants to read a
+# different store or bank says so explicitly — outside this file or in it, as its operator prefers.
+#
+# THIS DEPLOYMENT'S VALUES, and how they were set. The eight role models live in this stack's own bank,
+# generated server-side from THIS repository's accumulated evidence, and each is configured for a full
+# regeneration on a daily schedule (mode: full, refresh_cron: 0 10 * * *, UTC) with refresh tracing on, so an
+# unattended regeneration can be diagnosed afterwards. A model whose content is generated from another
+# project's memories would describe that project, which is why the default is this project's own bank rather
+# than the one the protocol set was first authored against.
+#
+# ONE BANK PER PROJECT, AND THE ANALYSED REPOSITORY KEEPS ITS OWN. This bank records how work is done here
+# across revisions — decisions with their reasons, measured facts with their evidence, corrections. It is
+# not the bank that holds the memories of the repository this stack analyses; those facts describe what that
+# code does, and a protocol folded out of them would describe that codebase's habits as if they were this
+# team's.
+#
+# THE BANK MUST EXIST BEFORE A REVISION STARTS, and `python3 _aisdlc/tool/aisdlc.py check` is how that is
+# proved: it asks the store's own bank collection whether the bank named below exists, then that every model
+# a role's MODEL.md declares is present with content, and exits 6 with one line naming the bank when it is
+# not. `seed` runs the same check before it writes anything. A bank nobody created is not an outage and not
+# an absent model: it is a configuration that has never been satisfied, and every role would otherwise work
+# from its static core alone while reporting the refusal honestly.
+
+# The memory bank this deployment's roles read their mental models from, and recall precedent from.
+bank: "hindsight"
+
+# The base URL of the store that serves that bank — this stack's own memory server, on its loopback port.
+hindsight_url: "http://127.0.0.1:8211"
